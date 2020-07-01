@@ -15,11 +15,11 @@
 - Supports all ERC20 standard tokens
 - Supports HTLC contracts for fast cross-chain atomic swaps
 - Meta-transactional, pay fees in tokens of your choice
-- Deposit from anywhere using simple transfers (no approve/transferFrom needed)
-- High on-chain Throughput Capacity (~480tps)
+- Deposit from anywhere using simple transfers (no approve/transferFrom required)
+- High on-chain throughput capacity (~480tps)
 - Censorship resistant (users can always transfer and withdraw)
-- Interoperable, any contract can verify, use, control tokens on Fuel
-- Fast 5 minute entry and exits
+- Interoperable, any contract or address can use, verify and control assets on Fuel
+- Fast ~5 minute entry and exits using HTLC's
 - Open-source under Apache-2.0
 
 ## Abstract
@@ -54,4 +54,12 @@ Run all tests using:
 
 ```
 npm test
+```
+
+## Benchmarks
+
+Run all benchmarks using:
+
+```
+npm run benchmark
 ```
