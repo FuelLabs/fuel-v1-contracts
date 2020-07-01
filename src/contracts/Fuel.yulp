@@ -1,0 +1,311 @@
+import "./Constructor.yulp"
+import "./Utils.yulp"
+import "./Storage.yulp"
+import "./Calldata.yulp"
+import "./Withdraw.yulp"
+import "./Address.yulp"
+import "./provers/InvalidSum.yulp"
+import "./provers/InvalidTransaction.yulp"
+import "./provers/DoubleSpend.yulp"
+import "./provers/MalformedBlock.yulp"
+import "./provers/InvalidInput.yulp"
+import "./provers/InvalidWitness.yulp"
+
+// Fuel Version 1.0.0 Optimistic Rollup
+object "Fuel" is "Constructor", "Tokens", "Address" {
+  code {
+    // Constants
+    const numTokens := 1
+    const numAddresses := 1
+    const genesisRootsLength := 0
+
+    // Copy constructor arguments to memory, verify construction
+    Constructor.copy(0)
+    Constructor.verify(0)
+    let blockProducer := Constructor.blockProducer(0)
+    let genesis := Constructor.genesis(0)
+
+    // Index the Ether and Null Address
+    indexToken(EtherToken, 0)
+    indexAddress(NullAddress, 0)
+
+    // Genesis Block Log
+    mstore(0, blockProducer, numTokens, numAddresses, 128, genesisRootsLength)
+    log3(0, 160,
+      topic"event BlockCommitted(
+        address producer,
+        uint256 numTokens,
+        uint256 numAddresses,
+        bytes32 indexed previousBlockHash,
+        uint256 indexed height,
+        bytes32[] roots)",
+      0, 0)
+
+    // Commit genesis block
+    sstore(mappingKey(Storage.BlockCommitments, 0), genesis)
+
+    // Add extra data for block producer
+    let dataSize := add(datasize("Runtime"), Constructor.size)
+
+    // Goto runtime
+    datacopy(0, dataoffset("Runtime"), dataSize)
+    return(0, dataSize)
+  }
+  object "Runtime" is
+    "Constructor",
+    "Calldata",
+    "DoubleSpend",
+    "MalformedBlock",
+    "InvalidTransaction",
+    "InvalidInput",
+    "InvalidWitness",
+    "Withdraw",
+    "Address",
+    "InvalidSum" {
+    code {
+      calldata.copy()
+
+      switch calldata.signature()
+
+      case sig"deposit(address account, address token) external" {
+        deposit(calldata.word(0), calldata.word(1))
+      }
+
+      case sig"commitRoot(bytes32 merkleTreeRoot, uint256 token,
+        uint256 fee, bytes transactions) external" {
+        commitRoot(calldata.word(0),
+          keccak256(abi.offset(calldata.word(3)), abi.length(calldata.word(3))),
+          abi.length(calldata.word(3)),
+          calldata.word(1),
+          calldata.word(2))
+      }
+
+      case sig"commitBlock(uint32 minimum, uint32 height, bytes32[] roots) external" {
+        commitBlock(
+          calldata.word(0),
+          calldata.word(1),
+          abi.length(calldata.word(2)),
+          abi.offset(calldata.word(2))
+        )
+      }
+
+      case sig"commitWitness(bytes32 transactionHashId) external" {
+        commitWitness(calldata.word(0))
+      }
+
+      case sig"commitAddress(address addr) external returns (uint256 id)" {
+        return.word(commitAddress(calldata.word(0)))
+      }
+
+      case sig"proveMalformedBlock(bytes blockHeader, bytes rootHeader,
+        uint16 rootIndex, bytes transactions) external" {
+        let block := abi.offset(calldata.word(0))
+        let root := abi.offset(calldata.word(1))
+        let rootIndex := calldata.word(2)
+        let transactions := abi.offset(calldata.word(3))
+        let transactionsLength := abi.length(calldata.word(3))
+
+        proveMalformedBlock(block, root, rootIndex, transactions, transactionsLength)
+      }
+
+      case sig"proveInvalidTransaction(bytes proof) external" {
+        proveInvalidTransaction(abi.offset(calldata.word(0)))
+      }
+
+      case sig"proveInvalidInput(bytes proofA, bytes proofB) external" {
+        let transactionA := abi.offset(calldata.word(0))
+        let transactionB := abi.offset(calldata.word(1))
+
+        proveInvalidInput(transactionA, transactionB)
+      }
+
+      case sig"proveDoubleSpend(bytes proofA, bytes proofB) external" {
+        let transactionA := abi.offset(calldata.word(0))
+        let transactionB := abi.offset(calldata.word(1))
+
+        proveDoubleSpend(transactionA, transactionB)
+      }
+
+      case sig"proveInvalidWitness(bytes proof, bytes inputs) external" {
+        proveInvalidWitness(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
+      }
+
+      case sig"proveInvalidSum(bytes proof, bytes inputs) external" {
+        proveInvalidSum(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
+      }
+
+      case sig"withdraw(bytes proof) external" {
+        withdraw(abi.offset(calldata.word(0)))
+      }
+
+      case sig"bondWithdraw(bytes blockHeader) external" {
+        bondWithdraw(abi.offset(calldata.word(0)))
+      }
+
+      case sig"witnesses(address account, address blockNumber) external view returns (bytes32 transactionHashId)" {
+        return.word(witnesses(calldata.word(0),
+          calldata.word(1)))
+      }
+
+      case sig"funnel(address account) external view returns (address)" {
+        return.word(calculateFunnelAddress(calldata.word(0)))
+      }
+
+      case sig"verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 finalization) external view returns (bool)" {
+        verifyHeader(
+          abi.offset(calldata.word(0)),
+          abi.offset(calldata.word(1)),
+          calldata.word(2),
+          calldata.word(3)
+        )
+        return.word(true)
+      }
+
+      case sig"verifyTransaction(bytes proof, uint8 finalization) external view returns (bool)" {
+        verifyTransactionProof(
+          abi.offset(calldata.word(0)),
+          calldata.word(1)
+        )
+        return.word(true)
+      }
+
+      /*
+      case sig"verifyMetadata(bytes8 metadata, bytes proof) external view returns (bool)" {
+        let verified := verifyMetadata(
+          add(_calldata, 28), // _calldata + 4 + 24
+          abi.offset(calldata.word(1))
+        )
+        return.word(verified)
+      }
+      */
+
+      case sig"selectUTXO(bytes proof) external view returns (
+        bytes32 transactionHashId,
+        uint8 outputIndex,
+        uint8 outputType,
+        address owner,
+        uint256 amount,
+        uint32 token,
+        bytes32 digest,
+        uint256 expiry,
+        address returnOwner)" {
+        TransactionProof.UTXO.assign(abi.offset(calldata.word(0)), 0)
+        return (0, UTXO.size(0))
+      }
+
+      case sig"selectOutput(bytes proof) external view returns (bytes output)" {
+        let pos := selectOutput(abi.offset(calldata.word(0)))
+        mstore(sub(pos, 64), 32)
+        mstore(sub(pos, 32), outputSize(pos))
+        return (pos, round32(outputSize(pos)))
+      }
+
+      case sig"outputId(bytes proof) external view returns (uint256 id)" {
+        let id := outputId(abi.offset(calldata.word(0)))
+        return.word(id)
+      }
+
+      case sig"inputId(bytes proof) external view returns (uint256 id)" {
+        let id := inputId(abi.offset(calldata.word(0)))
+        return.word(id)
+      }
+
+      case sig"selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata)" {
+        let pos := selectMetadata(abi.offset(calldata.word(0)), calldata.word(1))
+        return.word(mslice(pos, 8))
+      }
+
+      case sig"blockProducer() external view returns (address blockProducer)" {
+        Constructor.copy(0)
+        return(Constructor.blockProducer.position(0), 32)
+      }
+
+      case sig"blockTip() external view  returns (uint256 blockTip)" {
+        return.word(blockTip())
+      }
+
+      case sig"numTokens() external view  returns (uint256 numTokens)" {
+        return.word(numTokens())
+      }
+
+      case sig"tokens(address token) external view  returns (uint256 tokenId)" {
+        return.word(tokenId(calldata.word(0)))
+      }
+
+      case sig"numAddresses() external view  returns (uint256 numAddresses)" {
+        return.word(numAddresses())
+      }
+
+      case sig"addresses(address owner) external view  returns (uint256 addressId)" {
+        return.word(addresses(calldata.word(0)))
+      }
+
+      case sig"deposits(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount)" {
+        return.word(deposits(
+          calldata.word(0),
+          calldata.word(1),
+          calldata.word(2)
+        ))
+      }
+
+      case sig"blockCommitments(uint256 blockNumber) external view  returns (bytes32 blockHash)" {
+        return.word(blockCommitments(calldata.word(0)))
+      }
+
+      case sig"blockRoots(bytes32 root) external view  returns (uint256 blockNumber)" {
+        return.word(roots(calldata.word(0)))
+      }
+
+      case sig"withdrawals(uint256 blockHeight, bytes32 withdrawalHashId) external view returns (bool withdrawn)" {
+        return.word(withdrawals(calldata.word(0), calldata.word(1)))
+      }
+
+      case sig"BOND_SIZE() external view returns (uint256)" {
+        Constructor.copy(0)
+        return(Constructor.bondSize.position(0), 32)
+      }
+
+      case sig"MAX_ROOT_SIZE() external view returns (uint256)" {
+        return.word(MAX_ROOT_SIZE)
+      }
+
+      case sig"SUBMISSION_DELAY() external view returns (uint256)" {
+        Constructor.copy(0)
+        return(Constructor.submissionDelay.position(0), 32)
+      }
+
+      case sig"FINALIZATION_DELAY() external view returns (uint256)" {
+        Constructor.copy(0)
+        return(Constructor.finalizationDelay.position(0), 32)
+      }
+
+      case sig"PENALTY_DELAY() external view returns (uint256)" {
+        Constructor.copy(0)
+        return(Constructor.penaltyDelay.position(0), 32)
+      }
+
+      case sig"penalty() external view returns (uint256)" {
+        return.word(getPenalty())
+      }
+
+      case sig"name() external view returns (string)" {
+        Constructor.copy(0)
+        Constructor.name.copy(0, 0)
+        return(0, 96)
+      }
+
+      case sig"version() external view returns (string)" {
+        Constructor.copy(0)
+        Constructor.version.copy(0, 0)
+        return(0, 96)
+      }
+
+      default {
+        require(0, error"invalid-signature")
+      }
+
+      // Ensure Execution Stop
+      stop()
+    }
+  }
+}

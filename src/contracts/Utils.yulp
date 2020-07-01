@@ -1,0 +1,39 @@
+object "Utils" {
+  code {
+    const Ether := 0
+
+    function mul32(x) -> result {
+      result := mul(x, 32)
+    }
+
+    function eqor(x, y, z) -> result {
+      result := or(eq(x, y), eq(x, z))
+    }
+
+    function round32(x) -> result {
+      result := mul(div(x, 32), 32)
+
+      if lt(result, x) {
+        result := add(x, 32)
+      }
+    }
+
+    function transfer(amount, token, owner) {
+      require(gt(amount, 0), error"amount")
+      require(gt(owner, 0), error"owner")
+      require(gte(token, 0), error"token")
+
+      switch token
+
+      case Ether {
+        require(call(gas(), owner, amount, 0, 0, 0, 0), error"ether-transfer")
+      }
+
+      default {
+        mstore(0, sig"transfer(address,uint256)", owner, amount)
+        require(call(gas(), token, 0, 28, 68, 0, 32), error"erc20-call-transfer")
+        require(gt(mload(0), 0), error"erc20-return-transfer")
+      }
+    }
+  }
+}

@@ -1,0 +1,65 @@
+import "./Storage.yulp"
+import "./Tokens.yulp"
+
+object "Root" is "Storage", "Tokens" {
+  code {
+    const MAX_ROOT_SIZE := 57600
+    const MaxTransactionsInRoot := 2048
+
+    mstruct RootHeader (
+      producer: address,
+      merkleTreeRoot: bytes32,
+      commitmentHash: bytes32,
+      length: uint256,
+      feeToken: uint256,
+      fee: uint256
+    )
+
+    function roots(root) -> blockNumber {
+      blockNumber := sload(mappingKey(Storage.Roots, root))
+    }
+
+    function clearRoot(root) {
+      sstore(mappingKey(Storage.Roots, root), 0)
+    }
+
+    function commitRoot(merkleTreeRoot, commitmentHash, length, token, fee) {
+      // Require caller/msg.sender is not a contract
+      require(eq(origin(), caller()), error"origin-not-caller")
+      require(eq(extcodesize(caller()), 0), error"is-contract")
+
+      // Calldata Max size enforcement (4m / 68)
+      require(gte(length, 44), error"root-size-underflow") // TransactionSizeMinimum
+      require(lte(calldatasize(), add(MAX_ROOT_SIZE, mul32(6))), error"root-size-overflow")
+
+      // Ensure token is value
+      require(gte(token, 0), error"token-underflow")
+      require(lt(token, numTokens()), error"token-overflow")
+
+      // Build transaction root
+      mstore(0, caller(), merkleTreeRoot, commitmentHash, length, token, fee)
+      const root := RootHeader.keccak256(12)
+
+      // Transaction Roots
+      let rootBlockNumber := sload(mappingKey(Storage.Roots, root))
+
+      // Require this transactions blob cannot already exist
+      require(eq(rootBlockNumber, 0), error"root-already-exists")
+
+      // Set Block Tx Roots is Block Number
+      sstore(mappingKey(Storage.Roots, root), number())
+
+      // Store caller in data..
+      mstore(0, caller(), token, fee, length)
+      log4(0, mul32(4), topic"event RootCommitted(
+        bytes32 indexed root,
+        address rootProducer,
+        uint256 feeToken,
+        uint256 fee,
+        uint256 rootLength,
+        bytes32 indexed merkleTreeRoot,
+        bytes32 indexed commitmentHash)",
+        root, merkleTreeRoot, commitmentHash)
+    }
+  }
+}

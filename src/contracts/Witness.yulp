@@ -1,0 +1,69 @@
+import "./Storage.yulp"
+
+object "Witness" is "Storage" {
+  code {
+    enum WitnessTypes (
+      Signature,
+      Caller,
+      Producer
+    )
+
+    mstruct Signature (
+      type: uint8,
+      r: bytes32,
+      s: bytes32,
+      v: uint8
+    )
+
+    mstruct Caller (
+      type: uint8,
+      owner: address,
+      blockNumber: uint32
+    )
+
+    mstruct Producer (
+      type: uint8,
+      hash: bytes32
+    )
+
+    function witnesses(owner, blockNumber) -> hashId {
+      hashId := sload(mappingKey2(Storage.Witness, owner, blockNumber))
+    }
+
+    function commitWitness(hashId) {
+      require(eq(witnesses(caller(), number()), 0), error"already-witnessed")
+      sstore(mappingKey2(Storage.Witness, caller(), number()), hashId)
+    }
+
+    function witnessSize(witness) -> size {
+      switch Signature.type(witness)
+
+      case WitnessTypes.Signature {
+        size := Signature.size(witness)
+      }
+
+      case WitnessTypes.Caller {
+        size := Caller.size(witness)
+      }
+
+      case WitnessTypes.Producer {
+        size := Producer.size(witness)
+      }
+
+      default { // avoid infinite loops
+        size := 66
+      }
+    }
+
+    function ecrecover(digestHash, witness) -> account {
+      mstore(0, digestHash)
+      mstore(32, Signature.v(witness))
+      mstore(64, Signature.r(witness))
+      mstore(96, Signature.s(witness))
+
+      let result := call(3000, 1, 0, 0, 128, 128, 32) // 4 chunks, return at 128
+      require(gt(result, 0), error"ecrecover")
+      account := mload(128)
+    }
+  }
+}

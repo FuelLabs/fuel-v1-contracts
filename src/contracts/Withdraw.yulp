@@ -1,0 +1,127 @@
+import "./Storage.yulp"
+import "./verifiers/TransactionProof.yulp"
+import "./Transaction.yulp"
+import "./Utils.yulp"
+import "./verifiers/BlockHeader.yulp"
+
+object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction", "Utils" {
+  code {
+    mstruct WithdrawalProof(
+      rootIndex: uint256,
+      transactionLeafHash: bytes32,
+      outputIndex: uint256
+    )
+
+    function withdrawals(blockNumber, withdrawalHashId) -> result {
+      result := sload(mappingKey2(Storage.Withdrawals, blockNumber, withdrawalHashId))
+    }
+
+    function withdraw(transaction) {
+      // Verify transaction proof
+      verifyTransactionProof(transaction, 1)
+
+      // Select the Output
+      let output := selectOutput(transaction)
+
+      // withdrawal Token
+      let token := TransactionProof.token(transaction)
+      let owner := caller()
+
+      // check owner
+      require(ownerEquates(output, owner), error"output-owner")
+
+      // check token id
+      require(eq(Output.token.slice(output), tokenId(token)),
+        error"token-id")
+
+      // Check Proof Type is Correct
+      require(eq(Output.type(output), OutputTypes.Withdraw),
+          error"output-type")
+
+      // Get transaction details
+      let transactionLeafHash := TransactionProof.transaction.keccak256(transaction)
+      let outputIndex := TransactionProof.output(transaction)
+      let blockHeight := TransactionProof.blockHeight(transaction)
+
+      // Construct withdrawal hash id
+      mstore(0, TransactionProof.rootIndex(transaction), transactionLeafHash, outputIndex)
+      let withdrawalHashId := WithdrawalProof.keccak256(0)
+
+      // This output has not been withdrawn yet!
+      require(eq(withdrawals(blockHeight, withdrawalHashId), false),
+        error"withdrawal-occured")
+
+      // Transfer amount out
+      transfer(outputAmount(output), token, owner)
+
+      // Set withdrawals
+      sstore(mappingKey2(Storage.Withdrawals, blockHeight, withdrawalHashId), true)
+
+      // Construct Log Data for withdrawal
+      mstore(0,
+        token,
+        outputAmount(output),
+        TransactionProof.rootIndex(transaction),
+        outputIndex,
+        transactionHashId(transaction))
+      log4(0, mul32(5),
+        topic"event WithdrawalMade(
+          address indexed account,
+          address token,
+          uint256 amount,
+          uint256 indexed blockHeight,
+          uint256 rootIndex,
+          bytes32 indexed transactionLeafHash,
+          uint8 outputIndex,
+          bytes32 transactionHashId)",
+        owner,
+        blockHeight,
+        transactionLeafHash)
+    }
+
+    function bondWithdraw(blockHeader) {
+      // Setup block producer withdrawal hash ID (i.e. Zero)
+      let withdrawalHashId := 0
+
+      // block height
+      let blockHeight := BlockHeader.height(blockHeader)
+
+      // Verify block header proof is finalized!
+      verifyHeader(blockHeader, 0, 0, 1)
+
+      // Assert Caller is Block Producer
+      require(eq(BlockHeader.producer(blockHeader), caller()),
+          error"caller-producer")
+
+      // Assert Block Bond withdrawal has not been Made!
+      require(eq(withdrawals(blockHeight, withdrawalHashId), false),
+          error"already-withdrawn")
+
+      // Bond size
+      Constructor.copy(0)
+      let bondSize := Constructor.bondSize(0)
+
+      // Transfer Bond Amount back to Block Producer
+      transfer(bondSize, EtherToken, caller())
+
+      // Set withdrawal
+      sstore(mappingKey2(Storage.Withdrawals, blockHeight, withdrawalHashId), true)
+
+      // Log withdrawal data and topics
+      mstore(0, EtherToken, bondSize, 0, 0, 0)
+      log4(0, mul32(5),
+        topic"event WithdrawalMade(
+          address indexed account,
+          address token,
+          uint256 amount,
+          uint256 indexed blockHeight,
+          uint256 rootIndex,
+          bytes32 indexed transactionLeafHash,
+          uint8 outputIndex,
+          bytes32 transactionHashId)",
+        caller(),
+        blockHeight,
+        EmptyLeafHash)
+    }
+  }
+}

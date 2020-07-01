@@ -1,0 +1,34 @@
+object "Calldata" {
+  code {
+    const _calldata := 1024
+
+    function calldata.copy() {
+      calldatacopy(_calldata, 0, calldatasize())
+    }
+
+    function calldata.signature() -> sig {
+      sig := mslice(_calldata, 4)
+    }
+
+    function calldata.word(index) -> word {
+      word := mload(add(add(_calldata, 4), mul(index, 32)))
+    }
+
+    function abi.offset(offset) -> position {
+      position := add(offset, add(36, _calldata))
+    }
+
+    function abi.length(offset) -> length {
+      length := mload(add(offset, add(4, _calldata)))
+    }
+
+    function return.word(word) {
+      mstore(0, word)
+      return(0, 32)
+    }
+
+    function calldata.offset() -> offset {
+      offset := add(_calldata, calldatasize())
+    }
+  }
+}

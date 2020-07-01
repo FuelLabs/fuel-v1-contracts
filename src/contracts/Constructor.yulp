@@ -1,0 +1,60 @@
+object "Constructor" {
+  code {
+    mstruct Constructor (
+      blockProducer: bytes32,
+      finalizationDelay: uint256,
+      submissionDelay: uint256,
+      penaltyDelay: uint256,
+      bondSize: uint256,
+      name: uint256,
+      version: uint256,
+      chainId: uint256,
+      genesis: bytes32
+    )
+
+    let Constructor.abi := sig"constructor(
+      address blockProducer,
+      uint256 finalizationDelay,
+      uint256 submissionDelay,
+      uint256 penaltyDelay,
+      uint256 bond,
+      string name,
+      string version,
+      uint256 chainId,
+      bytes32 genesis)"
+
+    const Constructor.size := 416
+
+    function Constructor.copy(pos) {
+      codecopy(pos, sub(codesize(), Constructor.size), Constructor.size)
+    }
+
+    function Constructor.verify(pos) {
+      let nameLen := mload(Constructor.name(0))
+      let versionLen := mload(Constructor.version(0))
+
+      require(and(gt(nameLen, 0), lte(nameLen, 32)), "name-length")
+      require(and(gt(versionLen, 0), lte(versionLen, 32)), "version-length")
+    }
+
+    function Constructor.name.copy(cpos, pos) {
+      let len := mload(Constructor.name(cpos))
+      let val := mload(add(Constructor.name(cpos), 32))
+      mstore(pos, 32, len, val)
+    }
+
+    function Constructor.name.hash(pos) -> hash {
+      hash := keccak256(add(add(pos, 256), 64), mload(Constructor.name(pos)))
+    }
+
+    function Constructor.version.copy(cpos, pos) {
+      let len := mload(Constructor.version(cpos))
+      let val := mload(add(Constructor.version(cpos), 32))
+      mstore(pos, 32, len, val)
+    }
+
+    function Constructor.version.hash(pos) -> hash {
+      hash := keccak256(add(add(pos, 320), 64), mload(Constructor.version(pos)))
+    }
+  }
+}

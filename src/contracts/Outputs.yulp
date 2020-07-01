@@ -1,0 +1,142 @@
+object "Outputs" {
+  code {
+    enum OutputTypes (
+      UTXO,
+      Withdraw,
+      HTLC,
+      Return
+    )
+
+    mstruct Output (
+      type: uint8,
+      token.length: uint8,
+      token: [bytes1],
+      amount.shift: uint8,
+      amount.length: uint8,
+      amount: [uint8],
+      owner.length: uint8,
+      owner: [bytes1]
+    )
+
+    mstruct OutputHTLC (
+      type: uint8,
+      token.length: uint8,
+      token: [bytes1],
+      amount.shift: uint8,
+      amount.length: uint8,
+      amount: [uint8],
+      owner.length: uint8,
+      owner: [bytes1],
+      digest: bytes32,
+      expiry: uint32,
+      returnOwner.length: uint8,
+      returnOwner: [bytes1]
+    )
+
+    mstruct OutputReturn (
+      type: uint8,
+      data.length: uint16,
+      data: [bytes1]
+    )
+
+    mstruct UTXO (
+      transactionHashId: bytes32,
+      outputIndex: uint256,
+      outputType: uint256,
+      owner: bytes32,
+      amount: uint256,
+      token: uint256,
+      digest: bytes32,
+      expiry: uint256,
+      returnOwner: bytes32
+    )
+
+    function outputAmount(output) -> amount {
+      let pos := Output.amount.position(output)
+      let shift := Output.amount.shift(output)
+      let len := Output.amount.length(output)
+
+      require(lte(len, 32), "amount-length-overflow")
+      require(lte(shift, 256), "amount-shift-overflow")
+      require(lte(add(shift, mul(len, 8)), 256), "amount-overflow")
+
+      amount := shl(shift, mslice(pos, len))
+    }
+
+    function outputSize(output) -> size {
+      switch Output.type(output)
+
+      case OutputTypes.Transfer {
+        size := Output.size(output)
+      }
+
+      case OutputTypes.Withdraw {
+        size := Output.size(output)
+      }
+
+      case OutputTypes.HTLC {
+        size := OutputHTLC.size(output)
+      }
+
+      case OutputTypes.Return {
+        size := OutputReturn.size(output)
+      }
+
+      default { // avoid infinite loops
+        size := 20
+      }
+    }
+
+    function outputToken(output) -> id {
+      id := Output.token.slice(output)
+    }
+
+    function ownerEquates(output, owner) -> result {
+      let len := Output.owner.length(output)
+
+      require(gt(len, 0), error"owner-length-underflow")
+      require(lte(len, 20), error"owner-length-overflow")
+
+      switch len
+
+      case 20 { // address
+        result := or(
+          eq(Output.owner.slice(output), owner),
+          eq(Output.owner.slice(output), calculateFunnelAddress(owner))
+        )
+      }
+
+      default { // id
+        let id := Output.owner.slice(output)
+        result := or(
+          eq(id, addresses(owner)),
+          eq(id, addresses(calculateFunnelAddress(owner)))
+        )
+      }
+    }
+
+    function ownerReturnEquates(output, owner) -> result {
+      let len := OutputHTLC.returnOwner.length(output)
+
+      require(gt(len, 0), error"owner-length-underflow")
+      require(lte(len, 20), error"owner-length-overflow")
+
+      switch len
+
+      case 20 { // address
+        result := or(
+          eq(OutputHTLC.returnOwner.slice(output), owner),
+          eq(OutputHTLC.returnOwner.slice(output), calculateFunnelAddress(owner))
+        )
+      }
+
+      default { // id
+        let id := OutputHTLC.returnOwner.slice(output)
+        result := or(
+          eq(id, addresses(owner)),
+          eq(id, addresses(calculateFunnelAddress(owner)))
+        )
+      }
+    }
+  }
+}

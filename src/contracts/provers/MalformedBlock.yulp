@@ -1,0 +1,97 @@
+import "./verifiers/BlockHeader.yulp"
+import "./Transaction.yulp"
+import "./Fraud.yulp"
+import "./Calldata.yulp"
+
+object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
+  code {
+    function constructMerkleTreeRoot(transactions, transactionsLength, fraudBlock) -> merkleTreeRoot {
+      // Start Memory Position at Transactions Data
+      let memoryPosition := transactions
+      let freshMemoryPosition := add(calldata.offset(), 64)
+      let transactionIndex := 0
+
+      for {} lt(memoryPosition, add(transactions, transactionsLength)) {} {
+        let len := add(mslice(memoryPosition, 2), 2)
+
+        // if transaction length is below minimum transaction length, stop
+        assertOrFraud(gt(len, TransactionSizeMinimum),
+            error"transaction-length-underflow", fraudBlock)
+
+        // Assert transaction length is not too long
+        assertOrFraud(lt(len, TransactionSizeMaximum),
+            error"transaction-length-overflow", fraudBlock)
+
+        // computed length greater than provided payload
+        assertOrFraud(lte(sub(memoryPosition, transactions), transactionsLength),
+          error"net-length-overflow", fraudBlock)
+
+        // store the base leaf hash (add 2 removed from here..)
+        mstore(freshMemoryPosition, keccak256(memoryPosition, len))
+
+        // Increase mem pos
+        memoryPosition := add(memoryPosition, len)
+
+        // increase fresh memory by 32 bytes
+        freshMemoryPosition := add(freshMemoryPosition, 32)
+
+        // Increase Index
+        transactionIndex := add(transactionIndex, 1)
+
+        // Transactions overflow
+        assertOrFraud(lt(transactionIndex, MaxTransactionsInRoot),
+            error"transaction-index-overflow", fraudBlock)
+      }
+
+      // computed length greater than provided payload
+      assertOrFraud(eq(memoryPosition, add(transactions, transactionsLength)),
+          error"net-length-overflow", fraudBlock)
+
+      // Merkleize nodes into a binary merkle tree
+      memoryPosition := sub(freshMemoryPosition, mul(transactionIndex, 32)) // setup new memory position
+
+      // Create Binary Merkle Tree / Master Root Hash
+      for {} gt(transactionIndex, 0) {} { // loop through tree Heights (starting at base)
+        if gt(mod(transactionIndex, 2), 0) { // fix uneven leaf count (i.e. add a zero hash)
+          mstore(add(memoryPosition, mul(transactionIndex, 32)), 0) // add 0x00...000 hash leaf
+          transactionIndex := add(transactionIndex, 1) // increase count for zero hash leaf
+          freshMemoryPosition := add(freshMemoryPosition, 32) // increase fresh memory past new leaf
+        }
+
+        for { let i := 0 } lt(i, transactionIndex) { i := add(i, 2) } { // loop through Leaf hashes at this height
+          mstore(freshMemoryPosition, keccak256(add(memoryPosition, mul(i, 32)), 64)) // hash two leafs together
+          freshMemoryPosition := add(freshMemoryPosition, 32) // increase fresh memory past new hash leaf
+        }
+
+        memoryPosition := sub(freshMemoryPosition, mul(transactionIndex, 16)) // set new memory position
+        transactionIndex := div(transactionIndex, 2) // half nodes (i.e. next height)
+
+         // shim 1 to zero (stop), i.e. top height end..
+        if lt(transactionIndex, 2) { transactionIndex := 0 }
+      }
+
+      // merkle root has been produced
+      merkleTreeRoot := mload(memoryPosition)
+    }
+
+    function proveMalformedBlock(block, root, rootIndex, transactions, transactionsLength) {
+      // Verify the header
+      verifyHeader(block,
+        root,
+        rootIndex,
+        0)
+
+      // Require that commitment hash is the hash of the data provided
+      require(eq(
+          RootHeader.commitmentHash(root),
+          keccak256(transactions, transactionsLength)),
+              error"commitment-hash")
+
+      // Assert Root Construction
+      assertOrFraud(eq(
+          RootHeader.merkleTreeRoot(root),
+          constructMerkleTreeRoot(transactions, transactionsLength, block)),
+              error"merkle-root", block)
+    }
+  }
+}

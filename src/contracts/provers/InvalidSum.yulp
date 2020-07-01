@@ -1,0 +1,85 @@
+import "./verifiers/Witness.yulp"
+import "./verifiers/Data.yulp"
+import "./verifiers/TransactionProof.yulp"
+import "./Fraud.yulp"
+
+object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud" {
+  code {
+    function ins(proof, inputs) -> sum {
+      let pos := TransactionLeaf.inputs.position(TransactionProof.transaction.position(proof))
+      let token := tokenId(TransactionProof.token(proof))
+
+      for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(proof))) {} {
+        switch Input.type(pos)
+
+        case InputTypes.Transfer {
+          if eq(token, UTXO.token(inputs)) {
+            sum := add(sum, UTXO.amount(inputs))
+          }
+
+          inputs := add(inputs, UTXO.size(inputs))
+        }
+
+        case InputTypes.Deposit {
+          if eq(token, Deposit.token(inputs)) {
+            sum := add(sum, Deposit.value(inputs))
+          }
+
+          inputs := add(inputs, Deposit.size(inputs))
+        }
+
+        case InputTypes.HTLC {
+          if eq(token, UTXO.token(inputs)) {
+            sum := add(sum, UTXO.amount(inputs))
+          }
+
+          inputs := add(inputs, UTXO.size(inputs))
+        }
+
+        case InputTypes.Root {
+          if eq(token, TransactionProof.feeToken(inputs)) {
+            sum := add(sum, mul(TransactionProof.fee(inputs), TransactionProof.rootLength(inputs)))
+          }
+
+          inputs := add(inputs, TransactionProof.size(inputs))
+        }
+
+        default { require(0, error"input-data-length") }
+
+        pos := add(pos, inputSize(pos))
+      }
+    }
+
+    function outs(token, proof) -> sum {
+      let leaf := TransactionProof.transaction.position(proof)
+      let pos := TransactionLeaf.outputs.position(leaf)
+      let end := TransactionLeaf.outputs.offset(leaf)
+
+      for {} lt(pos, end) {} {
+        if and(
+          lt(Output.type(pos), OutputTypes.Return),
+          eq(token, Output.token.slice(pos))
+        ) {
+          sum := add(sum, outputAmount(pos))
+        }
+
+        pos := add(pos, outputSize(pos))
+      }
+    }
+
+    function proveSum(proof, inputs) {
+      let token := tokenId(TransactionProof.token(proof))
+      let outsum := add(rootFee(proof, token), outs(token, proof))
+      let insum := ins(proof, inputs)
+
+      assertOrFraud(eq(outsum, insum), error"sum", proof)
+    }
+
+    function proveInvalidSum(proof, inputs) {
+      verifyTransactionProof(proof, false)
+      verifyWitness(proof, inputs)
+      verifyData(proof, inputs)
+      proveSum(proof, inputs)
+    }
+  }
+}

@@ -1,0 +1,47 @@
+object "Inputs" {
+  code {
+    enum InputTypes (
+      Transfer,
+      Deposit,
+      HTLC,
+      Root
+    )
+
+    mstruct Input (
+      type: uint8,
+      witnessReference: uint8
+    )
+
+    mstruct InputDeposit (
+      type: uint8,
+      witnessReference: uint8,
+      owner: address
+    )
+
+    mstruct InputHTLC (
+      type: uint8,
+      witnessReference: uint8,
+      preImage: bytes32
+    )
+
+    function inputSize(input) -> size {
+      switch Input.type(input)
+
+      case InputTypes.HTLC {
+        size := 34 // InputHTLC.size(input)
+      }
+
+      case InputTypes.Deposit {
+        size := 22 // InputHTLC.size(input)
+      }
+
+      default {
+        size := 2 // Input.size(input)
+      }
+    }
+
+    function inputKeccak256(input) -> hash {
+      hash := keccak256(input, inputSize(input))
+    }
+  }
+}

@@ -1,0 +1,69 @@
+import "./verifiers/TransactionProof.yulp"
+import "./Deposit.yulp"
+
+object "VerifyInputs" is "Deposit", "TransactionProof" {
+  code {
+    function verifyInputs(transaction, inputs) {
+      verifyTransactionProof(transaction, 0)
+
+      let leaf := TransactionProof.transaction.position(transaction)
+      let pos := TransactionLeaf.inputs.position(leaf)
+      let index := 0
+
+      for {} lt(pos, TransactionLeaf.inputs.offset(leaf)) {} {
+        switch Input.type(pos)
+
+        case InputTypes.Transfer {
+          verifyTransactionProof(inputs, 2)
+
+          require(eq(outputId(inputs), TransactionLeaf.metadata(leaf, index)),
+            error"output-id")
+
+          require(eq(TransactionProof.UTXO.keccak256(inputs),
+            TransactionProof.data(transaction, index)), error"utxo-data")
+
+          inputs := add(inputs, TransactionProof.size(inputs))
+        }
+
+        case InputTypes.Deposit {
+          let metadata := selectMetadata(transaction, index)
+
+          require(eq(Deposit.token(inputs), MetadataDeposit.token(metadata)),
+            error"deposit-token")
+
+          require(eq(Deposit.blockNumber(inputs), MetadataDeposit.blockNumber(metadata)),
+            error"deposit-block-number")
+
+          require(eq(Deposit.keccak256(inputs),
+            TransactionProof.data(transaction, index)), error"deposit-data")
+
+          inputs := add(inputs, Deposit.size(inputs))
+        }
+
+        case InputTypes.Root {
+          verifyTransactionProof(inputs, 2)
+
+          require(eq(RootHeader.keccak256(TransactionProof.rootProducer.position(inputs)),
+            TransactionProof.data(transaction, index)), error"root-data")
+
+          inputs := add(inputs, TransactionProof.size(inputs))
+        }
+
+        case InputTypes.HTLC {
+          verifyTransactionProof(inputs, 2)
+
+          require(eq(outputId(inputs), TransactionLeaf.metadata(leaf, index)),
+            error"output-id")
+
+          require(eq(TransactionProof.UTXO.keccak256(inputs),
+            TransactionProof.data(transaction, index)), error"utxo-data")
+
+          inputs := add(inputs, TransactionProof.size(inputs))
+        }
+
+        index := add(index, 1)
+        pos := add(pos, inputSize(pos))
+      }
+    }
+  }
+}

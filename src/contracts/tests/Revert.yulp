@@ -1,0 +1,26 @@
+object "Revert" {
+  code {
+    datacopy(0, dataoffset("Runtime"), datasize("Runtime"))
+    return(0, datasize("Runtime"))
+  }
+  object "Runtime" {
+    code {
+      calldatacopy(0, 0, calldatasize())
+
+      switch mslice(0, 4)
+
+      case sig"balanceOf(address owner) public view returns (uint256 balance)" {
+        mstore(0, 5000)
+        return (0, 32)
+      }
+
+      case sig"transfer(address owner, uint256 amount) public returns (bool success)" {
+        require(0, error"transfer")
+      }
+
+      default {
+        require(0, error"invalid-sig")
+      }
+    }
+  }
+}

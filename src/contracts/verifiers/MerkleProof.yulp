@@ -1,0 +1,70 @@
+import "./Transaction.yulp"
+
+object "MerkleProof" is "Transaction" {
+  code {
+    const MerkleTreeHeightMaximum := 256
+
+    function verifyMerkleProof(transaction) -> leftish {
+      // Select Merkle Proof Height
+      let treeHeight := TransactionProof.merkleProof.length(transaction)
+
+      // Select Tree (ahead of Array length)
+      let treeMemoryPosition := TransactionProof.merkleProof.position(transaction)
+
+      // Select Transaction Index
+      let transactionIndex := TransactionProof.transactionIndex(transaction)
+
+      // Assert Valid Merkle Tree Height (i.e. below Maximum)
+      require(lt(treeHeight, MerkleTreeHeightMaximum),
+        error"tree-height-overflow")
+
+      // Select computed hash
+      let computedHash := 0
+
+      // if the transaction has length, than hash it
+      if gt(TransactionProof.transaction.length(transaction), 0) {
+        computedHash := TransactionProof.transaction.keccak256(transaction)
+      }
+
+      // Clean Rightmost (leftishness) Detection Var (i.e. any previous use of this Stack Position)
+      leftish := false
+
+      // Iterate Through Merkle Proof Depths
+      // https://crypto.stackexchange.com/questions/31871/what-is-the-canonical-way-of-creating-merkle-tree-branches
+      for { let depth := 0 } lt(depth, treeHeight) { depth := add(depth, 1) } {
+        // get the leaf hash
+        let proofLeafHash := mload(add(treeMemoryPosition, mul(depth, 32)))
+
+        // Determine Proof Direction the merkle brand left:  tx index % 2 == 0
+        switch eq(smod(transactionIndex, 2), 0)
+
+        // Direction is left branch
+        case 1 {
+            mstore(mul32(1), computedHash)
+            mstore(mul32(2), proofLeafHash)
+
+            // Leftishness Detected in Proof, This is not Rightmost
+            leftish := true
+        }
+
+        // Direction is right branch
+        case 0 {
+            mstore(mul32(1), proofLeafHash)
+            mstore(mul32(2), computedHash)
+        }
+
+        default { revert(0, 0) } // Direction is Invalid, Ensure no other cases!
+
+        // Construct Depth Hash
+        computedHash := keccak256(mul32(1), mul32(2))
+
+        // Shift transaction index right by 1
+        transactionIndex := shr(1, transactionIndex)
+      }
+
+      // Assert constructed merkle tree root is provided merkle tree root, or else, Invalid Inclusion!
+      require(eq(computedHash, TransactionProof.merkleTreeRoot(transaction)),
+        error"invalid-merkle-root")
+    }
+  }
+}

@@ -1,0 +1,33 @@
+import "./Storage.yulp"
+
+object "Tokens" is "Storage" {
+  code {
+    const EtherToken := 0
+
+    function numTokens() -> num {
+      num := sload(Storage.NumTokens)
+    }
+
+    function tokenId(addr) -> id {
+      id := sload(mappingKey(Storage.Token, addr))
+    }
+
+    function indexToken(addr, id) {
+      sstore(mappingKey(Storage.Token, addr), id)
+      sstore(Storage.NumTokens, add(id, 1))
+      log3(0, 0,
+          topic"event TokenIndexed(address indexed token, uint256 indexed id)",
+          addr,
+          id)
+    }
+
+    function commitToken(addr) -> id {
+      id := tokenId(addr)
+
+      if and(neq(addr, 0), iszero(id)) {
+        id := numTokens()
+        indexToken(addr, id)
+      }
+    }
+  }
+}

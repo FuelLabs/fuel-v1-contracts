@@ -1,0 +1,77 @@
+import "./Fraud.yulp"
+import "./verifiers/Inputs.yulp"
+
+object "InvalidWitness" is "VerifyInputs", "Fraud" {
+  code {
+    function proveWitness(transaction, inputs) {
+      let leaf := TransactionProof.transaction.position(transaction)
+      let pos := TransactionLeaf.inputs.position(leaf)
+      let index := 0
+
+      for {} lt(pos, TransactionLeaf.inputs.offset(leaf)) {} {
+        switch Input.type(pos)
+
+        case InputTypes.Transfer {
+          if eq(index, TransactionProof.input(transaction)) {
+            assertOrFraud(ownerEquates(selectOutput(inputs),
+              TransactionProof.input.recoverWitness(transaction)), error"utxo-witness", transaction)
+          }
+
+          inputs := add(inputs, TransactionProof.size(inputs))
+        }
+
+        case InputTypes.Deposit {
+          if eq(index, TransactionProof.input(transaction)) {
+            assertOrFraud(eq(Deposit.owner(inputs),
+              TransactionProof.input.recoverWitness(transaction)),
+              error"deposit-witness", transaction)
+          }
+
+          inputs := add(inputs, Deposit.size(inputs))
+        }
+
+        case InputTypes.Root {
+          if eq(index, TransactionProof.input(transaction)) {
+            assertOrFraud(eq(TransactionProof.blockProducer(inputs),
+              TransactionProof.input.recoverWitness(transaction)), error"root-witness", transaction)
+          }
+
+          inputs := add(inputs, TransactionProof.size(inputs))
+        }
+
+        case InputTypes.HTLC {
+          if eq(index, TransactionProof.input(transaction)) {
+            switch outputExpired(inputs, transaction)
+
+            case 1 {
+              assertOrFraud(ownerReturnEquates(selectOutput(inputs),
+                TransactionProof.input.recoverWitness(transaction)),
+                error"htlc-owner-return", transaction)
+            }
+
+            case 0 {
+              assertOrFraud(ownerEquates(selectOutput(inputs),
+                TransactionProof.input.recoverWitness(transaction)),
+                error"htlc-owner", transaction)
+            }
+          }
+
+          inputs := add(inputs, TransactionProof.size(inputs))
+        }
+
+        if eq(index, TransactionProof.input(transaction)) {
+          assertOrFraud(neq(TransactionProof.input.recoverWitness(transaction), 0),
+            error"null-witness", transaction)
+        }
+
+        index := add(index, 1)
+        pos := add(pos, inputSize(pos))
+      }
+    }
+
+    function proveInvalidWitness(transaction, inputs) {
+      verifyInputs(transaction, inputs)
+      proveWitness(transaction, inputs)
+    }
+  }
+}

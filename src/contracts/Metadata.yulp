@@ -1,0 +1,21 @@
+object "Metadata" {
+  code {
+    const MetadataSize := 8
+
+    mstruct Metadata (
+      blockHeight: uint32,
+      rootIndex: uint8,
+      transactionIndex: uint16,
+      outputIndex: uint8
+    )
+
+    mstruct MetadataDeposit (
+      token: uint32,
+      blockNumber: uint32
+    )
+
+    function metadataId(metadata) -> id {
+      id := mslice(metadata, MetadataSize)
+    }
+  }
+}

@@ -1,0 +1,47 @@
+import "./Block.yulp"
+import "./Utils.yulp"
+
+object "Fraud" is "Utils", "Block" {
+  code {
+    const NoFraudAssertion := 0
+
+    function assertOrFraud(assertion, fraudCode, block) {
+      // Assert or Begin Fraud State Change Sequence
+      if lt(assertion, 1) {
+        // Fraud block details
+        const fraudBlockHeight := BlockHeader.height(block)
+        const fraudBlockProducer := BlockHeader.producer(block)
+
+        // Assert Fraud block cannot be the genesis block
+        require(gt(fraudBlockHeight, 0), error"block-height-underflow")
+
+        // Copy constructor args to memory
+        Constructor.copy(0)
+        let bondSize := Constructor.bondSize(0)
+        let penaltyDelay := Constructor.penaltyDelay(0)
+
+        // Assert fraud block cannot be finalized
+        require(lt(number(), add(BlockHeader.ethereumBlockNumber(block), Constructor.finalizationDelay(0))),
+          error"block-finalized")
+
+        // Log block tips (old / new)
+        log4(0, 0, topic"event FraudCommitted(uint256 indexed previousTip, uint256 indexed currentTip, uint256 indexed fraudCode)",
+          blockTip(),
+          sub(fraudBlockHeight, 1),
+          fraudCode)
+
+        // Set new block tip to before fraud block
+        sstore(Storage.BlockTip, sub(fraudBlockHeight, 1))
+
+        // Set the penalty, remove mempool submission delay required, free for all..
+        setPenalty(penaltyDelay)
+
+        // Transfer Half The Bond for this Block
+        transfer(div(bondSize, 2), 0, caller())
+
+        // stop execution from here
+        stop()
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+import "./verifiers/BlockHeader.yulp"
+import "./verifiers/MerkleProof.yulp"
+
+object "TransactionProof" is "BlockHeader", "MerkleProof" {
+  code {
+    function verifyTransactionProof(transaction, assertFinalized) {
+      verifyHeader(TransactionProof.block(transaction),
+          TransactionProof.root(transaction),
+          TransactionProof.rootIndex(transaction),
+          assertFinalized)
+
+      let leftish := verifyMerkleProof(transaction)
+
+      require(gt(TransactionProof.transaction.length(transaction), 0),
+        error"empty-transaction")
+    }
+  }
+}

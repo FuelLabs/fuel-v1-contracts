@@ -1,0 +1,12 @@
+object "Proxy" {
+  code {
+      datacopy(0, dataoffset("Runtime"), datasize("Runtime"))
+      return(0, datasize("Runtime"))
+  }
+  object "Runtime" {
+    code {
+      calldatacopy(0, 0, calldatasize())
+      require(call(gas(), mload(0), 0, 32, sub(calldatasize(), 32), 0, 0), error"proxy-call-failed")
+    }
+  }
+}

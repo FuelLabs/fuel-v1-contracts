@@ -1,0 +1,278 @@
+import "./Inputs.yulp"
+import "./Outputs.yulp"
+import "./Witness.yulp"
+import "./Metadata.yulp"
+import "./EIP712.yulp"
+
+object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
+  code {
+    const TransactionSizeMinimum := 44
+    const TransactionSizeMaximum := 896
+    const MaxInputs := 8
+    const MaxOutputs := 8
+    const EmptyLeafHash := 0
+
+    mstruct TransactionProof (
+      blockProducer: address,
+      previousBlockHash: bytes32,
+      blockHeight: uint256,
+      ethereumBlockNumber: uint256,
+      numTokens: uint256,
+      numAddresses: uint256,
+      roots.length: uint16,
+      roots: [bytes32],
+
+      rootProducer: address,
+      merkleTreeRoot: bytes32,
+      commitmentHash: bytes32,
+      rootLength: uint256,
+      feeToken: uint256,
+      fee: uint256,
+      rootIndex: uint16,
+
+      merkleProof.length: uint16,
+      merkleProof: [bytes32],
+
+      input: uint8,
+      output: uint8,
+      transactionIndex: uint16,
+
+      transaction.length: uint16,
+      transaction: [bytes1],
+      data.length: uint8,
+      data: [bytes32],
+      signatureFeeToken: uint256,
+      signatureFee: uint256,
+
+      token: address,
+      selector: address
+    )
+
+    mstruct TransactionLeaf (
+      length: uint16,
+      metadata.length: uint8,
+      metadata: [bytes8],
+      witnesses.length: uint16,
+      witnesses: [bytes1],
+      inputs.length: uint16,
+      inputs: [bytes1],
+      outputs.length: uint16,
+      outputs: [bytes1]
+    )
+
+    function TransactionProof.UTXO.assign(proof, pos) {
+      let output := selectOutput(proof)
+
+      // we do this after to ensure hashing is okay
+      require(neq(Output.type(output), OutputTypes.Return),
+        error"utxo-return")
+
+      // we do this after to ensure hashing is okay
+      require(ownerEquates(output, TransactionProof.token(proof)),
+        error"owner-equates")
+
+      // we do this after as the funnel address calc uses memory
+      if eq(Output.type(output), OutputTypes.HTLC) {
+        require(ownerReturnEquates(output, TransactionProof.selector(proof)),
+          error"owner-return-equates")
+      }
+
+      mstore(pos,
+        transactionHashId(proof),
+        TransactionProof.output(proof),
+        Output.type(output),
+        TransactionProof.token(proof),
+        outputAmount(output),
+        Output.token.slice(output),
+        0, 0, 0) // digest, expiry return witness
+
+      if eq(Output.type(output), OutputTypes.HTLC) {
+        mstore(add(pos, 192), OutputHTLC.digest(output))
+        mstore(add(pos, 224), OutputHTLC.expiry(output))
+        mstore(add(pos, 256), TransactionProof.selector(proof))
+      }
+    }
+
+    function TransactionProof.UTXO.keccak256(proof) -> hash {
+      // Assign utxo to memory
+      TransactionProof.UTXO.assign(proof, 0)
+
+      // hash utxo
+      hash := UTXO.keccak256(0)
+    }
+
+    function TransactionProof.block(proof) -> pos {
+      pos := TransactionProof.blockProducer.position(proof)
+    }
+
+    function TransactionProof.root(proof) -> pos {
+      pos := TransactionProof.rootProducer.position(proof)
+    }
+
+    // ABI Encoded Structures (Non-Tight Packed/Rolled)
+
+    function rootFee(proof, token) -> sum {
+      if eq(TransactionProof.feeToken(proof), token) {
+        sum := mul(TransactionProof.rootLength(proof), TransactionProof.fee(proof))
+      }
+    }
+
+    function transactionHashId(proof) -> hash {
+      let leaf := TransactionProof.transaction.position(proof)
+      let start := TransactionLeaf.inputs.length.position(leaf)
+      let end := TransactionProof.signatureFee.offset(proof)
+      hash := eip712(keccak256(start, sub(end, start)))
+    }
+
+    function TransactionProof.witness(proof, index) -> pos {
+      let leaf := TransactionProof.transaction.position(proof)
+      pos := TransactionLeaf.witnesses.position(leaf)
+
+      for {} gt(index, 0) {} {
+        pos := add(pos, witnessSize(pos))
+        index := sub(index, 1)
+      }
+
+      require(lt(pos, TransactionLeaf.witnesses.offset(leaf)), error"witness-position-overflow")
+    }
+
+    function TransactionProof.input.witness(proof) -> pos {
+      let index := Input.witnessReference(selectInput(proof))
+      pos := TransactionProof.witness(proof, index)
+    }
+
+    function selectInput(proof) -> pos {
+      let leaf := TransactionProof.transaction.position(proof)
+      let index := TransactionProof.input(proof)
+      pos := TransactionLeaf.inputs.position(leaf)
+
+      require(lt(index, MaxInputs), error"input-index-overflow")
+
+      for {} gt(index, 0) {} {
+        pos := add(pos, inputSize(pos))
+        index := sub(index, 1)
+      }
+
+      require(lt(pos, TransactionLeaf.inputs.offset(leaf)), error"input-position-overflow")
+    }
+
+    function inputMetadataId(proof) -> id {
+      let leaf := TransactionProof.transaction.position(proof)
+      let index := TransactionProof.input(proof)
+      id := TransactionLeaf.metadata(leaf, index)
+    }
+
+    function selectOutput(proof) -> pos {
+      let leaf := TransactionProof.transaction.position(proof)
+      let index := TransactionProof.output(proof)
+      pos := TransactionLeaf.outputs.position(leaf)
+
+      require(lt(index, MaxOutputs), error"output-index-overflow")
+
+      for {} gt(index, 0) {} {
+        pos := add(pos, outputSize(pos))
+        index := sub(index, 1)
+      }
+
+      require(lt(pos, TransactionLeaf.outputs.offset(leaf)), error"output-position-overflow")
+    }
+
+    function outputExpired(input, proof) -> result {
+      let output := selectOutput(input)
+      let blockNumber := TransactionProof.ethereumBlockNumber(proof)
+      result := gt(blockNumber, OutputHTLC.expiry(output))
+    }
+
+    function witnessesLength(leaf) -> len {
+      let pos := TransactionLeaf.witnesses.position(leaf)
+      let end := TransactionLeaf.witnesses.offset(leaf)
+
+      for {} lt(pos, end) {} {
+        pos := add(pos, witnessSize(pos))
+        len := add(len, 1)
+      }
+    }
+
+    function inputsLength(leaf) -> len {
+      let pos := TransactionLeaf.inputs.position(leaf)
+      let end := TransactionLeaf.inputs.offset(leaf)
+
+      for {} lt(pos, end) {} {
+        pos := add(pos, inputSize(pos))
+        len := add(len, 1)
+      }
+    }
+
+    function TransactionProof.outputs.length(proof) -> len {
+      let leaf := TransactionProof.transaction.position(proof)
+      let pos := TransactionLeaf.outputs.position(leaf)
+      let end := TransactionLeaf.outputs.offset(leaf)
+
+      for {} lt(pos, end) {} {
+        pos := add(pos, outputSize(pos))
+        len := add(len, 1)
+      }
+    }
+
+    function inputId(proof) -> id {
+      mstore(4, TransactionProof.input(proof))
+      mstore(2, TransactionProof.transactionIndex(proof))
+      mstore(1, TransactionProof.rootIndex(proof))
+      mstore(0, TransactionProof.blockHeight(proof))
+      id := mslice(28, 8)
+    }
+
+    function outputId(proof) -> id {
+      mstore(4, TransactionProof.output(proof))
+      mstore(2, TransactionProof.transactionIndex(proof))
+      mstore(1, TransactionProof.rootIndex(proof))
+      mstore(0, TransactionProof.blockHeight(proof))
+      id := mslice(28, 8)
+    }
+
+    function selectMetadata(proof, index) -> pos {
+      let leaf := TransactionProof.transaction.position(proof)
+      pos := TransactionLeaf.metadata.position(leaf)
+
+      require(lt(index, MaxInputs), error"input-index-overflow")
+
+      for {} gt(index, 0) {} {
+        pos := add(pos, MetadataSize)
+        index := sub(index, 1)
+      }
+
+      require(lt(pos, TransactionLeaf.metadata.offset(leaf)), error"input-position-overflow")
+    }
+
+    function recoverFromWitness(witness, proof) -> addr {
+      switch Signature.type(witness)
+
+      case WitnessTypes.Signature {
+        addr := ecrecover(transactionHashId(proof), witness)
+      }
+
+      case WitnessTypes.Caller {
+        addr := Caller.owner(witness)
+
+        if neq(witnesses(addr, Caller.blockNumber(witness)), transactionHashId(proof)) {
+          addr := 0
+        }
+      }
+
+      case WitnessTypes.Producer {
+        addr := TransactionProof.blockProducer(proof)
+
+        if neq(Producer.hash(witness), transactionHashId(proof)) {
+          addr := 0
+        }
+      }
+
+      default { require(0, error"witness-type") }
+    }
+
+    function TransactionProof.input.recoverWitness(proof) -> addr {
+      let witness := TransactionProof.input.witness(proof)
+      addr := recoverFromWitness(witness, proof)
+    }
+  }
+}

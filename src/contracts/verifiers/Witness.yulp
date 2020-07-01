@@ -1,0 +1,53 @@
+import "./Transaction.yulp"
+import "./Deposit.yulp"
+
+object "VerifyWitness" is "Deposit", "Transaction" {
+  code {
+    function verifyWitness(transaction, inputs) {
+      let witness := TransactionProof.witness(transaction, 0)
+      let leaf := TransactionProof.transaction.position(transaction)
+      let input := TransactionLeaf.inputs.position(leaf)
+
+      switch Signature.type(witness)
+
+      case WitnessTypes.Signature {
+        switch Input.type(input)
+
+        case InputTypes.Deposit {
+          require(eq(
+            ecrecover(transactionHashId(transaction), witness),
+            Deposit.owner(inputs)
+          ), error"witness-signature")
+        }
+
+        case InputTypes.Root {
+          require(eq(
+            ecrecover(transactionHashId(transaction), witness),
+            TransactionProof.blockProducer(inputs)
+          ), error"witness-signature")
+        }
+
+        default {
+          require(eq(
+            ecrecover(transactionHashId(transaction), witness),
+            UTXO.owner(inputs)
+          ), error"witness-signature")
+        }
+      }
+
+      case WitnessTypes.Caller {
+        require(eq(
+          witnesses(Caller.owner(witness), Caller.blockNumber(witness)),
+          transactionHashId(transaction)
+        ), error"witness-caller")
+      }
+
+      case WitnessTypes.Producer {
+        require(eq(Producer.hash(witness), transactionHashId(transaction)),
+          error"witness-producer")
+      }
+
+      default { require(0, error"witness-type") }
+    }
+  }
+}

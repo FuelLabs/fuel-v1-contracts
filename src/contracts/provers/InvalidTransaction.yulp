@@ -1,0 +1,287 @@
+import "./verifiers/TransactionProof.yulp"
+import "./Fraud.yulp"
+
+object "InvalidTransaction" is "TransactionProof", "Fraud" {
+  code {
+    function proveMetadata(leaf, proof) {
+      let pos := TransactionLeaf.inputs.position(leaf)
+      let end := TransactionLeaf.inputs.offset(leaf)
+      let metadata := TransactionLeaf.metadata.position(leaf)
+
+      for {} lt(pos, end) {} {
+        switch Input.type(pos)
+
+        case InputTypes.Deposit {
+          assertOrFraud(gt(MetadataDeposit.blockNumber(metadata), 0),
+            error"metadata-deposit-height-underflow", proof)
+
+          assertOrFraud(lte(MetadataDeposit.blockNumber(metadata),
+            TransactionProof.ethereumBlockNumber(proof)),
+            error"metadata-deposit-height-overflow", proof)
+
+          assertOrFraud(gte(MetadataDeposit.token(metadata), 0),
+            error"metadata-deposit-token-underflow", proof)
+
+          assertOrFraud(lt(MetadataDeposit.token(metadata),
+            TransactionProof.numTokens(proof)),
+            error"metadata-deposit-token-overflow", proof)
+        }
+
+        default {
+          assertOrFraud(gt(Metadata.blockHeight(metadata), 0),
+            error"metadata-height-underflow", proof)
+
+          assertOrFraud(lte(Metadata.blockHeight(metadata), TransactionProof.blockHeight(proof)),
+            error"metadata-height-overflow", proof)
+
+          assertOrFraud(gte(Metadata.rootIndex(metadata), 0),
+            error"metadata-root-underflow", proof)
+
+          assertOrFraud(lt(Metadata.rootIndex(metadata), 256),
+            error"metadata-root-overflow", proof)
+
+          assertOrFraud(gte(Metadata.transactionIndex(metadata), 0),
+            error"metadata-index-underflow", proof)
+
+          assertOrFraud(lt(Metadata.transactionIndex(metadata), MaxTransactionsInRoot),
+            error"metadata-index-overflow", proof)
+
+          assertOrFraud(gte(Metadata.outputIndex(metadata), 0),
+            error"metadata-output-underflow", proof)
+
+          assertOrFraud(lt(Metadata.outputIndex(metadata), MaxOutputs),
+            error"metadata-output-overflow", proof)
+
+          // Root must always select tx and output index 0, in a previous block
+          if eq(Input.type(pos), InputTypes.Root) {
+            assertOrFraud(lt(Metadata.blockHeight(metadata), TransactionProof.blockHeight(proof)),
+              error"root-height-overflow", proof)
+
+            assertOrFraud(eq(Metadata.transactionIndex(metadata), 0),
+              error"root-transaction-index", proof)
+
+            assertOrFraud(eq(Metadata.outputIndex(metadata), 0),
+              error"root-output-index", proof)
+          }
+        }
+
+        pos := add(pos, inputSize(pos))
+        metadata := add(metadata, MetadataSize)
+      }
+
+      assertOrFraud(eq(metadata, TransactionLeaf.metadata.offset(leaf)),
+        error"metadata-size-overflow", proof)
+    }
+
+    function proveWitnesses(leaf, proof) {
+      let pos := TransactionLeaf.witnesses.position(leaf)
+      let end := TransactionLeaf.witnesses.offset(leaf)
+      let index := 0
+
+      for {} lt(pos, end) {} {
+        assertOrFraud(lt(Signature.type(pos), 3), error"witness-type", proof)
+
+        switch Signature.type(pos)
+
+        case WitnessTypes.Signature {}
+
+        case WitnessTypes.Caller {
+          let stateWitness := witnesses(Caller.owner(pos), Caller.blockNumber(pos))
+          assertOrFraud(gt(stateWitness, 0), error"witness-caller-empty", proof)
+
+          assertOrFraud(lt(Caller.blockNumber(pos), TransactionProof.ethereumBlockNumber(proof)),
+            error"witness-caller-overflow", proof)
+        }
+
+        case WitnessTypes.Producer {}
+
+        pos := add(pos, witnessSize(pos))
+        index := add(index, 1)
+
+        assertOrFraud(lt(index, MaxInputs), error"witnesses-index-overflow", proof)
+      }
+
+      assertOrFraud(eq(pos, end), error"witnesses-size-overflow", proof)
+    }
+
+    function proveSizes(leaf, proof) {
+      let metadataSize := TransactionLeaf.metadata.length(leaf)
+      let inputsSize := inputsLength(leaf)
+
+      assertOrFraud(eq(metadataSize, inputsSize),
+         error"metadata-inputs", proof)
+    }
+
+    function proveOutputValue(pos, proof) {
+      let _numTokens := TransactionProof.numTokens(proof)
+
+      assertOrFraud(gt(Output.token.length(pos), 0),
+        error"outputs-token-length-underflow", proof)
+
+      assertOrFraud(lte(Output.token.length(pos), 20),
+        error"outputs-token-length-overflow", proof)
+
+      assertOrFraud(lt(Output.token.slice(pos), _numTokens),
+        error"outputs-token-id-overflow", proof)
+
+      assertOrFraud(gte(Output.amount.shift(pos), 0),
+        error"outputs-amount-shift-underflow", proof)
+
+      assertOrFraud(lt(Output.amount.shift(pos), 256),
+        error"outputs-amount-shift-overflow", proof)
+
+      assertOrFraud(gt(Output.amount.length(pos), 0),
+        error"outputs-amount-underflow", proof)
+
+      assertOrFraud(lte(Output.amount.length(pos), 32),
+        error"outputs-amount-overflow", proof)
+
+      assertOrFraud(eq(mod(Output.amount.shift(pos), 8), 0),
+        error"output-shift-mod", proof)
+
+      let amountLen := add(Output.amount.shift(pos),
+        mul(Output.amount.length(pos), 8))
+
+      assertOrFraud(lte(amountLen, 256),
+        error"outputs-amount-overflow", proof)
+    }
+
+    function proveOutputOwner(pos, proof) {
+      let _numAddresses := TransactionProof.numAddresses(proof)
+
+      assertOrFraud(gt(Output.owner.length(pos), 0),
+        error"outputs-owner-underflow", proof)
+
+      assertOrFraud(lte(Output.owner.length(pos), 20),
+        error"outputs-owner-overflow", proof)
+
+      if lt(Output.owner.length(pos), 20) {
+        assertOrFraud(lt(Output.owner.slice(pos), _numAddresses),
+          error"outputs-owner-id-overflow", proof)
+      }
+    }
+
+    function proveOutputReturnOwner(pos, proof) {
+      let _numAddresses := TransactionProof.numAddresses(proof)
+
+      assertOrFraud(gt(OutputHTLC.returnOwner.length(pos), 0),
+        error"outputs-return-owner-underflow", proof)
+
+      assertOrFraud(lte(OutputHTLC.returnOwner.length(pos), 20),
+        error"outputs-return-owner-overflow", proof)
+
+      if lt(OutputHTLC.returnOwner.length(pos), 20) {
+        assertOrFraud(lt(OutputHTLC.returnOwner.slice(pos), _numAddresses),
+          error"outputs-return-owner-id-overflow", proof)
+      }
+    }
+
+    function proveOutputs(leaf, proof) {
+      let witnessLength := witnessesLength(leaf)
+      let pos := TransactionLeaf.outputs.position(leaf)
+      let end := TransactionLeaf.outputs.offset(leaf)
+      let index := 0
+
+      for {} lt(pos, end) {} {
+        switch Output.type(pos)
+
+        case OutputTypes.Transfer {
+          proveOutputValue(pos, proof)
+          proveOutputOwner(pos, proof)
+        }
+
+        case OutputTypes.Withdraw {
+          proveOutputValue(pos, proof)
+          proveOutputOwner(pos, proof)
+        }
+
+        case OutputTypes.HTLC {
+          proveOutputValue(pos, proof)
+          proveOutputOwner(pos, proof)
+          proveOutputReturnOwner(pos, proof)
+        }
+
+        case OutputTypes.Return {
+          assertOrFraud(gt(OutputReturn.data.length(pos), 0),
+            error"outputs-data-underflow", proof)
+
+          assertOrFraud(lte(OutputReturn.data.length(pos), 512),
+            error"outputs-data-overflow", proof)
+        }
+
+        default {
+          assertOrFraud(0, error"outputs-type", proof)
+        }
+
+        pos := add(pos, outputSize(pos))
+        index := add(index, 1)
+
+        assertOrFraud(lt(index, MaxOutputs), error"outputs-index-overflow", proof)
+      }
+
+      assertOrFraud(eq(pos, end), error"outputs-size", proof)
+    }
+
+    function proveInputs(leaf, proof) {
+      let witnessLength := witnessesLength(leaf)
+      let pos := TransactionLeaf.inputs.position(leaf)
+      let end := TransactionLeaf.inputs.offset(leaf)
+      let index := 0
+
+      for {} lt(pos, end) {} {
+        assertOrFraud(gte(Input.type(pos), 0),
+           error"inputs-type-underflow", proof)
+        assertOrFraud(lt(Input.type(pos), 4),
+           error"inputs-type-overflow", proof)
+
+        assertOrFraud(gte(Input.witnessReference(pos), 0),
+           error"inputs-witness-reference-underflow", proof)
+        assertOrFraud(lt(Input.witnessReference(pos), witnessLength),
+          error"inputs-witness-reference-overflow", proof)
+
+        pos := add(pos, inputSize(pos))
+        index := add(index, 1)
+      }
+
+      assertOrFraud(lt(index, MaxInputs), error"inputs-index-overflow", proof)
+      assertOrFraud(eq(pos, end), error"inputs-size", proof)
+    }
+
+    function proveInvalidTransaction(proof) {
+      verifyTransactionProof(proof, false)
+
+      let leaf := TransactionProof.transaction.position(proof)
+      let size := TransactionLeaf.metadata.length(leaf)
+
+      assertOrFraud(gt(size, 0), error"metadata-size-underflow", proof)
+      assertOrFraud(lte(size, MaxOutputs), error"metadata-size-overflow", proof)
+
+      size := TransactionLeaf.witnesses.length(leaf)
+
+      assertOrFraud(gt(size, 0), error"witnesses-size-underflow", proof)
+      assertOrFraud(lte(size, TransactionSizeMaximum), error"witnesses-size-overflow", proof)
+
+      size := TransactionLeaf.inputs.length(leaf)
+
+      assertOrFraud(gte(size, 2), error"inputs-size-underflow", proof)
+      assertOrFraud(lte(size, TransactionSizeMaximum), error"inputs-size-overflow", proof)
+
+      size := TransactionLeaf.outputs.length(leaf)
+
+      assertOrFraud(gte(size, 3), error"outputs-size-underflow", proof)
+      assertOrFraud(lte(size, TransactionSizeMaximum), error"outputs-size-overflow", proof)
+
+      size := TransactionLeaf.size(leaf)
+
+      assertOrFraud(gt(size, TransactionSizeMinimum), error"transaction-size-underflow", proof)
+      assertOrFraud(lte(size, TransactionSizeMaximum), error"transaction-size-overflow", proof)
+      assertOrFraud(eq(size, add(TransactionLeaf.length(leaf), 2)), error"transaction-length", proof)
+
+      proveWitnesses(leaf, proof)
+      proveInputs(leaf, proof)
+      proveOutputs(leaf, proof)
+      proveSizes(leaf, proof)
+      proveMetadata(leaf, proof)
+    }
+  }
+}

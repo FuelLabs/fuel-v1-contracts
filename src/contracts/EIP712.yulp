@@ -1,0 +1,29 @@
+import "./Constructor.yulp"
+
+object "EIP712" is "Constructor" {
+  code {
+    const DomainStruct := 0xbe1f30900ea0b603c03bc6ce517b4795fbdb08cc0b4b6e316e19199becde9754
+    const TransactionStruct := 0xcfa11514192b8d3d6bcda9639281831e60687a67997d39912c7eb7a7a8041ad3
+
+    function eip712.domain() -> EIP712Domain {
+      Constructor.copy(0)
+      let chainId := Constructor.chainId(0)
+      let nameHash := Constructor.name.hash(0)
+      let versionHash := Constructor.version.hash(0)
+      mstore(0, DomainStruct, nameHash, versionHash, chainId, address())
+      EIP712Domain := keccak256(0, mul(5, 32))
+    }
+
+    function eip712.transaction(unsignedHashId) -> EIP712Transaction {
+      mstore(0, TransactionStruct, unsignedHashId)
+      EIP712Transaction := keccak256(0, 64)
+    }
+
+    function eip712(unsignedHashId) -> hashId {
+      let EIP712Transaction := eip712.transaction(unsignedHashId)
+      let EIP712Domain := eip712.domain()
+      mstore(0, 0x1901, EIP712Domain, EIP712Transaction)
+      hashId := keccak256(30, 66)
+    }
+  }
+}

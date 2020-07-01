@@ -1,0 +1,39 @@
+{
+  "name": "fuel",
+  "version": "1.0.0",
+  "description": "Fuel protocol implimented in Yul+ for the Ethereum Virtual Machine",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "npm run test",
+    "test": "node src/contracts/tests/index.js",
+    "build": "npm run build-fuel",
+    "build-fuel": "compile=Fuel node ./config/compile",
+    "build-erc20": "compile=ERC20 node ./config/compile",
+    "build-funnel": "compile=Funnel node ./config/compile",
+    "build-revert": "compile=Revert node ./config/compile",
+    "build-proxy": "compile=Proxy node ./config/compile",
+    "test-erc20": "npm run build-erc20 && node src/contracts/tests/ERC20.test",
+    "test-fuel": "npm run build-fuel && node src/contracts/tests/",
+    "benchmark": "node src/contracts/benchmarks/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fuellabs/fuel-core.git"
+  },
+  "keywords": [
+    "fuel",
+    "ethereum",
+    "optimistic",
+    "rollup"
+  ],
+  "author": "Nick Dodson <nick.dodson@fuel.sh>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/fuellabs/fuel/issues"
+  },
+  "homepage": "https://github.com/fuellabs/fuel#readme",
+  "dependencies": {
+    "ethers": "^4.0.47",
+    "fuel-common": "file:../ens/common"
+  }
+}

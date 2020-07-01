@@ -1,0 +1,78 @@
+import "./Block.yulp"
+
+object "BlockHeader" is "Block" {
+  code {
+    const No_Root := false
+
+    function verifyHeader(blockHeader, root, rootIndex, assertFinalized) {
+      // Select BlockHeight from Memory
+      const blockHeight := BlockHeader.height(blockHeader)
+
+      // Transaction Roots Length
+      const rootsLength := BlockHeader.roots.length(blockHeader)
+
+      // Assert Block is not Genesis
+      require(gt(blockHeight, 0),
+          error"block-height-underflow")
+
+      // Assert Block Height is Valid (i.e. before tip)
+      require(lte(blockHeight, blockTip()),
+          error"block-height-overflow")
+
+      // Assert Previous Block Hash
+      require(eq(
+          blockCommitments(safeSub(blockHeight, 1)),
+          BlockHeader.previousBlockHash(blockHeader)),
+          error"previous-block-hash")
+
+      // Transactions roots length underflow
+      require(gt(rootsLength, 0),
+          error"roots-length-underflow")
+
+      // Transactions roots length underflow
+      require(lte(rootsLength, TRANSACTION_ROOTS_MAX),
+          error"roots-length-overflow")
+
+      // Assert Block Commitment Exists
+      require(eq(blockCommitments(blockHeight), BlockHeader.keccak256(blockHeader)),
+          error"block-commitment")
+
+      // Copy Code to Memory
+      Constructor.copy(0)
+      let finalizationDelay := Constructor.finalizationDelay(0)
+
+      // If requested, Assert Block is Finalized
+      if eq(assertFinalized, 1) {
+        require(gte(
+          number(),
+          add(BlockHeader.ethereumBlockNumber(blockHeader), finalizationDelay)
+        ), error"not-finalized")
+      }
+
+      // If requested, Assert Block is Not Finalized
+      if lt(assertFinalized, 1) {
+        require(lt(
+          number(), // ethereumBlockNumber
+          add(BlockHeader.ethereumBlockNumber(blockHeader), finalizationDelay)
+        ), error"block-finalied")
+      }
+
+      // if transaction root is present, validate it
+      if gt(root, 0) {
+        // Assert root index is not overflowing
+        require(lt(rootIndex, rootsLength),
+            error"root-index-underflow")
+
+        // Assert root invalid overflow
+        require(lt(rootsLength, TRANSACTION_ROOTS_MAX),
+            error"root-index-overflow")
+
+        // Assert transaction root index is correct!
+        require(eq(
+            RootHeader.keccak256(root),
+            BlockHeader.roots(blockHeader, rootIndex)),
+            error"root-block")
+      }
+    }
+  }
+}

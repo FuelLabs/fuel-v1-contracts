@@ -1,0 +1,32 @@
+object "Storage" {
+  code {
+    enum Storage (
+        Penalty,
+        BlockCommitments,
+        NumTokens,
+        Roots,
+        Deposits,
+        Withdrawals,
+        BlockTip,
+        Token,
+        NumAddresses,
+        Address,
+        Witness
+    )
+
+    function mappingKey(storageIndex, key) -> storageKey {
+        mstore(0, storageIndex, key)
+        storageKey := keccak256(0, 64)
+    }
+
+    function mappingKey2(storageIndex, key, key2) -> storageKey {
+        mstore(0, storageIndex, key, key2)
+        storageKey := keccak256(0, 96)
+    }
+
+    function mappingKey3(storageIndex, key, key2, key3) -> storageKey {
+        mstore(0, storageIndex, key, key2, key3)
+        storageKey := keccak256(0, 128)
+    }
+  }
+}

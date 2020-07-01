@@ -1,0 +1,68 @@
+import "./verifiers/TransactionProof.yulp"
+import "./Transaction.yulp"
+
+object "MetadataVerifier" is "TransactionProof", "Transaction" {
+  code {
+    function verifyMetadata(inputMetadata, transaction) -> verified {
+      verifyTransactionProof(transaction, 2)
+      verified := true
+
+      if iszero(gt(Metadata.blockHeight(inputMetadata), 0)) {
+        verified := false
+      }
+
+      if iszero(lte(Metadata.blockHeight(inputMetadata), blockTip())) {
+        verified := false
+      }
+
+      if eq(verified, true) {
+        require(eq(Metadata.blockHeight(inputMetadata),
+          TransactionProof.blockHeight(transaction)), error"block-height-mismatch")
+      }
+
+      if iszero(gte(Metadata.rootIndex(inputMetadata), 0)) {
+        verified := false
+      }
+
+      if iszero(lt(Metadata.rootIndex(inputMetadata),
+        TransactionProof.roots.length(transaction))) {
+        verified := false
+      }
+
+      if eq(verified, true) {
+        require(eq(Metadata.rootIndex(inputMetadata),
+          TransactionProof.rootIndex(transaction)), error"root-index-mismatch")
+      }
+
+      if iszero(gte(Metadata.transactionIndex(inputMetadata), 0)) {
+        verified := false
+      }
+
+      if eq(verifyMerkleProof(transaction), false) {
+        if iszero(lte(Metadata.transactionIndex(inputMetadata),
+          TransactionProof.transactionIndex(transaction))) {
+          verified := false
+        }
+      }
+
+      if eq(verified, true) {
+        require(eq(Metadata.transactionIndex(inputMetadata),
+          TransactionProof.transactionIndex(transaction)), error"transaction-index-mismatch")
+      }
+
+      if iszero(gte(Metadata.outputIndex(inputMetadata), 0)) {
+        verified := false
+      }
+
+      if iszero(lt(Metadata.outputIndex(inputMetadata),
+        TransactionProof.outputs.length(transaction))) {
+        verified := false
+      }
+
+      if eq(verified, true) {
+        require(eq(Metadata.outputIndex(inputMetadata),
+          TransactionProof.output(transaction)), error"output-index-mismatch")
+      }
+    }
+  }
+}
