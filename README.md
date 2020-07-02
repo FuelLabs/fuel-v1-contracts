@@ -1,28 +1,27 @@
 ![Fuel](public/banner.png)
 
-# Fuel
+Fuel
+===
 
-> Fuel is a stateless "Layer-2" system for ERC20 transfers and swaps designed for interoperable performance, scale and efficiency.
+> Fuel is high-performance optimistic rollup optimized for ERC-20 transfers and swaps, designed for interoperable performance, scale, and efficiency.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-<a href="https://circleci.com/gh/badges/shields/tree/master"> <img src="https://img.shields.io/circleci/project/github/badges/shields/master" alt="build status"></a>
-[![Community](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/fuellabs/community)
+[![Community](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/fuellabs_/community)
 
-## Features
+# Features
 
 - A complete layer-2 optimistic rollup implementation
 - Efficient (~1536 gas per transaction)
-- Supports all ERC20 standard tokens
-- Supports HTLC contracts for fast cross-chain atomic swaps
+- Supports all ERC-20 standard tokens
+- Supports HTLCs for fast cross-chain atomic swaps
 - Meta-transactional, pay fees in tokens of your choice
-- Deposit from anywhere using simple transfers (no approve/transferFrom required)
+- Deposit tokens from anywhere using simple transfers (no `approve`/`transferFrom` required)
 - High on-chain throughput capacity (~480tps)
-- Censorship resistant (users can always transfer and withdraw)
-- Interoperable, any contract or address can use, verify and control assets on Fuel
-- Fast ~5 minute entry and exits using HTLC's
-- Open-source under Apache-2.0
+- Censorship-resistant (users can always transfer and withdraw)
+- Interoperable, any contract or address can use, verify, and control assets on Fuel
+- Fast, ~5 minute entry and exits using HTLCs
 
-## Abstract
+# Abstract
 
 Fuel is the most efficient optimistic rollup in the world, featuring stateless transactional throughput that can be validated in parallel on consumer hardware whilst delivering an instantaneous meta-transactional experience for end-users.
 
@@ -32,34 +31,38 @@ Fuel's unique mempool priority aggregator model allows for a fast yet truly cens
 
 See the detailed [specification](https://docs.fuel.sh) for a more intimate overview of the design decisions behind Fuel.
 
-## Install
+# Building From Source
 
-```
-git clone https://github.com/fuellabs/fuel
-cd fuel
+## Install Dependencies
+
+Install [Node.js](https://nodejs.org/en/) `>= v10`.
+
+Then run:
+
+```sh
 npm install
 ```
 
 ## Build
 
-Note, the Yul+ compiler has not been optimized yet for contracts of this size, so building might take ~+10 minutes. This will go down to just seconds in future versions.
+_Note, the Yul+ compiler has not been optimized yet for contracts of this size, so building might take ~+10 minutes. This will go down to just seconds in future compiler versions._
 
-```
+```sh
 npm run build
 ```
 
-## Test
+## Run Tests
 
 Run all tests using:
 
-```
+```sh
 npm test
 ```
 
-## Benchmarks
+## Run Benchmarks
 
 Run all benchmarks using:
 
-```
+```sh
 npm run benchmark
 ```
