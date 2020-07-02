@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fuellabs/fuel-core.git"
+    "url": "git+https://github.com/fuellabs/fuel.git"
   },
   "keywords": [
     "fuel",
