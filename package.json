@@ -1,7 +1,7 @@
 {
   "name": "fuel",
   "version": "1.0.0",
-  "description": "Fuel protocol implimented in Yul+ for the Ethereum Virtual Machine",
+  "description": "Fuel protocol implemented in Yul+ for the Ethereum Virtual Machine",
   "main": "src/index.js",
   "scripts": {
     "start": "npm run test",
