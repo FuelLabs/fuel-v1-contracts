@@ -3,25 +3,24 @@
 Fuel
 ===
 
-> Fuel is a stateless "Layer-2" system for ERC20 transfers and swaps designed for interoperable performance, scale and efficiency.
+> Fuel is high-performance optimistic rollup optimized for ERC-20 transfers and swaps, designed for interoperable performance, scale, and efficiency.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-<a href="https://circleci.com/gh/badges/shields/tree/master"> <img src="https://img.shields.io/circleci/project/github/badges/shields/master" alt="build status"></a>
+<a href="https://circleci.com/gh/badges/shields/tree/master"><img src="https://img.shields.io/circleci/project/github/badges/shields/master" alt="build status"></a>
 [![Community](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/fuellabs/community)
 
 # Features
 
 - A complete layer-2 optimistic rollup implementation
 - Efficient (~1536 gas per transaction)
-- Supports all ERC20 standard tokens
-- Supports HTLC contracts for fast cross-chain atomic swaps
+- Supports all ERC-20 standard tokens
+- Supports HTLCs for fast cross-chain atomic swaps
 - Meta-transactional, pay fees in tokens of your choice
-- Deposit from anywhere using simple transfers (no approve/transferFrom required)
+- Deposit tokens from anywhere using simple transfers (no `approve`/`transferFrom` required)
 - High on-chain throughput capacity (~480tps)
-- Censorship resistant (users can always transfer and withdraw)
-- Interoperable, any contract or address can use, verify and control assets on Fuel
-- Fast ~5 minute entry and exits using HTLC's
-- Open-source under Apache-2.0
+- Censorship-resistant (users can always transfer and withdraw)
+- Interoperable, any contract or address can use, verify, and control assets on Fuel
+- Fast, ~5 minute entry and exits using HTLCs
 
 # Abstract
 
