@@ -6,7 +6,6 @@ Fuel
 > Fuel is high-performance optimistic rollup optimized for ERC-20 transfers and swaps, designed for interoperable performance, scale, and efficiency.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-<a href="https://circleci.com/gh/badges/shields/tree/master"><img src="https://img.shields.io/circleci/project/github/badges/shields/master" alt="build status"></a>
 [![Community](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/fuellabs/community)
 
 # Features
