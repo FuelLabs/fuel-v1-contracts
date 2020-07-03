@@ -5,16 +5,16 @@
   "main": "./config/compile",
   "scripts": {
     "start": "npm run test",
-    "test": "node src/contracts/tests/",
+    "test": "node src/tests/",
     "build": "npm run build-fuel",
     "build-fuel": "compile=Fuel node ./config/compile",
     "build-erc20": "compile=ERC20 node ./config/compile",
     "build-funnel": "compile=Funnel node ./config/compile",
     "build-revert": "compile=Revert node ./config/compile",
     "build-proxy": "compile=Proxy node ./config/compile",
-    "test-erc20": "npm run build-erc20 && node src/contracts/tests/ERC20.test",
-    "test-fuel": "npm run build-fuel && node src/contracts/tests/",
-    "benchmark": "node src/contracts/benchmarks/"
+    "test-erc20": "npm run build-erc20 && node src/tests/ERC20.test",
+    "test-fuel": "npm run build-fuel && node src/tests/",
+    "benchmark": "node src/benchmarks/"
   },
   "repository": {
     "type": "git",
@@ -32,8 +32,9 @@
     "url": "https://github.com/fuellabs/fuel/issues"
   },
   "homepage": "https://github.com/fuellabs/fuel#readme",
-  "dependencies": {
+  "devDependencies": {
     "ethers": "^4.0.47",
-    "@fuel-js/common": "0.0.1"
+    "@fuel-js/common": "0.0.2",
+    "@fuel-js/protocol": "0.0.2"
   }
 }

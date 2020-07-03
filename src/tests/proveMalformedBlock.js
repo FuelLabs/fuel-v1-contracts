@@ -3,9 +3,9 @@ const { struct, chunk, combine } = require('@fuel-js/common/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/block');
+    merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/src/block');
 const { defaults } = require('./harness');
-const { _Transaction } = require('@fuel-js/protocol/transaction');
+const { _Transaction } = require('@fuel-js/protocol/src/transaction');
 
 module.exports = test('proveMalformedBlock', async t => { try {
 

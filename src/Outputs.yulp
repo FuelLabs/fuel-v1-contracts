@@ -1,7 +1,7 @@
 object "Outputs" {
   code {
     enum OutputTypes (
-      UTXO,
+      Transfer,
       Withdraw,
       HTLC,
       Return
