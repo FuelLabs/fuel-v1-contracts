@@ -1,11 +1,11 @@
-const { test, utils, overrides } = require('fuel-common/environment');
-const { struct, chunk, combine } = require('fuel-common/struct');
+const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { struct, chunk, combine } = require('@fuel-js/common/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot, transactions, hashes } = require('../../block');
+    merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/block');
 const { defaults } = require('./harness');
-const { _Transaction } = require('../../transaction');
+const { _Transaction } = require('@fuel-js/protocol/transaction');
 
 module.exports = test('proveMalformedBlock', async t => { try {
 

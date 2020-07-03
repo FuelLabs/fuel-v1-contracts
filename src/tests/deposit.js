@@ -1,8 +1,8 @@
-const { test, utils, overrides, provider } = require('fuel-common/environment');
+const { test, utils, overrides, provider } = require('@fuel-js/common/environment');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const ERC20 = require('../builds/ERC20.json');
 const Revert = require('../builds/Revert.json');
-const { Deposit } = require('../../deposit');
+const { Deposit } = require('@fuel-js/protocol/deposit');
 const { defaults } = require('./harness');
 
 module.exports = test('deposit', async t => { try {

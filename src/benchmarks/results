@@ -1,4 +1,3 @@
-```
 # 75k Burn Transactions
 ok 1 - erc20 transfer
 ok 2 - ether deposit
@@ -44,4 +43,3 @@ ok 38 - Cumulative gas used: 43103747
 ok 39 - Ethereum blocks used: 5
 ok 40 - @$100 USD per Block: $500 USD
 ok 41 - @$50 USD per Block: $250 USD
-```

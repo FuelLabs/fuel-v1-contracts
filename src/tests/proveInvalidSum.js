@@ -1,18 +1,18 @@
-const { test, utils, overrides } = require('fuel-common/environment');
-const { chunk, pack, combine } = require('fuel-common/struct');
+const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { chunk, pack, combine, chunkJoin } = require('@fuel-js/common/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot, transactions, hashes } = require('../../block');
-const tx = require('../../transaction');
-const { Deposit } = require('../../deposit');
+    merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/block');
+const tx = require('@fuel-js/protocol/transaction');
+const { Deposit } = require('@fuel-js/protocol/deposit');
 const { defaults } = require('./harness');
 
-module.exports = test('proveDoubleSpend', async t => { try {
+module.exports = test('proveInvalidSum', async t => { try {
 
   // Construct contract
-  async function state ({ useErc20, attemptDoubleWithdraw }) {
+  async function state ({ useErc20, attemptSpendOverflow }) {
     const producer = t.wallets[0].address;
     const contract = await t.deploy(abi, bytecode, defaults(producer));
 
@@ -49,62 +49,75 @@ module.exports = test('proveDoubleSpend', async t => { try {
     const etx = await t.wait(contract.deposit(producer, token, overrides),
       'ether deposit', errors);
 
-    // build a transaction
-    const transaction = await tx.Transaction({
-      inputs: [tx.InputDeposit({
-        witnessReference: 0,
-        owner: producer,
-      })],
-      witnesses: [ t.wallets[0] ],
-      metadata: [ tx.MetadataDeposit(deposit) ],
-      data: [ deposit ],
-      outputs: [ tx.OutputUTXO({
+    const outputs = [
+      deposit,
+      tx.UTXO({
+        transactionHashId: utils.emptyBytes32,
+        outputIndex: 0,
+        outputType: 0,
         amount: 100,
         token: tokenId,
         owner: producer,
-      }), tx.OutputWithdraw({
-        amount: 500,
+      }),
+      tx.UTXO({
+        transactionHashId: utils.emptyBytes32,
+        outputIndex: 0,
+        outputType: 0,
+        amount: 100,
         token: tokenId,
         owner: producer,
-      }) ],
-    }, contract);
-    const transactionB = await tx.Transaction({
-      inputs: [tx.InputDeposit({
-        witnessReference: 0,
-        owner: producer,
-      })],
+      }),
+    ];
+
+    // build a transaction
+    const transaction = await tx.Transaction({
       witnesses: [ t.wallets[0] ],
-      metadata: [ tx.MetadataDeposit(deposit) ],
-      data: [ deposit ],
+      metadata: [
+        tx.MetadataDeposit(deposit.object()),
+        tx.Metadata({}),
+        tx.Metadata({}),
+      ],
+      data: outputs.map(v => v.keccak256()),
+      inputs: [
+        tx.InputDeposit({
+          owner: producer,
+        }),
+        tx.InputUTXO({}),
+        tx.InputUTXO({}),
+      ],
       outputs: [tx.OutputUTXO({
         amount: 100,
         token: tokenId,
         owner: producer,
+      }), tx.OutputUTXO({
+        amount: attemptSpendOverflow ? 101 : 100,
+        token: tokenId,
+        owner: producer,
       }), tx.OutputWithdraw({
-        amount: 500,
+        amount: 1000,
         token: tokenId,
         owner: producer,
       })],
     }, contract);
 
-
     // produce it in a block
-    const txs = [transaction, transactionB];
+    const txs = [transaction];
     const root = (new RootHeader({
       rootProducer: producer,
       merkleTreeRoot: merkleTreeRoot(txs),
       commitmentHash: utils.keccak256(combine(txs)),
       rootLength: utils.hexDataLength(combine(txs)),
     }));
-    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot.get(), 0, 0, combine(txs), overrides),
+    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot.get(), 0, 0,
+      combine(txs), overrides),
       'valid submit', errors);
-    const header = (new BlockHeader({
+    const header = new BlockHeader({
       producer,
       height: 1,
       numTokens,
       numAddresses: 1,
       roots: [root.keccak256Packed()],
-    }));
+    });
     const block = await t.wait(contract.commitBlock(0, 1, [root.keccak256Packed()], {
       ...overrides,
       value: await contract.BOND_SIZE(),
@@ -112,40 +125,43 @@ module.exports = test('proveDoubleSpend', async t => { try {
     header.properties.ethereumBlockNumber.set(block.events[0].blockNumber);
     t.equalBig(await contract.blockTip(), 1, 'tip');
 
-    const rootA = await RootHeader.fromLogsByHash(root.keccak256Packed(), contract, true);
-
     // submit a withdrawal proof
     const proof = tx.TransactionProof({
       block: header,
       root,
-      rootIndex: 0,
       transactions: txs,
-      indexes: { output: 1 },
+      indexes: { output: 0 },
       transactionIndex: 0,
       token,
     });
-    const proofB = tx.TransactionProof({
-      block: header,
-      root,
-      rootIndex: 0,
-      transactions: txs,
-      indexes: { output: 1 },
-      transactionIndex: 1,
-      token,
-    });
 
+    const arg1 = proof.encodePacked();
+    const arg2 = chunkJoin(outputs.map(v => v.encode()));
 
-    const fraud = await t.wait(contract.proveDoubleSpend(proof.encodePacked(), proofB.encodePacked(), {
-      ...overrides,
-      value: await contract.BOND_SIZE(),
-    }), 'double spend same deposit', errors, true);
+    if (!attemptSpendOverflow) {
+      const invalidSum = await t.wait(contract.proveInvalidSum(arg1, arg2, {
+        ...overrides,
+      }), 'double spend same deposit not overflow', errors, true);
+      t.equalBig(await contract.blockTip(), 1, 'tip');
+      t.equal(invalidSum.logs.length, 0, 'no logs');
+    }
 
-    t.equalBig(await contract.penalty(), (await contract.PENALTY_DELAY()).add(fraud.blockNumber), 'penalty')
+    if (attemptSpendOverflow) {
+      const fraud = await t.wait(contract.proveInvalidSum(arg1, arg2, {
+        ...overrides,
+      }), 'double spend same deposit overflow', errors, true);
+      t.equalBig(await contract.blockTip(), 0, 'tip');
+      t.equal(fraud.logs.length, 1, 'logs detected');
+      t.equalBig(fraud.events[0].args.fraudCode, errors['sum'], 'root');
+      t.equalBig(fraud.events[0].args.previousTip, 1, 'producer');
+      t.equalBig(fraud.events[0].args.currentTip, 0, 'merkleRootA');
+    }
   }
 
-
-  await state ({ useErc20: false, attemptDoubleWithdraw: true });
-  await state ({ useErc20: true, attemptDoubleWithdraw: true });
+  await state ({ useErc20: false });
+  await state ({ useErc20: true });
+  await state ({ useErc20: false, attemptSpendOverflow: true });
+  await state ({ useErc20: true, attemptSpendOverflow: true });
 
 
 } catch (error) { t.error(error, errors); } });

@@ -1,4 +1,4 @@
-// 100,000 transfers
+// 75,000 one-off points burning
 
 const { test, utils, overrides } = require('fuel-common/environment');
 const { chunk, pack, combine } = require('fuel-common/struct');
@@ -6,15 +6,15 @@ const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot, transactions, hashes } = require('../../block');
-const tx = require('../../transaction');
-const { Deposit } = require('../../deposit');
+    merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/block');
+const tx = require('@fuel-js/protocol/transaction');
+const { Deposit } = require('@fuel-js/protocol/deposit');
 const { defaults } = require('../tests/harness');
 
-module.exports = test('100k transactions', async t => { try {
+module.exports = test('75k Burn Transactions', async t => { try {
 
-  // simulate 100k tx's
-  const transactionsToSimulate = 100000;
+  // simulate 75k tx's
+  const transactionsToSimulate = 75000;
   const ethereumBlockSize = 8000000;
   let cumulativeGasUsed = utils.bigNumberify(0);
 
@@ -42,7 +42,9 @@ module.exports = test('100k transactions', async t => { try {
     outputs: [tx.OutputUTXO({
       amount: utils.parseEther('1.0'),
       token: tokenId,
-      owner: [ownerId],
+      owner: ['0x00'], // the null address
+    }), tx.OutputReturn({
+      data: ['0xaa'], // special burn flag for consistancy
     }), tx.OutputUTXO({
       amount: utils.parseEther('5.0'),
       token: tokenId,
@@ -75,7 +77,6 @@ module.exports = test('100k transactions', async t => { try {
     let rootTx = await contract.commitRoot(root.properties.merkleTreeRoot.get(), tokenId, chunk, combine(txs), overrides);
     rootTx = await rootTx.wait();
     rootsCommitted += 1;
-
     cumulativeGasUsed = cumulativeGasUsed.add(rootTx.cumulativeGasUsed);
   }
 

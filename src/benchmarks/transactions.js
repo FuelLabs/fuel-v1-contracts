@@ -1,4 +1,4 @@
-// 25,000 subscription transactions
+// 100,000 transfers
 
 const { test, utils, overrides } = require('fuel-common/environment');
 const { chunk, pack, combine } = require('fuel-common/struct');
@@ -6,15 +6,15 @@ const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot, transactions, hashes } = require('../../block');
-const tx = require('../../transaction');
-const { Deposit } = require('../../deposit');
+    merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/block');
+const tx = require('@fuel-js/protocol/transaction');
+const { Deposit } = require('@fuel-js/protocol/deposit');
 const { defaults } = require('../tests/harness');
 
-module.exports = test('25k Subscription Transactions', async t => { try {
+module.exports = test('100k transactions', async t => { try {
 
-  // simulate 25k tx's
-  const transactionsToSimulate = 25000;
+  // simulate 100k tx's
+  const transactionsToSimulate = 100000;
   const ethereumBlockSize = 8000000;
   let cumulativeGasUsed = utils.bigNumberify(0);
 
@@ -75,6 +75,7 @@ module.exports = test('25k Subscription Transactions', async t => { try {
     let rootTx = await contract.commitRoot(root.properties.merkleTreeRoot.get(), tokenId, chunk, combine(txs), overrides);
     rootTx = await rootTx.wait();
     rootsCommitted += 1;
+
     cumulativeGasUsed = cumulativeGasUsed.add(rootTx.cumulativeGasUsed);
   }
 
@@ -83,12 +84,18 @@ module.exports = test('25k Subscription Transactions', async t => { try {
     value: await contract.BOND_SIZE(),
   });
   block = await block.wait();
+  let block2 = await contract.commitBlock(0, 2, rootHashes.slice(128), {
+    ...overrides,
+    value: await contract.BOND_SIZE(),
+  });
+  block2 = await block2.wait();
 
   cumulativeGasUsed = cumulativeGasUsed.add(block.cumulativeGasUsed);
+  cumulativeGasUsed = cumulativeGasUsed.add(block2.cumulativeGasUsed);
 
   t.ok(1, `Transactions Submitted: ${transactionsToSimulate}`);
   t.ok(1, `Roots committed: ${rootHashes.length}`);
-  t.ok(1, `Blocks committed: 1`);
+  t.ok(1, `Blocks committed: 2`);
   t.ok(1, `Cumulative gas used: ${cumulativeGasUsed.toString(rootHashes)}`);
   t.ok(1, `Ethereum blocks used: ${cumulativeGasUsed.div(ethereumBlockSize)}`);
   t.ok(1, `@$100 USD per Block: $${cumulativeGasUsed.div(ethereumBlockSize).mul(100)} USD`);

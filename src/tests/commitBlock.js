@@ -1,7 +1,7 @@
-const { test, utils, overrides } = require('fuel-common/environment');
+const { test, utils, overrides } = require('@fuel-js/common/environment');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
-const { BlockHeader, RootHeader } = require('../../block');
+const { BlockHeader, RootHeader } = require('@fuel-js/protocol/block');
 const { defaults } = require('./harness.js');
 
 module.exports = test('commitBlock', async t => { try {

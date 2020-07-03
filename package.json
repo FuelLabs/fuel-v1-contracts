@@ -2,10 +2,10 @@
   "name": "fuel",
   "version": "1.0.0",
   "description": "Fuel protocol implemented in Yul+ for the Ethereum Virtual Machine",
-  "main": "src/index.js",
+  "main": "./config/compile",
   "scripts": {
     "start": "npm run test",
-    "test": "node src/contracts/tests/index.js",
+    "test": "node src/contracts/tests/",
     "build": "npm run build-fuel",
     "build-fuel": "compile=Fuel node ./config/compile",
     "build-erc20": "compile=ERC20 node ./config/compile",
@@ -34,6 +34,6 @@
   "homepage": "https://github.com/fuellabs/fuel#readme",
   "dependencies": {
     "ethers": "^4.0.47",
-    "fuel-common": "file:../ens/common"
+    "@fuel-js/common": "0.0.1"
   }
 }

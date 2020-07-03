@@ -16,7 +16,7 @@ Fuel
 - Supports HTLCs for fast cross-chain atomic swaps
 - Meta-transactional, pay fees in tokens of your choice
 - Deposit tokens from anywhere using simple transfers (no `approve`/`transferFrom` required)
-- High on-chain throughput capacity (~480tps)
+- High on-chain throughput capacity (~480tps @ 10m Block)
 - Censorship-resistant (users can always transfer and withdraw)
 - Interoperable, any contract or address can use, verify, and control assets on Fuel
 - Fast, ~5 minute entry and exits using HTLCs
