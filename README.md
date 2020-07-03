@@ -45,8 +45,6 @@ npm install
 
 ## Build
 
-_Note, the Yul+ compiler has not been optimized yet for contracts of this size, so building might take ~+10 minutes. This will go down to just seconds in future compiler versions._
-
 ```sh
 npm run build
 ```
