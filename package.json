@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Fuel protocol implemented in Yul+ for the Ethereum Virtual Machine",
   "main": "./config/compile",
+  "engines": {
+    "node": ">=10.16.0 <=12.18.2"
+  },
   "scripts": {
     "start": "npm run test",
     "test": "node src/tests/",
