@@ -35,7 +35,7 @@ See the detailed [specification](https://docs.fuel.sh) for a more intimate overv
 
 ## Install Dependencies
 
-Install [Node.js](https://nodejs.org/en/) `>=10.16.0`.
+Install [Node.js](https://nodejs.org/en/) `>= v10.16.0`.
 
 Then run:
 
