@@ -7,7 +7,7 @@ Fuel
 
 ![Node.js CI](https://github.com/FuelLabs/fuel/workflows/Node.js%20CI/badge.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Community](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/fuellabs_/community)
+[![Community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/fuellabs_/community)
 
 # Features
 
