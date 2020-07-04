@@ -5,6 +5,7 @@ Fuel
 
 > Fuel is high-performance optimistic rollup optimized for ERC-20 transfers and swaps, designed for interoperable performance, scale, and efficiency.
 
+![Node.js CI](https://github.com/FuelLabs/fuel/workflows/Node.js%20CI/badge.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Community](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/fuellabs_/community)
 
@@ -44,8 +45,6 @@ npm install
 ```
 
 ## Build
-
-_Note, the Yul+ compiler has not been optimized yet for contracts of this size, so building might take ~+10 minutes. This will go down to just seconds in future compiler versions._
 
 ```sh
 npm run build
