@@ -238,7 +238,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(index, MaxInputs), error"input-index-overflow")
 
       for {} gt(index, 0) {} {
-        pos := add(pos, MetadataSize)
+        pos := add(pos, METADATA_SIZE)
         index := sub(index, 1)
       }
 
