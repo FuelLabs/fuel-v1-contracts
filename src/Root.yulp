@@ -26,10 +26,13 @@ object "Root" is "Storage", "Tokens" {
       fee: uint256
     )
 
+    /// @notice Get block number of a registered root.
+    /// @return Ethereum block number the root was registered at as uin256
     function rootBlockNumberAt(root) -> blockNumber {
       blockNumber := sload(mappingKey(Storage.Roots, root))
     }
 
+    /// @notice Clear a registered root from storage.
     function clearRoot(root) {
       sstore(mappingKey(Storage.Roots, root), 0)
     }
