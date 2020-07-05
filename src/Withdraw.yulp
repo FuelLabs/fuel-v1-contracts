@@ -36,7 +36,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
         error"token-id")
 
       // Check Proof Type is Correct
-      require(eq(Output.type(output), OutputTypes.Withdraw),
+      require(eq(Output.type(output), OutputType.Withdraw),
           error"output-type")
 
       // Get transaction details

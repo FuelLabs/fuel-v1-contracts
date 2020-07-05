@@ -6,7 +6,7 @@ object "DoubleSpend" is "TransactionProof", "Fraud" {
     function inputOwner(transaction) -> addr {
       let input := selectInput(transaction)
 
-      if eq(Input.type(input), InputTypes.Deposit) {
+      if eq(Input.type(input), InputType.Deposit) {
         addr := InputDeposit.owner(input)
       }
     }

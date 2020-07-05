@@ -11,7 +11,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       for {} lt(pos, end) {} {
         switch Input.type(pos)
 
-        case InputTypes.Deposit {
+        case InputType.Deposit {
           assertOrFraud(gt(MetadataDeposit.blockNumber(metadata), 0),
             error"metadata-deposit-height-underflow", proof)
 
@@ -53,7 +53,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
             error"metadata-output-overflow", proof)
 
           // Root must always select tx and output index 0, in a previous block
-          if eq(Input.type(pos), InputTypes.Root) {
+          if eq(Input.type(pos), InputType.Root) {
             assertOrFraud(lt(Metadata.blockHeight(metadata), TransactionProof.blockHeight(proof)),
               error"root-height-overflow", proof)
 
@@ -185,23 +185,23 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       for {} lt(pos, end) {} {
         switch Output.type(pos)
 
-        case OutputTypes.Transfer {
+        case OutputType.Transfer {
           proveOutputValue(pos, proof)
           proveOutputOwner(pos, proof)
         }
 
-        case OutputTypes.Withdraw {
+        case OutputType.Withdraw {
           proveOutputValue(pos, proof)
           proveOutputOwner(pos, proof)
         }
 
-        case OutputTypes.HTLC {
+        case OutputType.HTLC {
           proveOutputValue(pos, proof)
           proveOutputOwner(pos, proof)
           proveOutputReturnOwner(pos, proof)
         }
 
-        case OutputTypes.Return {
+        case OutputType.Return {
           assertOrFraud(gt(OutputReturn.data.length(pos), 0),
             error"outputs-data-underflow", proof)
 

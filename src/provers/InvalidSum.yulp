@@ -12,7 +12,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
       for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(proof))) {} {
         switch Input.type(pos)
 
-        case InputTypes.Transfer {
+        case InputType.Transfer {
           if eq(token, UTXO.token(inputs)) {
             sum := add(sum, UTXO.amount(inputs))
           }
@@ -20,7 +20,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
           inputs := add(inputs, UTXO.size(inputs))
         }
 
-        case InputTypes.Deposit {
+        case InputType.Deposit {
           if eq(token, Deposit.token(inputs)) {
             sum := add(sum, Deposit.value(inputs))
           }
@@ -28,7 +28,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
           inputs := add(inputs, Deposit.size(inputs))
         }
 
-        case InputTypes.HTLC {
+        case InputType.HTLC {
           if eq(token, UTXO.token(inputs)) {
             sum := add(sum, UTXO.amount(inputs))
           }
@@ -36,7 +36,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
           inputs := add(inputs, UTXO.size(inputs))
         }
 
-        case InputTypes.Root {
+        case InputType.Root {
           if eq(token, TransactionProof.feeToken(inputs)) {
             sum := add(sum, mul(TransactionProof.fee(inputs), TransactionProof.rootLength(inputs)))
           }
@@ -57,7 +57,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
 
       for {} lt(pos, end) {} {
         if and(
-          lt(Output.type(pos), OutputTypes.Return),
+          lt(Output.type(pos), OutputType.Return),
           eq(token, Output.token.slice(pos))
         ) {
           sum := add(sum, outputAmount(pos))

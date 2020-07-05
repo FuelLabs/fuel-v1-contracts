@@ -11,7 +11,7 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
       for {} lt(pos, TransactionLeaf.inputs.offset(leaf)) {} {
         switch Input.type(pos)
 
-        case InputTypes.Transfer {
+        case InputType.Transfer {
           if eq(index, TransactionProof.input(transaction)) {
             assertOrFraud(ownerEquates(selectOutput(inputs),
               TransactionProof.input.recoverWitness(transaction)), error"utxo-witness", transaction)
@@ -20,7 +20,7 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
           inputs := add(inputs, TransactionProof.size(inputs))
         }
 
-        case InputTypes.Deposit {
+        case InputType.Deposit {
           if eq(index, TransactionProof.input(transaction)) {
             assertOrFraud(eq(Deposit.owner(inputs),
               TransactionProof.input.recoverWitness(transaction)),
@@ -30,7 +30,7 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
           inputs := add(inputs, Deposit.size(inputs))
         }
 
-        case InputTypes.Root {
+        case InputType.Root {
           if eq(index, TransactionProof.input(transaction)) {
             assertOrFraud(eq(TransactionProof.blockProducer(inputs),
               TransactionProof.input.recoverWitness(transaction)), error"root-witness", transaction)
@@ -39,7 +39,7 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
           inputs := add(inputs, TransactionProof.size(inputs))
         }
 
-        case InputTypes.HTLC {
+        case InputType.HTLC {
           if eq(index, TransactionProof.input(transaction)) {
             switch outputExpired(inputs, transaction)
 

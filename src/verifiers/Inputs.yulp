@@ -13,7 +13,7 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
       for {} lt(pos, TransactionLeaf.inputs.offset(leaf)) {} {
         switch Input.type(pos)
 
-        case InputTypes.Transfer {
+        case InputType.Transfer {
           verifyTransactionProof(inputs, 2)
 
           require(eq(outputId(inputs), TransactionLeaf.metadata(leaf, index)),
@@ -25,7 +25,7 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
           inputs := add(inputs, TransactionProof.size(inputs))
         }
 
-        case InputTypes.Deposit {
+        case InputType.Deposit {
           let metadata := selectMetadata(transaction, index)
 
           require(eq(Deposit.token(inputs), MetadataDeposit.token(metadata)),
@@ -40,7 +40,7 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
           inputs := add(inputs, Deposit.size(inputs))
         }
 
-        case InputTypes.Root {
+        case InputType.Root {
           verifyTransactionProof(inputs, 2)
 
           require(eq(RootHeader.keccak256(TransactionProof.rootProducer.position(inputs)),
@@ -49,7 +49,7 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
           inputs := add(inputs, TransactionProof.size(inputs))
         }
 
-        case InputTypes.HTLC {
+        case InputType.HTLC {
           verifyTransactionProof(inputs, 2)
 
           require(eq(outputId(inputs), TransactionLeaf.metadata(leaf, index)),

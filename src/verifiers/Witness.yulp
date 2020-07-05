@@ -13,14 +13,14 @@ object "VerifyWitness" is "Deposit", "Transaction" {
       case WitnessTypes.Signature {
         switch Input.type(input)
 
-        case InputTypes.Deposit {
+        case InputType.Deposit {
           require(eq(
             ecrecover(transactionHashId(transaction), witness),
             Deposit.owner(inputs)
           ), error"witness-signature")
         }
 
-        case InputTypes.Root {
+        case InputType.Root {
           require(eq(
             ecrecover(transactionHashId(transaction), witness),
             TransactionProof.blockProducer(inputs)

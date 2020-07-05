@@ -65,7 +65,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       let output := selectOutput(proof)
 
       // we do this after to ensure hashing is okay
-      require(neq(Output.type(output), OutputTypes.Return),
+      require(neq(Output.type(output), OutputType.Return),
         error"utxo-return")
 
       // we do this after to ensure hashing is okay
@@ -73,7 +73,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
         error"owner-equates")
 
       // we do this after as the funnel address calc uses memory
-      if eq(Output.type(output), OutputTypes.HTLC) {
+      if eq(Output.type(output), OutputType.HTLC) {
         require(ownerReturnEquates(output, TransactionProof.selector(proof)),
           error"owner-return-equates")
       }
@@ -87,7 +87,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
         Output.token.slice(output),
         0, 0, 0) // digest, expiry return witness
 
-      if eq(Output.type(output), OutputTypes.HTLC) {
+      if eq(Output.type(output), OutputType.HTLC) {
         mstore(add(pos, 192), OutputHTLC.digest(output))
         mstore(add(pos, 224), OutputHTLC.expiry(output))
         mstore(add(pos, 256), TransactionProof.selector(proof))
