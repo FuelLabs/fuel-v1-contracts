@@ -11,7 +11,7 @@ import "./provers/MalformedBlock.yulp"
 import "./provers/InvalidInput.yulp"
 import "./provers/InvalidWitness.yulp"
 
-// Fuel Version 1.0.0 Optimistic Rollup
+// Fuel optimistic rollup top-level contract
 object "Fuel" is "Constructor", "Tokens", "Address" {
   code {
     // Constants
