@@ -1,5 +1,6 @@
 import "./Storage.yulp"
 
+/// @title Transaction witness
 object "Witness" is "Storage" {
   code {
     enum WitnessTypes (

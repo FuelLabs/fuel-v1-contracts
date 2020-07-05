@@ -1,3 +1,4 @@
+/// @title Transaction output
 object "Outputs" {
   code {
     enum OutputTypes (

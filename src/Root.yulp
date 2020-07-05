@@ -1,6 +1,7 @@
 import "./Storage.yulp"
 import "./Tokens.yulp"
 
+/// @title Root object
 object "Root" is "Storage", "Tokens" {
   code {
     const MAX_ROOT_SIZE := 57600

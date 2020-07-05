@@ -4,6 +4,7 @@ import "./Witness.yulp"
 import "./Metadata.yulp"
 import "./EIP712.yulp"
 
+/// @title Transaction object
 object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
   code {
     const TransactionSizeMinimum := 44

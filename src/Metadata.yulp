@@ -1,3 +1,4 @@
+/// @title Transaction metadata
 object "Metadata" {
   code {
     const MetadataSize := 8

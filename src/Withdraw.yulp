@@ -4,6 +4,7 @@ import "./Transaction.yulp"
 import "./Utils.yulp"
 import "./verifiers/BlockHeader.yulp"
 
+/// @title Withdrawal object
 object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction", "Utils" {
   code {
     mstruct WithdrawalProof(

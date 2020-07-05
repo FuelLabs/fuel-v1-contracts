@@ -1,3 +1,4 @@
+/// @title Contract constructor helper
 object "Constructor" {
   code {
     mstruct Constructor (
