@@ -113,7 +113,7 @@ module.exports = test('proveInvalidWitness', async t => {
       let utxo = new tx.UTXO({
         transactionHashId: transaction.transactionHashId(),
         outputIndex: 0,
-        outputType: opts.htlc ? tx.OutputType.HTLC : 0,
+        outputType: opts.htlc ? tx.OutputTypes.HTLC : 0,
         amount: 100,
         token: tokenId,
         owner: opts.commitAddress ? (opts.funnel ? outputOwner : producer) :
