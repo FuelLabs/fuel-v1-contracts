@@ -6,101 +6,127 @@ import "./Root.yulp"
 object "Block" is "Constructor", "Root", "Address" {
   code {
     const TRANSACTION_ROOTS_MAX := 128
-    const Not_Finalized := false
-    const Finalized := true
-    const No_Assertion := 2
 
+    /// @notice Block header object
     mstruct BlockHeader (
+      // Address of block proposer committing this rollup block
       producer: address,
+      // Previous rollup block's header hash
       previousBlockHash: bytes32,
+      // Rollup block height
       height: uint256,
+      // Ethereum block number when this rollup block is committed
       ethereumBlockNumber: uint256,
+      // Maximum token ID used in this rollup block
       numTokens: uint256,
+      // Maximum address ID used in this rollup block
       numAddresses: uint256,
+      // Number of transaction roots
       roots.length: uint16,
+      // List of transaction roots
       roots: [bytes32]
     )
 
+    /// @notice Helper function to get finalization delay, extracted from constructor.
+    /// @return Finalization delay in Ethereum blocks as uint256
     function FINALIZATION_DELAY() -> delay {
       Constructor.copy(0)
       delay := Constructor.finalizationDelay(0)
     }
 
+    /// @notice Get rollup block tip (i.e. current height).
+    /// @return Block tip as uint256
     function blockTip() -> blockNumber {
       blockNumber := sload(Storage.BlockTip)
     }
 
-    function blockCommitments(blockNumber) -> blockHash {
-      blockHash := sload(mappingKey(Storage.BlockCommitments, blockNumber))
+    /// @notice Get rollup blockhash for given rollup block height.
+    /// @return Blockhash as bytes32
+    function blockCommitment(blockHeight) -> blockHash {
+      blockHash := sload(mappingKey(Storage.BlockCommitments, blockHeight))
     }
 
+    /// @notice Get penalty.
+    /// @return Ethereum block number as uint256
+    // TODO what is penalty?
     function getPenalty() -> blockNumber {
       blockNumber := sload(Storage.Penalty)
     }
 
+    /// @notice Set penalty.
+    // TODO what is penalty?
     function setPenalty(delay) {
       sstore(Storage.Penalty, add(number(), delay))
     }
 
-    function commitBlock(minimum, height, rootsLength, rootsPosition) {
+    /// @notice Commits a new rollup block.
+    function commitBlock(minBlockNumber, height, rootsLength, rootsPosition) {
       let _blockTip := blockTip()
-      let previousBlockHash := blockCommitments(sub(height, 1))
+      let previousBlockHash := blockCommitment(sub(height, 1))
 
-      // block tip check
-      require(gt(number(), minimum), error"minimum-height")
+      // To avoid some Ethereum re-org attacks, commitment transactions include a minimum
+      //  Ethereum block number
+      // TODO should this also check a block hash?
+      // TODO add test for this
+      require(gt(number(), minBlockNumber), error"minimum-block-number")
 
-      // min height
+      // Check that new rollup blocks builds on top of the tip
       require(eq(height, add(_blockTip, 1)), error"block-height")
 
       // Require at least one root submission
       require(gt(rootsLength, 0), error"roots-length-underflow")
 
-      // Require at least one root submission
+      // Require at most the maximum number of root submissions
       require(lte(rootsLength, TRANSACTION_ROOTS_MAX), error"roots-length-overflow")
 
-      // get the operator
+      // Get the rollup operator
       Constructor.copy(0)
       let producer := Constructor.blockProducer(0)
-      let submissionDelay := Constructor.submissionDelay(0)
-      let activePenalty := getPenalty()
 
       // Require value be bond size
       require(eq(callvalue(), Constructor.bondSize(0)), error"bond-value")
 
-      // Root index
+      // Clear submitted roots from storage
       for { let rootIndex := 0 } lt(rootIndex, rootsLength) { rootIndex := add(rootIndex, 1) } {
         let rootHash := mload(add(rootsPosition, mul(rootIndex, 32)))
         let rootBlockNumber := roots(rootHash)
 
+        // Check root exists
         require(gt(rootBlockNumber, 0), error"root-existance")
 
-        if and(lt(number(), add(rootBlockNumber, submissionDelay)), gt(number(), activePenalty)) {
+        // TODO what does this do
+        if and(lt(number(), add(rootBlockNumber, Constructor.submissionDelay(0))), gt(number(), getPenalty())) {
           require(eq(caller(), producer), error"caller-producer")
         }
 
+        // Clear root from storage
         clearRoot(rootHash)
       }
 
-      // Build a BlockHeader
+      // Build a BlockHeader object
       mstore(sub(rootsPosition, 34), numAddresses())
       mstore(sub(rootsPosition, 66), numTokens())
       mstore(sub(rootsPosition, 98), number())
       mstore(sub(rootsPosition, 130), height)
       mstore(sub(rootsPosition, 162), previousBlockHash)
       mstore(sub(rootsPosition, 194), caller())
-      sstore(mappingKey(Storage.BlockCommitments, height),
-        BlockHeader.keccak256(sub(rootsPosition, 182)))
+      sstore(
+        mappingKey(Storage.BlockCommitments, height),
+        BlockHeader.keccak256(sub(rootsPosition, 182))
+      )
 
-      // block height
+      // Save new rollup block height as the tip
       sstore(Storage.BlockTip, height)
 
-      // build log out of calldata
+      // Build log out of calldata
       mstore(sub(rootsPosition, 160), caller())
       mstore(sub(rootsPosition, 128), numTokens())
       mstore(sub(rootsPosition, 96), numAddresses())
       mstore(sub(rootsPosition, 64), 128)
       mstore(sub(rootsPosition, 32), rootsLength)
-      log3(sub(rootsPosition, 160), add(160, mul32(rootsLength)),
+      log3(
+        sub(rootsPosition, 160),
+        add(160, mul32(rootsLength)),
         topic"event BlockCommitted(
           address producer,
           uint256 numTokens,
@@ -108,8 +134,9 @@ object "Block" is "Constructor", "Root", "Address" {
           bytes32 indexed previousBlockHash,
           uint256 indexed height,
           bytes32[] roots)",
-          previousBlockHash,
-          height)
+        previousBlockHash,
+        height
+      )
     }
   }
 }
