@@ -1,7 +1,7 @@
 /// @title Transaction output
 object "Outputs" {
   code {
-    enum OutputTypes (
+    enum OutputType (
       Transfer,
       Withdraw,
       HTLC,
@@ -67,19 +67,19 @@ object "Outputs" {
     function outputSize(output) -> size {
       switch Output.type(output)
 
-      case OutputTypes.Transfer {
+      case OutputType.Transfer {
         size := Output.size(output)
       }
 
-      case OutputTypes.Withdraw {
+      case OutputType.Withdraw {
         size := Output.size(output)
       }
 
-      case OutputTypes.HTLC {
+      case OutputType.HTLC {
         size := OutputHTLC.size(output)
       }
 
-      case OutputTypes.Return {
+      case OutputType.Return {
         size := OutputReturn.size(output)
       }
 

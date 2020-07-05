@@ -1,7 +1,7 @@
 /// @title Transaction input
 object "Inputs" {
   code {
-    enum InputTypes (
+    enum InputType (
       Transfer,
       Deposit,
       HTLC,
@@ -28,11 +28,11 @@ object "Inputs" {
     function inputSize(input) -> size {
       switch Input.type(input)
 
-      case InputTypes.HTLC {
+      case InputType.HTLC {
         size := 34 // InputHTLC.size(input)
       }
 
-      case InputTypes.Deposit {
+      case InputType.Deposit {
         size := 22 // InputHTLC.size(input)
       }
 
