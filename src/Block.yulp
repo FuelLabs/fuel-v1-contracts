@@ -46,15 +46,13 @@ object "Block" is "Constructor", "Root", "Address" {
       blockHash := sload(mappingKey(Storage.BlockCommitments, blockHeight))
     }
 
-    /// @notice Get penalty.
+    /// @notice Get penalty block number. The operator is penalized until this block number.
     /// @return Ethereum block number as uint256
-    // TODO what is penalty?
     function getPenalty() -> blockNumber {
       blockNumber := sload(Storage.Penalty)
     }
 
-    /// @notice Set penalty.
-    // TODO what is penalty?
+    /// @notice Set penalty block number as delay from current block number. The operator is penalized until this block number.
     function setPenalty(delay) {
       sstore(Storage.Penalty, add(number(), delay))
     }
@@ -66,7 +64,7 @@ object "Block" is "Constructor", "Root", "Address" {
 
       // To avoid some Ethereum re-org attacks, commitment transactions include a minimum
       //  Ethereum block number
-      // TODO should this also check a block hash?
+      // TODO this also check a block hash
       // TODO add test for this
       require(gt(number(), minBlockNumber), error"minimum-block-number")
 
