@@ -259,22 +259,22 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       size := TransactionLeaf.witnesses.length(leaf)
 
       assertOrFraud(gt(size, 0), error"witnesses-size-underflow", proof)
-      assertOrFraud(lte(size, TransactionSizeMaximum), error"witnesses-size-overflow", proof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"witnesses-size-overflow", proof)
 
       size := TransactionLeaf.inputs.length(leaf)
 
       assertOrFraud(gte(size, 2), error"inputs-size-underflow", proof)
-      assertOrFraud(lte(size, TransactionSizeMaximum), error"inputs-size-overflow", proof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"inputs-size-overflow", proof)
 
       size := TransactionLeaf.outputs.length(leaf)
 
       assertOrFraud(gte(size, 3), error"outputs-size-underflow", proof)
-      assertOrFraud(lte(size, TransactionSizeMaximum), error"outputs-size-overflow", proof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"outputs-size-overflow", proof)
 
       size := TransactionLeaf.size(leaf)
 
-      assertOrFraud(gt(size, TransactionSizeMinimum), error"transaction-size-underflow", proof)
-      assertOrFraud(lte(size, TransactionSizeMaximum), error"transaction-size-overflow", proof)
+      assertOrFraud(gt(size, TRANSACTION_SIZE_MIN), error"transaction-size-underflow", proof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"transaction-size-overflow", proof)
       assertOrFraud(eq(size, add(TransactionLeaf.length(leaf), 2)), error"transaction-length", proof)
 
       proveWitnesses(leaf, proof)

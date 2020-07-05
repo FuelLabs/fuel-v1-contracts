@@ -7,8 +7,8 @@ import "./EIP712.yulp"
 /// @title Transaction object
 object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
   code {
-    const TransactionSizeMinimum := 44
-    const TransactionSizeMaximum := 896
+    const TRANSACTION_SIZE_MIN := 44
+    const TRANSACTION_SIZE_MAX := 896
     const MaxInputs := 8
     const MaxOutputs := 8
     const EmptyLeafHash := 0
