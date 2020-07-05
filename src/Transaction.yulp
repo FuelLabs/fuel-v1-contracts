@@ -255,7 +255,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       case WitnessTypes.Caller {
         addr := Caller.owner(witness)
 
-        if neq(witnesses(addr, Caller.blockNumber(witness)), transactionHashId(proof)) {
+        if neq(witnessAt(addr, Caller.blockNumber(witness)), transactionHashId(proof)) {
           addr := 0
         }
       }

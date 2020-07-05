@@ -142,8 +142,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         bondWithdraw(abi.offset(calldata.word(0)))
       }
 
-      case sig"witnesses(address account, address blockNumber) external view returns (bytes32 transactionHashId)" {
-        return.word(witnesses(calldata.word(0),
+      // TODO fix this, blockNumber should be uint32
+      case sig"witnessAt(address account, address blockNumber) external view returns (bytes32 transactionHashId)" {
+        return.word(witnessAt(calldata.word(0),
           calldata.word(1)))
       }
 

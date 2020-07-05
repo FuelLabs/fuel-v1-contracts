@@ -24,7 +24,7 @@ contract IFuel {
   function outputId(bytes proof) external view returns (uint256 id);
   function inputId(bytes proof) external view returns (uint256 id);
 
-  function witnesses(address account, address blockNumber) external view returns (bytes32 transactionHashId);
+  function witnessAt(address account, address blockNumber) external view returns (bytes32 transactionHashId);
   function funnel(address account) external view returns (address);
   function blockProducer() external view returns (address blockProducer);
   function blockTip() external view  returns (uint256 blockTip);

@@ -4,12 +4,16 @@ import "./Storage.yulp"
 object "Witness" is "Storage" {
   code {
     enum WitnessTypes (
+      // Regular signature
       Signature,
+      // Contract call
       Caller,
+      // Implicitly the block producer
       Producer
     )
 
     mstruct Signature (
+      // Witness type
       type: uint8,
       r: bytes32,
       s: bytes32,
@@ -17,25 +21,36 @@ object "Witness" is "Storage" {
     )
 
     mstruct Caller (
+      // Witness type
       type: uint8,
+      // Token owner's address in the rollup
       owner: address,
+      // Ethereum block number witness was registered
       blockNumber: uint32
     )
 
     mstruct Producer (
+      // Witness type
       type: uint8,
       hash: bytes32
     )
 
-    function witnesses(owner, blockNumber) -> hashId {
-      hashId := sload(mappingKey2(Storage.Witness, owner, blockNumber))
+    /// @notice Get a Caller witness by owner and Ethereum block number.
+    /// @return Witness ID as uint256
+    function witnessAt(owner, blockNumber) -> transactionHash {
+      transactionHash := sload(mappingKey2(Storage.Witness, owner, blockNumber))
     }
 
-    function commitWitness(hashId) {
-      require(eq(witnesses(caller(), number()), 0), error"already-witnessed")
-      sstore(mappingKey2(Storage.Witness, caller(), number()), hashId)
+    /// @notice Register a new Caller witness.
+    function commitWitness(transactionHash) {
+      // Witness must not already be registered
+      require(eq(witnessAt(caller(), number()), 0), error"already-witnessed")
+      // Store the transaction hash keyed by the caller and block number
+      sstore(mappingKey2(Storage.Witness, caller(), number()), transactionHash)
     }
 
+    /// @notice Get size of witness object.
+    /// @return Size of witness object, in bytes as uint256
     function witnessSize(witness) -> size {
       switch Signature.type(witness)
 
@@ -56,6 +71,7 @@ object "Witness" is "Storage" {
       }
     }
 
+    /// @notice ecrecover helper function.
     function ecrecover(digestHash, witness) -> account {
       mstore(0, digestHash)
       mstore(32, Signature.v(witness))

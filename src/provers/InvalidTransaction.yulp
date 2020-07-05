@@ -86,7 +86,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         case WitnessTypes.Signature {}
 
         case WitnessTypes.Caller {
-          let stateWitness := witnesses(Caller.owner(pos), Caller.blockNumber(pos))
+          let stateWitness := witnessAt(Caller.owner(pos), Caller.blockNumber(pos))
           assertOrFraud(gt(stateWitness, 0), error"witness-caller-empty", proof)
 
           assertOrFraud(lt(Caller.blockNumber(pos), TransactionProof.ethereumBlockNumber(proof)),
