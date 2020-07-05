@@ -110,8 +110,8 @@ object "Outputs" {
       default { // id
         let id := Output.owner.slice(output)
         result := or(
-          eq(id, addresses(owner)),
-          eq(id, addresses(calculateFunnelAddress(owner)))
+          eq(id, addressId(owner)),
+          eq(id, addressId(calculateFunnelAddress(owner)))
         )
       }
     }
@@ -134,8 +134,8 @@ object "Outputs" {
       default { // id
         let id := OutputHTLC.returnOwner.slice(output)
         result := or(
-          eq(id, addresses(owner)),
-          eq(id, addresses(calculateFunnelAddress(owner)))
+          eq(id, addressId(owner)),
+          eq(id, addressId(calculateFunnelAddress(owner)))
         )
       }
     }

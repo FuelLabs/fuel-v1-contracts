@@ -55,7 +55,7 @@ module.exports = test('commitBlock', async t => { try {
     t.equalBig(ctx.events[0].args.height, 1, 'merkleRootA');
     t.equalRLP(ctx.events[0].args.roots, [aroot], 'roots');
 
-    t.equal(await contract.blockCommitments(1), header.keccak256Packed(), 'commitment')
+    t.equal(await contract.blockCommitment(1), header.keccak256Packed(), 'commitment')
 
     // commit block
     const croot = (new RootHeader({

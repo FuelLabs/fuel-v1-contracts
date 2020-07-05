@@ -31,7 +31,7 @@ module.exports = test('75k Burn Transactions', async t => { try {
   await t.wait(contract.deposit(producer, token, overrides),
     'ether deposit', errors);
   await contract.commitAddress(producer, overrides);
-  const ownerId = await contract.addresses(producer);
+  const ownerId = await contract.addressId(producer);
 
   let transaction = await tx.Transaction({
     override: true,

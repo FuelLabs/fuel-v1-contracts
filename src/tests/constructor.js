@@ -36,9 +36,9 @@ module.exports = test('constructor', async t => { try {
     t.equalBig(await contract.numAddresses(), numAddresses, 'numTokens');
     t.equalBig(await contract.tokens(utils.emptyAddress), 0, 'ether address');
     t.equalBig(await contract.numAddresses(), 1, 'num addresses');
-    t.equalBig(await contract.addresses(utils.emptyAddress), 0, 'empty address');
+    t.equalBig(await contract.addressId(utils.emptyAddress), 0, 'empty address');
     t.equalBig(await contract.deposits(utils.emptyAddress, 0, 0), 0, 'empty deposit');
-    t.equalBig(await contract.blockCommitments(0), block.genesis, 'genesis');
+    t.equalBig(await contract.blockCommitment(0), block.genesis, 'genesis');
     t.equalBig(await contract.blockRoots(utils.emptyBytes32), 0, 'empty root');
     t.equal(await contract.withdrawals(0, utils.emptyBytes32), false, 'empty withdrawal');
     t.equalBig(await contract.SUBMISSION_DELAY(), params[2], 'SUBMISSION_DELAY');

@@ -21,7 +21,7 @@ object "BlockHeader" is "Block" {
 
       // Assert Previous Block Hash
       require(eq(
-          blockCommitments(safeSub(blockHeight, 1)),
+          blockCommitment(safeSub(blockHeight, 1)),
           BlockHeader.previousBlockHash(blockHeader)),
           error"previous-block-hash")
 
@@ -34,7 +34,7 @@ object "BlockHeader" is "Block" {
           error"roots-length-overflow")
 
       // Assert Block Commitment Exists
-      require(eq(blockCommitments(blockHeight), BlockHeader.keccak256(blockHeader)),
+      require(eq(blockCommitment(blockHeight), BlockHeader.keccak256(blockHeader)),
           error"block-commitment")
 
       // Copy Code to Memory

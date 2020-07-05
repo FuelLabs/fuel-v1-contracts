@@ -236,8 +236,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(numAddresses())
       }
 
-      case sig"addresses(address owner) external view  returns (uint256 addressId)" {
-        return.word(addresses(calldata.word(0)))
+      case sig"addressId(address owner) external view  returns (uint256 addressId)" {
+        return.word(addressId(calldata.word(0)))
       }
 
       case sig"deposits(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount)" {
@@ -248,8 +248,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         ))
       }
 
-      case sig"blockCommitments(uint256 blockNumber) external view  returns (bytes32 blockHash)" {
-        return.word(blockCommitments(calldata.word(0)))
+      case sig"blockCommitment(uint256 blockNumber) external view  returns (bytes32 blockHash)" {
+        return.word(blockCommitment(calldata.word(0)))
       }
 
       case sig"blockRoots(bytes32 root) external view  returns (uint256 blockNumber)" {
