@@ -103,13 +103,13 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
       let bondSize := Constructor.bondSize(0)
 
       // Transfer Bond Amount back to Block Producer
-      transfer(bondSize, EtherToken, caller())
+      transfer(bondSize, ETHER_TOKEN_ADDRESS, caller())
 
       // Set withdrawal
       sstore(mappingKey2(Storage.Withdrawals, blockHeight, withdrawalHashId), true)
 
       // Log withdrawal data and topics
-      mstore(0, EtherToken, bondSize, 0, 0, 0)
+      mstore(0, ETHER_TOKEN_ADDRESS, bondSize, 0, 0, 0)
       log4(0, mul32(5),
         topic"event WithdrawalMade(
           address indexed account,

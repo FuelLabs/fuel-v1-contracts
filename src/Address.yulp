@@ -4,7 +4,7 @@ import "./Storage.yulp"
 /// @notice Assigns a unique ID for registered addresses.
 object "Address" is "Storage" {
   code {
-    const NullAddress := 0
+    const ZERO_ADDRESS := 0
 
     /// @notice Get number of registered addresses.
     /// @return Number of addresses as uint256

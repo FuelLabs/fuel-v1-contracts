@@ -4,7 +4,7 @@ import "./Storage.yulp"
 /// @notice Assigns a unique ID for registered tokens.
 object "Tokens" is "Storage" {
   code {
-    const EtherToken := 0
+    const ETHER_TOKEN_ADDRESS := 0
 
     /// @notice Get number of registered tokens.
     /// @return Number of tokens as uint256

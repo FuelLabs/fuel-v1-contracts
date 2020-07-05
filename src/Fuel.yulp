@@ -25,9 +25,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
     let blockProducer := Constructor.blockProducer(0)
     let genesis := Constructor.genesis(0)
 
-    // Index the Ether and Null Address
-    indexToken(EtherToken, 0)
-    indexAddress(NullAddress, 0)
+    // Index the ETH token ID and zero address
+    indexToken(ETHER_TOKEN_ADDRESS, 0)
+    indexAddress(ZERO_ADDRESS, 0)
 
     // Genesis Block Log
     mstore(0, blockProducer, numTokens, numAddresses, 128, genesisRootsLength)
