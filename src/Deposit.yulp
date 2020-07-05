@@ -2,24 +2,34 @@ import "./Storage.yulp"
 import "./Tokens.yulp"
 import "./FunnelFactory.yulp"
 
+/// @title Deposit object
+/// @notice Uniquely indexes an on-chain ETH or token deposit.
 object "Deposit" is "Storage", "Tokens", "FunnelFactory" {
   code {
     mstruct Deposit (
+      // Owner of deposit
       owner: bytes32,
+      // Token ID (0 for ETH)
       token: uint256,
+      // Ethereum block number deposit was registered
       blockNumber: uint256,
+      // Amount of tokens
       value: uint256
     )
 
+    // @notice Get deposit at key
+    // @return Amount of tokens as uint256
     function deposits(account, token, blockNumber) -> amount {
       amount := sload(mappingKey3(Storage.Deposits, account, token, blockNumber))
     }
 
+    // @notice Handle token deposit.
     function deposit(account, token) {
-      // Num tokens
+      // Get token ID (0 for ETH).
+      // If token has not yet been deposited, a new token ID will be assigned.
       let _tokenId := commitToken(token)
 
-      // build create2 funnel
+      // Build create2 deposit funnel contract
       let funnel := createFunnel(account)
 
       // Variables
@@ -28,7 +38,7 @@ object "Deposit" is "Storage", "Tokens", "FunnelFactory" {
       // handle different tokens
       switch token
 
-      // If Ether
+      // If ETH
       case 0 {
           amount := balance(funnel)
           require(gt(amount, 0), error"value-underflow")
@@ -36,7 +46,7 @@ object "Deposit" is "Storage", "Tokens", "FunnelFactory" {
           require(eq(balance(funnel), 0), error"value-check")
       }
 
-      // If ERC20
+      // If ERC-20
       default {
         require(or(iszero(balance(funnel)), eq(token, 0)), error"ether-first")
 
@@ -54,6 +64,7 @@ object "Deposit" is "Storage", "Tokens", "FunnelFactory" {
       }
 
       // Load current balance from storage
+      // Deposits are uniquely identified by account, token, and Ethereum block numbers, so a second deposit in the same block will simply update a single deposit object
       let balanceAmount := deposits(account, _tokenId, number())
       sstore(mappingKey3(Storage.Deposits, account, _tokenId, number()), add(balanceAmount, amount))
 
