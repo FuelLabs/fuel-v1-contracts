@@ -1,46 +1,66 @@
 /// @title Transaction input
+/// @notice Transaction consume inputs.
 object "Inputs" {
   code {
     enum InputType (
+      // Simple transfer UTXO, no special conditions
       Transfer,
+      // Spending a deposit from Ethereum
       Deposit,
+      // Spending an HTLC UTXO
       HTLC,
+      // Spending a Root UTXO (i.e. collected fees)
       Root
     )
 
+    /// @notice Generic input. Transfer and Root.
     mstruct Input (
+      // Input type
       type: uint8,
+      // Index of witness that authorizes spending this input
       witnessReference: uint8
     )
 
+    /// @notice A Deposit input.
     mstruct InputDeposit (
+      // Input type
       type: uint8,
+      // Index of witness that authorizes spending this input
       witnessReference: uint8,
+      // Recipient address
       owner: address
     )
 
+    /// @notice An HTLC input.
     mstruct InputHTLC (
+      // Input type
       type: uint8,
+      // Index of witness that authorizes spending this input
       witnessReference: uint8,
+      // Preimage to hashlock
       preImage: bytes32
     )
 
+    /// @notice Get size of an input object.
+    /// @return Size of input in bytes as uint256
     function inputSize(input) -> size {
       switch Input.type(input)
 
       case InputType.HTLC {
-        size := 34 // InputHTLC.size(input)
+        size := 34
       }
 
       case InputType.Deposit {
-        size := 22 // InputHTLC.size(input)
+        size := 22
       }
 
       default {
-        size := 2 // Input.size(input)
+        size := 2
       }
     }
 
+    /// @notice Compute hash of input.
+    /// @return Keccak256 hash of input as bytes32
     function inputKeccak256(input) -> hash {
       hash := keccak256(input, inputSize(input))
     }
