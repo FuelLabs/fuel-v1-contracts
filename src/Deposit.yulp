@@ -17,13 +17,13 @@ object "Deposit" is "Storage", "Tokens", "FunnelFactory" {
       value: uint256
     )
 
-    // @notice Get deposit at key
-    // @return Amount of tokens as uint256
+    /// @notice Get deposit at key
+    /// @return Amount of tokens as uint256
     function deposits(account, token, blockNumber) -> amount {
       amount := sload(mappingKey3(Storage.Deposits, account, token, blockNumber))
     }
 
-    // @notice Handle token deposit.
+    /// @notice Handle token deposit.
     function deposit(account, token) {
       // Get token ID (0 for ETH).
       // If token has not yet been deposited, a new token ID will be assigned.
