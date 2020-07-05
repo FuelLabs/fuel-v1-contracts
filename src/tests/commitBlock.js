@@ -25,7 +25,7 @@ module.exports = test('commitBlock', async t => { try {
     const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, overrides),
       'valid submit', errors);
     t.equal(atx.logs.length, 1, 'length');
-    t.equalBig(await contract.blockRoots(aroot), blocka, 'block');
+    t.equalBig(await contract.rootBlockNumberAt(aroot), blocka, 'block');
     t.equalBig(atx.events[0].args.root, aroot, 'root');
     t.equalBig(atx.events[0].args.rootProducer, producer, 'producer');
     t.equalBig(atx.events[0].args.merkleTreeRoot, merkleRootA, 'merkleRootA');
@@ -207,7 +207,7 @@ module.exports = test('commitBlock', async t => { try {
     const btx = await t.wait(other.commitRoot(merkleRootB, 0, 0, emptyTxsB, overrides),
       'valid submit', errors);
     t.equal(btx.logs.length, 1, 'length');
-    t.equalBig(await other.blockRoots(broot), blockb, 'block');
+    t.equalBig(await other.rootBlockNumberAt(broot), blockb, 'block');
     t.equalBig(btx.events[0].args.root, broot, 'root');
     t.equalBig(btx.events[0].args.rootProducer, producerB, 'producer');
     t.equalBig(btx.events[0].args.merkleTreeRoot, merkleRootB, 'merkleRootA');

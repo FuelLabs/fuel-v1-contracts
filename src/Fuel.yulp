@@ -252,8 +252,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(blockCommitment(calldata.word(0)))
       }
 
-      case sig"blockRoots(bytes32 root) external view  returns (uint256 blockNumber)" {
-        return.word(roots(calldata.word(0)))
+      case sig"rootBlockNumberAt(bytes32 root) external view  returns (uint256 blockNumber)" {
+        return.word(rootBlockNumberAt(calldata.word(0)))
       }
 
       case sig"withdrawals(uint256 blockHeight, bytes32 withdrawalHashId) external view returns (bool withdrawn)" {

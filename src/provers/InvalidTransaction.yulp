@@ -43,7 +43,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
           assertOrFraud(gte(Metadata.transactionIndex(metadata), 0),
             error"metadata-index-underflow", proof)
 
-          assertOrFraud(lt(Metadata.transactionIndex(metadata), MaxTransactionsInRoot),
+          assertOrFraud(lt(Metadata.transactionIndex(metadata), MAX_TRANSACTIONS_IN_ROOT),
             error"metadata-index-overflow", proof)
 
           assertOrFraud(gte(Metadata.outputIndex(metadata), 0),

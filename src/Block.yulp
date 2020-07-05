@@ -87,7 +87,7 @@ object "Block" is "Constructor", "Root", "Address" {
       // Clear submitted roots from storage
       for { let rootIndex := 0 } lt(rootIndex, rootsLength) { rootIndex := add(rootIndex, 1) } {
         let rootHash := mload(add(rootsPosition, mul(rootIndex, 32)))
-        let rootBlockNumber := roots(rootHash)
+        let rootBlockNumber := rootBlockNumberAt(rootHash)
 
         // Check root exists
         require(gt(rootBlockNumber, 0), error"root-existance")

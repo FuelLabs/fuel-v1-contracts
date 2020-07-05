@@ -39,7 +39,7 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
         transactionIndex := add(transactionIndex, 1)
 
         // Transactions overflow
-        assertOrFraud(lt(transactionIndex, MaxTransactionsInRoot),
+        assertOrFraud(lt(transactionIndex, MAX_TRANSACTIONS_IN_ROOT),
             error"transaction-index-overflow", fraudBlock)
       }
 

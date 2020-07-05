@@ -1,9 +1,8 @@
 import "./Block.yulp"
 
+/// @title BlockHeader verifier
 object "BlockHeader" is "Block" {
   code {
-    const No_Root := false
-
     function verifyHeader(blockHeader, root, rootIndex, assertFinalized) {
       // Select BlockHeight from Memory
       const blockHeight := BlockHeader.height(blockHeader)
