@@ -4,7 +4,7 @@ object "Metadata" {
     // Size of metadata object in bytes
     const METADATA_SIZE := 8
 
-    /// @notice Metadata object.
+    /// @notice Metadata object. Points to an exact entry in the ledger.
     mstruct Metadata (
       blockHeight: uint32,
       rootIndex: uint8,
