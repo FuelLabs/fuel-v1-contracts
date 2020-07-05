@@ -1,17 +1,24 @@
 import "./Storage.yulp"
 
+/// @title Address registry
+/// @notice Assigns a unique ID for registered addresses.
 object "Address" is "Storage" {
   code {
     const NullAddress := 0
 
+    /// @notice Get number of registered addresses.
+    /// @return Number of addresses as uint256
     function numAddresses() -> num {
       num := sload(Storage.NumAddresses)
     }
 
-    function addresses(owner) -> id {
-      id := sload(mappingKey(Storage.Address, owner))
+    /// @notice Get ID of registered address.
+    /// @return ID of address as uint256
+    function addressId(addr) -> id {
+      id := sload(mappingKey(Storage.Address, addr))
     }
 
+    /// @notice Register a new address with a sequentially assigned ID.
     function indexAddress(addr, id) {
       sstore(mappingKey(Storage.Address, addr), id)
       sstore(Storage.NumAddresses, add(id, 1))
@@ -21,8 +28,10 @@ object "Address" is "Storage" {
           id)
     }
 
+    /// @notice Return ID of address, assigning a new one if necessary.
+    /// @return ID of address as uint256
     function commitAddress(addr) -> id {
-      id := addresses(addr)
+      id := addressId(addr)
 
       if and(neq(addr, 0), iszero(id)) {
         id := numAddresses()

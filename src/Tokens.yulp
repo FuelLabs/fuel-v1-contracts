@@ -1,17 +1,24 @@
 import "./Storage.yulp"
 
+/// @title Token registry
+/// @notice Assigns a unique ID for registered tokens.
 object "Tokens" is "Storage" {
   code {
     const EtherToken := 0
 
+    /// @notice Get number of registered tokens.
+    /// @return Number of tokens as uint256
     function numTokens() -> num {
       num := sload(Storage.NumTokens)
     }
 
+    /// @notice Get ID of registered token.
+    /// @return ID of token as uint256
     function tokenId(addr) -> id {
       id := sload(mappingKey(Storage.Token, addr))
     }
 
+    /// @notice Register a new token with a sequentially assigned ID.
     function indexToken(addr, id) {
       sstore(mappingKey(Storage.Token, addr), id)
       sstore(Storage.NumTokens, add(id, 1))
@@ -21,6 +28,8 @@ object "Tokens" is "Storage" {
           id)
     }
 
+    /// @notice Return ID of token, assigning a new one if necessary.
+    /// @return ID of token as uint256
     function commitToken(addr) -> id {
       id := tokenId(addr)
 
