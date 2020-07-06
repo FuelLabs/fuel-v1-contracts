@@ -127,11 +127,15 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(commitAddress(calldata.word(0)))
       }
 
+      //////////////////////////////////////////////////////////////////////////
+      /// FRAUD PROOFS BEGIN
+      //////////////////////////////////////////////////////////////////////////
+
       /// @notice Prove that a block was malformed.
-      /// @param blockHeader
-      /// @param rootHeader
-      /// @param rootIndex
-      /// @param transactions
+      /// @param blockHeader Block header.
+      /// @param rootHeader Full root header.
+      /// @param rootIndex Index to root in block header.
+      /// @param transactions List of transactions committed to in root.
       /// @dev provers::MalformedBlock::proveMalformedBlock
       case sig"proveMalformedBlock(bytes blockHeader, bytes rootHeader,
         uint16 rootIndex, bytes transactions) external" {
@@ -144,10 +148,16 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         proveMalformedBlock(block, root, rootIndex, transactions, transactionsLength)
       }
 
+      /// @notice Prove that a transaction was invalid.
+      /// @param proof Proof.
+      /// @dev provers::InvalidTransaction::proveInvalidTransaction
       case sig"proveInvalidTransaction(bytes proof) external" {
         proveInvalidTransaction(abi.offset(calldata.word(0)))
       }
 
+      /// @notice Prove that an input was invalid.
+      /// @param proof Proof.
+      /// @dev provers::InvalidInput::proveInvalidInput
       case sig"proveInvalidInput(bytes proofA, bytes proofB) external" {
         let transactionA := abi.offset(calldata.word(0))
         let transactionB := abi.offset(calldata.word(1))
@@ -155,6 +165,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         proveInvalidInput(transactionA, transactionB)
       }
 
+      /// @notice Prove that a UTXO was double-spent.
+      /// @param proofA Proof of UTXO being spent once.
+      /// @param proofB Proof of UTXO being spent again.
+      /// @dev provers::DoubleSpend::proveDoubleSpend
       case sig"proveDoubleSpend(bytes proofA, bytes proofB) external" {
         let transactionA := abi.offset(calldata.word(0))
         let transactionB := abi.offset(calldata.word(1))
@@ -162,13 +176,25 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         proveDoubleSpend(transactionA, transactionB)
       }
 
+      /// @notice Prove that a witness was invalid.
+      /// @param proof Proof.
+      /// @param inputs Proof for inputs being spent.
+      /// @dev provers::InvalidWitness::proveInvalidWitness
       case sig"proveInvalidWitness(bytes proof, bytes inputs) external" {
         proveInvalidWitness(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
       }
 
+      /// @notice Prove that a transation produced more than it consumed.
+      /// @param proof Proof.
+      /// @param inputs Proof for inputs being spent.
+      /// @dev provers::InvalidSum::proveInvalidSum
       case sig"proveInvalidSum(bytes proof, bytes inputs) external" {
         proveInvalidSum(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
       }
+
+      //////////////////////////////////////////////////////////////////////////
+      /// FRAUD PROOFS END
+      //////////////////////////////////////////////////////////////////////////
 
       case sig"withdraw(bytes proof) external" {
         withdraw(abi.offset(calldata.word(0)))
