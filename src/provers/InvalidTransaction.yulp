@@ -49,7 +49,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
           assertOrFraud(gte(Metadata.outputIndex(metadata), 0),
             error"metadata-output-underflow", proof)
 
-          assertOrFraud(lt(Metadata.outputIndex(metadata), MaxOutputs),
+          assertOrFraud(lt(Metadata.outputIndex(metadata), OUTPUTS_MAX),
             error"metadata-output-overflow", proof)
 
           // Root must always select tx and output index 0, in a previous block
@@ -98,7 +98,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         pos := add(pos, witnessSize(pos))
         index := add(index, 1)
 
-        assertOrFraud(lt(index, MaxInputs), error"witnesses-index-overflow", proof)
+        assertOrFraud(lt(index, INPUTS_MAX), error"witnesses-index-overflow", proof)
       }
 
       assertOrFraud(eq(pos, end), error"witnesses-size-overflow", proof)
@@ -216,7 +216,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         pos := add(pos, outputSize(pos))
         index := add(index, 1)
 
-        assertOrFraud(lt(index, MaxOutputs), error"outputs-index-overflow", proof)
+        assertOrFraud(lt(index, OUTPUTS_MAX), error"outputs-index-overflow", proof)
       }
 
       assertOrFraud(eq(pos, end), error"outputs-size", proof)
@@ -243,7 +243,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         index := add(index, 1)
       }
 
-      assertOrFraud(lt(index, MaxInputs), error"inputs-index-overflow", proof)
+      assertOrFraud(lt(index, INPUTS_MAX), error"inputs-index-overflow", proof)
       assertOrFraud(eq(pos, end), error"inputs-size", proof)
     }
 
@@ -254,7 +254,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       let size := TransactionLeaf.metadata.length(leaf)
 
       assertOrFraud(gt(size, 0), error"metadata-size-underflow", proof)
-      assertOrFraud(lte(size, MaxOutputs), error"metadata-size-overflow", proof)
+      assertOrFraud(lte(size, OUTPUTS_MAX), error"metadata-size-overflow", proof)
 
       size := TransactionLeaf.witnesses.length(leaf)
 

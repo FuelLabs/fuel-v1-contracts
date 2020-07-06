@@ -137,7 +137,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
           bytes32 withdrawalId)",
         caller(),
         blockHeight,
-        EmptyLeafHash
+        EMPTY_LEAF_HASH
       )
     }
   }

@@ -9,9 +9,9 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
   code {
     const TRANSACTION_SIZE_MIN := 44
     const TRANSACTION_SIZE_MAX := 896
-    const MaxInputs := 8
-    const MaxOutputs := 8
-    const EmptyLeafHash := 0
+    const INPUTS_MAX := 8
+    const OUTPUTS_MAX := 8
+    const EMPTY_LEAF_HASH := 0
 
     mstruct TransactionProof (
       blockProducer: address,
@@ -147,7 +147,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       let index := TransactionProof.input(proof)
       pos := TransactionLeaf.inputs.position(leaf)
 
-      require(lt(index, MaxInputs), error"input-index-overflow")
+      require(lt(index, INPUTS_MAX), error"input-index-overflow")
 
       for {} gt(index, 0) {} {
         pos := add(pos, inputSize(pos))
@@ -168,7 +168,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       let index := TransactionProof.output(proof)
       pos := TransactionLeaf.outputs.position(leaf)
 
-      require(lt(index, MaxOutputs), error"output-index-overflow")
+      require(lt(index, OUTPUTS_MAX), error"output-index-overflow")
 
       for {} gt(index, 0) {} {
         pos := add(pos, outputSize(pos))
@@ -235,7 +235,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       let leaf := TransactionProof.transaction.position(proof)
       pos := TransactionLeaf.metadata.position(leaf)
 
-      require(lt(index, MaxInputs), error"input-index-overflow")
+      require(lt(index, INPUTS_MAX), error"input-index-overflow")
 
       for {} gt(index, 0) {} {
         pos := add(pos, METADATA_SIZE)
