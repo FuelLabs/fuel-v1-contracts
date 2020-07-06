@@ -1,41 +1,47 @@
 import "./Transaction.yulp"
 import "./Deposit.yulp"
 
+/// @title Data verifier
 object "VerifyData" is "Deposit", "Transaction" {
   code {
-    function verifyData(transaction, inputs) {
-      let pos := TransactionLeaf.inputs.position(TransactionProof.transaction.position(transaction))
+    /// @notice Verify proof of data
+    /// @param transactionProof Memory offset to start of transaction proof.
+    /// @param inputProofs Memory offset of start of input proofs.
+    function verifyData(transactionProof, inputProofs) {
+      // Get starting position in memory of inputs bytes
+      let pos := TransactionLeaf.inputs.position(TransactionProof.transaction.position(transactionProof))
       let index := 0
 
-      for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(transaction))) {} {
+      // Loop through each input until we've reached the end of the inputs bytes
+      for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(transactionProof))) {} {
         switch Input.type(pos)
 
         case InputType.Transfer {
-          require(eq(TransactionProof.data(transaction, index), UTXO.keccak256(inputs)),
+          require(eq(TransactionProof.data(transactionProof, index), UTXO.keccak256(inputProofs)),
             error"utxo-proof")
 
-          inputs := add(inputs, UTXO.size(inputs))
+          inputProofs := add(inputProofs, UTXO.size(inputProofs))
         }
 
         case InputType.Deposit {
-          require(eq(TransactionProof.data(transaction, index), Deposit.keccak256(inputs)),
+          require(eq(TransactionProof.data(transactionProof, index), Deposit.keccak256(inputProofs)),
             error"deposit-proof")
 
-          inputs := add(inputs, Deposit.size(inputs))
+          inputProofs := add(inputProofs, Deposit.size(inputProofs))
         }
 
         case InputType.HTLC {
-          require(eq(TransactionProof.data(transaction, index), UTXO.keccak256(inputs)),
+          require(eq(TransactionProof.data(transactionProof, index), UTXO.keccak256(inputProofs)),
             error"utxo-proof")
 
-          inputs := add(inputs, UTXO.size(inputs))
+          inputProofs := add(inputProofs, UTXO.size(inputProofs))
         }
 
         case InputType.Root {
-          require(eq(TransactionProof.data(transaction, index), RootHeader.keccak256(inputs)),
+          require(eq(TransactionProof.data(transactionProof, index), RootHeader.keccak256(inputProofs)),
             error"utxo-proof")
 
-          inputs := add(inputs, TransactionProof.size(inputs))
+          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
         default { require(0, error"input-data-length") }

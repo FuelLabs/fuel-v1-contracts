@@ -2,8 +2,10 @@ import "./verifiers/TransactionProof.yulp"
 import "./Fraud.yulp"
 import "./Deposit.yulp"
 
+/// @title
 object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
   code {
+    /// @notice
     function proveInvalidInput(proof, transaction) {
       verifyTransactionProof(transaction, 0)
       let input := selectInput(transaction)
