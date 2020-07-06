@@ -1,14 +1,17 @@
 import "./verifiers/TransactionProof.yulp"
 import "./Deposit.yulp"
 
-/// @title
+/// @title Input verifier
 object "VerifyInputs" is "Deposit", "TransactionProof" {
   code {
-    /// @notice
-    function verifyInputs(transaction, inputs) {
-      verifyTransactionProof(transaction, 0)
+    /// @notice Verify an input proof.
+    /// @param transactionProof Memory offset to start of transaction proof.
+    /// @param inputProofs Memory offset of start of input proofs.
+    function verifyInputs(transactionProof, inputProofs) {
+      // Verify transaction proof
+      verifyTransactionProof(transactionProof, 0)
 
-      let leaf := TransactionProof.transaction.position(transaction)
+      let leaf := TransactionProof.transaction.position(transactionProof)
       let pos := TransactionLeaf.inputs.position(leaf)
       let index := 0
 
@@ -16,51 +19,51 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
         switch Input.type(pos)
 
         case InputType.Transfer {
-          verifyTransactionProof(inputs, 2)
+          verifyTransactionProof(inputProofs, 2)
 
-          require(eq(outputMetadata(inputs), TransactionLeaf.metadata(leaf, index)),
+          require(eq(outputMetadata(inputProofs), TransactionLeaf.metadata(leaf, index)),
             error"output-id")
 
-          require(eq(TransactionProof.UTXO.keccak256(inputs),
-            TransactionProof.data(transaction, index)), error"utxo-data")
+          require(eq(TransactionProof.UTXO.keccak256(inputProofs),
+            TransactionProof.data(transactionProof, index)), error"utxo-data")
 
-          inputs := add(inputs, TransactionProof.size(inputs))
+          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
         case InputType.Deposit {
-          let metadata := selectMetadata(transaction, index)
+          let metadata := selectMetadata(transactionProof, index)
 
-          require(eq(Deposit.token(inputs), MetadataDeposit.token(metadata)),
+          require(eq(Deposit.token(inputProofs), MetadataDeposit.token(metadata)),
             error"deposit-token")
 
-          require(eq(Deposit.blockNumber(inputs), MetadataDeposit.blockNumber(metadata)),
+          require(eq(Deposit.blockNumber(inputProofs), MetadataDeposit.blockNumber(metadata)),
             error"deposit-block-number")
 
-          require(eq(Deposit.keccak256(inputs),
-            TransactionProof.data(transaction, index)), error"deposit-data")
+          require(eq(Deposit.keccak256(inputProofs),
+            TransactionProof.data(transactionProof, index)), error"deposit-data")
 
-          inputs := add(inputs, Deposit.size(inputs))
+          inputProofs := add(inputProofs, Deposit.size(inputProofs))
         }
 
         case InputType.Root {
-          verifyTransactionProof(inputs, 2)
+          verifyTransactionProof(inputProofs, 2)
 
-          require(eq(RootHeader.keccak256(TransactionProof.rootProducer.position(inputs)),
-            TransactionProof.data(transaction, index)), error"root-data")
+          require(eq(RootHeader.keccak256(TransactionProof.rootProducer.position(inputProofs)),
+            TransactionProof.data(transactionProof, index)), error"root-data")
 
-          inputs := add(inputs, TransactionProof.size(inputs))
+          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
         case InputType.HTLC {
-          verifyTransactionProof(inputs, 2)
+          verifyTransactionProof(inputProofs, 2)
 
-          require(eq(outputMetadata(inputs), TransactionLeaf.metadata(leaf, index)),
+          require(eq(outputMetadata(inputProofs), TransactionLeaf.metadata(leaf, index)),
             error"output-id")
 
-          require(eq(TransactionProof.UTXO.keccak256(inputs),
-            TransactionProof.data(transaction, index)), error"utxo-data")
+          require(eq(TransactionProof.UTXO.keccak256(inputProofs),
+            TransactionProof.data(transactionProof, index)), error"utxo-data")
 
-          inputs := add(inputs, TransactionProof.size(inputs))
+          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
         index := add(index, 1)

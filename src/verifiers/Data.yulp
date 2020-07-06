@@ -4,7 +4,7 @@ import "./Deposit.yulp"
 /// @title Data verifier
 object "VerifyData" is "Deposit", "Transaction" {
   code {
-    /// @notice Verify proof of data
+    /// @notice Verify proof of data.
     /// @param transactionProof Memory offset to start of transaction proof.
     /// @param inputProofs Memory offset of start of input proofs.
     function verifyData(transactionProof, inputProofs) {
