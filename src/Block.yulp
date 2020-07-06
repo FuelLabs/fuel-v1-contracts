@@ -79,7 +79,7 @@ object "Block" is "Constructor", "Root", "Address" {
 
       // Get the rollup operator
       Constructor.copy(0)
-      let producer := Constructor.blockProducer(0)
+      let producer := Constructor.operator(0)
 
       // Require value be bond size
       require(eq(callvalue(), Constructor.bondSize(0)), error"bond-value")

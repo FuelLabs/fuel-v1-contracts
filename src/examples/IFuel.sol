@@ -26,14 +26,14 @@ contract IFuel {
 
   function witnessAt(address account, address blockNumber) external view returns (bytes32 transactionId);
   function funnel(address account) external view returns (address);
-  function blockProducer() external view returns (address blockProducer);
+  function operator() external view returns (address operator);
   function blockTip() external view  returns (uint256 blockTip);
   function numTokens() external view  returns (uint256 numTokens);
-  function tokens(address token) external view  returns (uint256 id);
+  function tokenId(address token) external view  returns (uint256 id);
   function numAddresses() external view  returns (uint256 numAddresses);
   function addressId(address owner) external view  returns (uint256 id);
   function depositAt(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount);
-  function blockCommitment(uint256 blockNumber) external view  returns (bytes32 blockHash);
+  function blockCommitment(uint256 blockHeight) external view  returns (bytes32 blockHash);
   function rootBlockNumberAt(bytes32 root) external view  returns (uint256 blockNumber);
   function isWithdrawalProcessed(uint256 blockHeight, bytes32 withdrawalId) external view returns (bool withdrawn);
   function penalty() external view returns (uint256);

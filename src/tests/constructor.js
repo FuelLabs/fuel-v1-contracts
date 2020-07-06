@@ -30,11 +30,11 @@ module.exports = test('constructor', async t => { try {
     t.equalBig(logs[2].values.numAddresses, numAddresses, 'addresses');
     t.equal(logs[2].values.roots.length, 0, 'roots');
 
-    t.equalBig(await contract.blockProducer(), producer, 'producer');
+    t.equalBig(await contract.operator(), producer, 'producer');
     t.equalBig(await contract.blockTip(), blockTip, 'tip');
     t.equalBig(await contract.numTokens(), numTokens, 'numTokens');
     t.equalBig(await contract.numAddresses(), numAddresses, 'numTokens');
-    t.equalBig(await contract.tokens(utils.emptyAddress), 0, 'ether address');
+    t.equalBig(await contract.tokenId(utils.emptyAddress), 0, 'ether address');
     t.equalBig(await contract.numAddresses(), 1, 'num addresses');
     t.equalBig(await contract.addressId(utils.emptyAddress), 0, 'empty address');
     t.equalBig(await contract.depositAt(utils.emptyAddress, 0, 0), 0, 'empty deposit');

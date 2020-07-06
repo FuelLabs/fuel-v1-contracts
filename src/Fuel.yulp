@@ -22,7 +22,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
     // Copy constructor arguments to memory, verify construction
     Constructor.copy(0)
     Constructor.verify(0)
-    let blockProducer := Constructor.blockProducer(0)
+    let operator := Constructor.operator(0)
     let genesis := Constructor.genesis(0)
 
     // Index the ETH token ID and zero address
@@ -30,7 +30,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
     indexAddress(ZERO_ADDRESS, 0)
 
     // Log genesis block
-    mstore(0, blockProducer, NUM_TOKENS_INIT, NUM_ADDRESSES_INIT, 128, GENESIS_ROOTS_LENGTH)
+    mstore(0, operator, NUM_TOKENS_INIT, NUM_ADDRESSES_INIT, 128, GENESIS_ROOTS_LENGTH)
     log3(
       0,
       160,
@@ -229,12 +229,12 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(calculateFunnelAddress(calldata.word(0)))
       }
 
-      /// @notice Verify a block header.
-      /// @param
-      /// @param
-      /// @param
-      /// @param
-      /// @return
+      /// @notice Verify a rollup block header.
+      /// @param blockHeader Block header.
+      /// @param root Root to verify.
+      /// @param rootIndex Index of root in block header.
+      /// @param finalization Boolean flag. If set, assert that the block must be finalized.
+      /// @return If block header passes verification.
       /// @dev verifiers::BlockHeader::verifyHeader
       case sig"verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 finalization) external view returns (bool)" {
         verifyHeader(
@@ -247,9 +247,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice Verify a transaction.
-      /// @param
-      /// @param
-      /// @return
+      /// @param proof Transcation proof.
+      /// @param finalization Boolean flag. If set, assert that the block must be finalized.
+      /// @return If transaction passes verification.
       /// @dev verifiers::TransactionProof::verifyTransactionProof
       case sig"verifyTransaction(bytes proof, uint8 finalization) external view returns (bool)" {
         verifyTransactionProof(
@@ -259,10 +259,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(true)
       }
 
-      /// @notice
-      /// @param
-      /// @return
-      /// @return
+      /// @notice Extract a UTXO from a proof.
+      /// @param proof Proof.
+      /// @return UTXO data structure.
       /// @dev Transaction::TransactionProof.UTXO.assign
       case sig"selectUTXO(bytes proof) external view returns (
         bytes32 transactionId,
@@ -278,9 +277,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return (0, UTXO.size(0))
       }
 
-      /// @notice
-      /// @param
-      /// @return
+      /// @notice Extract an output from a proof.
+      /// @param proof Proof.
+      /// @return The output.
       /// @dev Transaction::selectOutput
       case sig"selectOutput(bytes proof) external view returns (bytes output)" {
         let pos := selectOutput(abi.offset(calldata.word(0)))
@@ -289,81 +288,83 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return (pos, round32(outputSize(pos)))
       }
 
-      /// @notice
-      /// @param
-      /// @return
+      /// @notice Extract output metadata from a proof.
+      /// @param proof Proof.
+      /// @return The output metadata.
       /// @dev Transaction::outputMetadata
       case sig"outputMetadata(bytes proof) external view returns (uint256 metadata)" {
         let metadata := outputMetadata(abi.offset(calldata.word(0)))
         return.word(metadata)
       }
 
-      /// @notice
-      /// @param
-      /// @return
+      /// @notice Extract input metadata from a proof.
+      /// @param proof Proof.
+      /// @return The input metadata.
       /// @dev Transaction::inputMetadata
       case sig"inputMetadata(bytes proof) external view returns (uint256 metadata)" {
         let metadata := inputMetadata(abi.offset(calldata.word(0)))
         return.word(metadata)
       }
 
-      /// @notice
-      /// @param
-      /// @param
-      /// @return
+      /// @notice Extract metadata at a given index from a proof.
+      /// @param proof Proof.
+      /// @param index Metadata index.
+      /// @return The metadata.
       /// @dev Transaction::selectMetadata
       case sig"selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata)" {
         let pos := selectMetadata(abi.offset(calldata.word(0)), calldata.word(1))
         return.word(mslice(pos, 8))
       }
 
-      /// @notice
-      /// @return
-      case sig"blockProducer() external view returns (address blockProducer)" {
+      /// @notice Get the operator address.
+      /// @return The operator address.
+      case sig"operator() external view returns (address operator)" {
         Constructor.copy(0)
-        return(Constructor.blockProducer.position(0), 32)
+        return(Constructor.operator.position(0), 32)
       }
 
-      /// @notice
-      /// @return
+      /// @notice Get the rollup block height tip.
+      /// @return The tip height.
       /// @dev Block::blockTip
       case sig"blockTip() external view  returns (uint256 blockTip)" {
         return.word(blockTip())
       }
 
-      /// @notice
+      /// @notice Get number of registered tokens.
+      /// @return The number of registered tokens.
       /// @dev Tokens::numTokens
       case sig"numTokens() external view  returns (uint256 numTokens)" {
         return.word(numTokens())
       }
 
-      /// @notice
-      /// @return
+      /// @notice Get token ID of a token.
+      /// @param token Address of token contract.
+      /// @return The token ID. 0 if not registered.
       /// @dev Tokens::tokenId
-      case sig"tokens(address token) external view  returns (uint256 tokenId)" {
+      case sig"tokenId(address token) external view  returns (uint256 tokenId)" {
         return.word(tokenId(calldata.word(0)))
       }
 
-      /// @notice
-      /// @return
+      /// @notice Get number of registered addresses.
+      /// @return The number of registered addresses.
       /// @dev Address::numAddresses
       case sig"numAddresses() external view  returns (uint256 numAddresses)" {
         return.word(numAddresses())
       }
 
-      /// @notice
-      /// @param
-      /// @return
+      /// @notice Get address ID of an address.
+      /// @param owner Registered address.
+      /// @return The address ID. 0 if not registered.
       /// @dev Address::addressId
       case sig"addressId(address owner) external view  returns (uint256 addressId)" {
         return.word(addressId(calldata.word(0)))
       }
 
-      /// @notice
-      /// @param
-      /// @param
-      /// @param
-      /// @return
+      /// @notice Get deposit amount for a particular deposit.
+      /// @param account Account that deposited.
+      /// @param token Deposited token ID.
+      /// @param blockNumber Ethereum block number the deposit was made.
+      /// @return The deposit amount. 0 if no deposit made.
       /// @dev Deposit::depositAt
       case sig"depositAt(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount)" {
         return.word(depositAt(
@@ -373,26 +374,26 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         ))
       }
 
-      /// @notice
-      /// @param
-      /// @return
+      /// @notice Get block hash for a given rollup block height.
+      /// @param blockHeight Rollup block height.
+      /// @return The rollup block hash at the height.
       /// @dev Block::blockCommitment
-      case sig"blockCommitment(uint256 blockNumber) external view  returns (bytes32 blockHash)" {
+      case sig"blockCommitment(uint256 blockHeight) external view  returns (bytes32 blockHash)" {
         return.word(blockCommitment(calldata.word(0)))
       }
 
-      /// @notice
-      /// @param
-      /// @return
+      /// @notice Get Ethereum block number root was committed at.
+      /// @param root Root.
+      /// @return The Ethereum block number.
       /// @dev Root::rootBlockNumberAt
       case sig"rootBlockNumberAt(bytes32 root) external view  returns (uint256 blockNumber)" {
         return.word(rootBlockNumberAt(calldata.word(0)))
       }
 
-      /// @notice
-      /// @param
-      /// @param
-      /// @return
+      /// @notice Is a withdrawal processed (completed).
+      /// @param blockHeight Rollup block height of withdrawal.
+      /// @param withdrawalId Withdrawal ID.
+      /// @return If the withdrawal has been processed.
       /// @dev Withdraw::isWithdrawalProcessed
       case sig"isWithdrawalProcessed(uint256 blockHeight, bytes32 withdrawalId) external view returns (bool withdrawn)" {
         return.word(isWithdrawalProcessed(calldata.word(0), calldata.word(1)))
