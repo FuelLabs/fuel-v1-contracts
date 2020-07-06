@@ -3,7 +3,8 @@ import "./Transaction.yulp"
 /// @title Merkle proof verifier
 object "MerkleProof" is "Transaction" {
   code {
-    const MerkleTreeHeightMaximum := 256
+    // Maximum Merkle tree height
+    const MERKLE_TREE_HEIGHT_MAX := 256
 
     /// @notice Verify a Merkle proof.
     /// @param transactionProof Memory offset to start of transaction proof.
@@ -19,7 +20,7 @@ object "MerkleProof" is "Transaction" {
       let transactionIndex := TransactionProof.transactionIndex(transactionProof)
 
       // Assert Valid Merkle Tree Height (i.e. below Maximum)
-      require(lt(treeHeight, MerkleTreeHeightMaximum),
+      require(lt(treeHeight, MERKLE_TREE_HEIGHT_MAX),
         error"tree-height-overflow")
 
       // Select computed hash
