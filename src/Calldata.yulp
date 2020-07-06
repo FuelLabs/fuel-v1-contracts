@@ -1,15 +1,22 @@
+/// @title Calldata helper methods
 object "Calldata" {
   code {
+    // Offset in memory at which to start the call data copy
     const _calldata := 1024
 
+    /// @notice Copy all calldata to memory.
     function calldata.copy() {
       calldatacopy(_calldata, 0, calldatasize())
     }
 
+    /// @notice Get function signature.
+    /// @return Function signature as bytes4
     function calldata.signature() -> sig {
       sig := mslice(_calldata, 4)
     }
 
+    /// @notice Get one word.
+    /// @return Word as bytes32
     function calldata.word(index) -> word {
       word := mload(add(add(_calldata, 4), mul(index, 32)))
     }
