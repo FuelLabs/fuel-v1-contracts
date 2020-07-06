@@ -15,7 +15,7 @@ contract FuelVote {
       uint32 token,,,) = selectUTXO(proof);
 
     require(token == token);
-    require(voted[transactionId] === false);
+    require(voted[transactionId] == false);
     voted[transactionId] = true;
 
     if (owner == address(0)) {
