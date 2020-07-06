@@ -51,10 +51,9 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
             error"metadata-height-overflow", transactionProof)
 
           // Root index must be bounded
-          // TODO this should be TRANSACTION_ROOTS_MAX
           assertOrFraud(gte(Metadata.rootIndex(metadata), 0),
             error"metadata-root-underflow", transactionProof)
-          assertOrFraud(lt(Metadata.rootIndex(metadata), 256),
+          assertOrFraud(lt(Metadata.rootIndex(metadata), TRANSACTION_ROOTS_MAX),
             error"metadata-root-overflow", transactionProof)
 
           // Transaction index must be bounded
