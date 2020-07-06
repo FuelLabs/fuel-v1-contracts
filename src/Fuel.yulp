@@ -69,14 +69,26 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
     "Address",
     "InvalidSum" {
     code {
+      // Load calldata to memory
       calldata.copy()
 
+      // Call a different method depending on method signature in calldata
       switch calldata.signature()
 
+      /// @notice Deposit a token.
+      /// @param account Address of token owner.
+      /// @param token Token address.
+      /// @dev Deposit::deposit
       case sig"deposit(address account, address token) external" {
         deposit(calldata.word(0), calldata.word(1))
       }
 
+      /// @notice Commit a new root.
+      /// @param merkleTreeRoot Root of transactions tree.
+      /// @param token Token ID for fee payments for this root.
+      /// @param fee Feerate for this root.
+      /// @param transactions List of transactions.
+      /// @dev Root::commitRoot
       case sig"commitRoot(bytes32 merkleTreeRoot, uint256 token,
         uint256 fee, bytes transactions) external" {
         commitRoot(calldata.word(0),
@@ -86,6 +98,11 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
           calldata.word(2))
       }
 
+      /// @notice Commit a new block.
+      /// @param minimum Minimum Ethereum block number that this commitment is valid for.
+      /// @param height Rollup block height.
+      /// @param roots List of roots in block.
+      /// @dev Block::commitBlock
       case sig"commitBlock(uint32 minimum, uint32 height, bytes32[] roots) external" {
         commitBlock(
           calldata.word(0),
@@ -95,14 +112,27 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         )
       }
 
+      /// @notice Commit a new witness. Used for authorizing rollup transactions via an Ethereum smart contract.
+      /// @param transactionId Transaction ID to authorize.
+      /// @dev Witness::commitWitness
       case sig"commitWitness(bytes32 transactionId) external" {
         commitWitness(calldata.word(0))
       }
 
+      /// @notice Register a new address for cheaper transactions.
+      /// @param addr Address to register.
+      /// @return New ID assigned to address, or existing ID if already assigned.
+      /// @dev Address::commitAddress
       case sig"commitAddress(address addr) external returns (uint256 id)" {
         return.word(commitAddress(calldata.word(0)))
       }
 
+      /// @notice Prove that a block was malformed.
+      /// @param blockHeader
+      /// @param rootHeader
+      /// @param rootIndex
+      /// @param transactions
+      /// @dev provers::MalformedBlock::proveMalformedBlock
       case sig"proveMalformedBlock(bytes blockHeader, bytes rootHeader,
         uint16 rootIndex, bytes transactions) external" {
         let block := abi.offset(calldata.word(0))
@@ -257,46 +287,63 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(isWithdrawalProcessed(calldata.word(0), calldata.word(1)))
       }
 
+      /// @notice Get bond size constant.
+      /// @return Bond size.
       case sig"BOND_SIZE() external view returns (uint256)" {
         Constructor.copy(0)
         return(Constructor.bondSize.position(0), 32)
       }
 
+      /// @notice Get maximum size of transactions committed to in a root constant, in bytes.
+      /// @return Max root size.
       case sig"MAX_ROOT_SIZE() external view returns (uint256)" {
         return.word(MAX_ROOT_SIZE)
       }
 
+      /// @notice Get submission delay constant. Ethereum blocks non-operator must wait after committing a root before committing to a block that includes it.
+      /// @return Submission delay.
       case sig"SUBMISSION_DELAY() external view returns (uint256)" {
         Constructor.copy(0)
         return(Constructor.submissionDelay.position(0), 32)
       }
 
+      /// @notice Get finalization delay constant. Ethereum blocks before rollup blocks are finalized.
+      /// @return Finalization delay.
       case sig"FINALIZATION_DELAY() external view returns (uint256)" {
         Constructor.copy(0)
         return(Constructor.finalizationDelay.position(0), 32)
       }
 
+      /// @notice Get penalty delay constant. Ethereum blocks after a fraud during which anyone may commit new blocks without submission delay.
+      /// @return Penalty delay.
       case sig"PENALTY_DELAY() external view returns (uint256)" {
         Constructor.copy(0)
         return(Constructor.penaltyDelay.position(0), 32)
       }
 
+      /// @notice Get Ethereum block number until which operator is penalized.
+      /// @return Current penalty block.
       case sig"penalty() external view returns (uint256)" {
         return.word(getPenalty())
       }
 
+      /// @notice Get contract name.
+      /// @return Name.
       case sig"name() external view returns (string)" {
         Constructor.copy(0)
         Constructor.name.copy(0, 0)
         return(0, 96)
       }
 
+      /// @notice Get contract version.
+      /// @return Version.
       case sig"version() external view returns (string)" {
         Constructor.copy(0)
         Constructor.version.copy(0, 0)
         return(0, 96)
       }
 
+      /// @notice Not one of the above, invalid method signature.
       default {
         require(0, error"invalid-signature")
       }
