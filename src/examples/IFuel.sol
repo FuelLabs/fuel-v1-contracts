@@ -34,8 +34,8 @@ contract IFuel {
   function addressId(address owner) external view  returns (uint256 id);
   function depositAt(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount);
   function blockCommitment(uint256 blockNumber) external view  returns (bytes32 blockHash);
-  function blockRoots(bytes32 root) external view  returns (uint256 blockNumber);
-  function isWithdrawalProcessed(uint256 blockHeight, bytes32 withdrawalHashId) external view returns (bool withdrawn);
+  function rootBlockNumberAt(bytes32 root) external view  returns (uint256 blockNumber);
+  function isWithdrawalProcessed(uint256 blockHeight, bytes32 withdrawalId) external view returns (bool withdrawn);
   function penalty() external view returns (uint256);
 
   function BOND_SIZE() external view returns (uint256);
