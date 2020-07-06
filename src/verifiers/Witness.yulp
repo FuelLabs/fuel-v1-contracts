@@ -14,9 +14,11 @@ object "VerifyWitness" is "Deposit", "Transaction" {
 
       switch Signature.type(witness)
 
+      // Witness is a signature
       case WitnessTypes.Signature {
         switch Input.type(input)
 
+        // Deposit: recovered address must match input owner
         case InputType.Deposit {
           require(eq(
             ecrecover(transactionId(transactionProof), witness),
@@ -24,6 +26,7 @@ object "VerifyWitness" is "Deposit", "Transaction" {
           ), error"witness-signature")
         }
 
+        // Root: recovered address must match block producer of input
         case InputType.Root {
           require(eq(
             ecrecover(transactionId(transactionProof), witness),
@@ -31,6 +34,7 @@ object "VerifyWitness" is "Deposit", "Transaction" {
           ), error"witness-signature")
         }
 
+        // Transfer: recovered address must match input owner
         default {
           require(eq(
             ecrecover(transactionId(transactionProof), witness),
@@ -39,6 +43,7 @@ object "VerifyWitness" is "Deposit", "Transaction" {
         }
       }
 
+      // Witness is a caller (i.e. contract authorized a transaction)
       case WitnessTypes.Caller {
         require(eq(
           witnessAt(Caller.owner(witness), Caller.blockNumber(witness)),
@@ -46,6 +51,7 @@ object "VerifyWitness" is "Deposit", "Transaction" {
         ), error"witness-caller")
       }
 
+      // Witness is address of producer (implied by producer of block)
       case WitnessTypes.Producer {
         require(eq(Producer.hash(witness), transactionId(transactionProof)),
           error"witness-producer")
