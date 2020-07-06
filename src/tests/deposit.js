@@ -41,10 +41,10 @@ module.exports = test('deposit', async t => { try {
       owner: producer,
       blockNumber: block,
     })).keccak256();
-    t.equalBig(await contract.deposits(producer, 0, block), 0, 'empty deposit lookup');
+    t.equalBig(await contract.depositAt(producer, 0, block), 0, 'empty deposit lookup');
     const etx = await t.wait(contract.deposit(producer, utils.emptyAddress, overrides),
       'ether deposit', errors);
-    t.equalBig(await contract.deposits(producer, 0, block), valuea, 'deposit lookup');
+    t.equalBig(await contract.depositAt(producer, 0, block), valuea, 'deposit lookup');
     await t.balanceEqual(funnela, 0, 'value');
     await t.balanceEqual(contract.address, valuea, 'value');
     t.equal(etx.events.length, 1, 'len events');
@@ -66,10 +66,10 @@ module.exports = test('deposit', async t => { try {
       owner: producer,
       blockNumber: blocka,
     })).keccak256();
-    t.equalBig(await contract.deposits(producer, 1, blocka), 0, 'empty deposit lookup');
+    t.equalBig(await contract.depositAt(producer, 1, blocka), 0, 'empty deposit lookup');
     const ttx = await t.wait(contract.deposit(producer, token.address, overrides),
       'ether deposit', errors);
-    t.equalBig(await contract.deposits(producer, 1, blocka), tokenValue, 'deposit lookup');
+    t.equalBig(await contract.depositAt(producer, 1, blocka), tokenValue, 'deposit lookup');
     t.equalBig(await token.balanceOf(funnela), 0, 'amount');
     t.equal(ttx.logs.length, 3, 'len events');
     t.equalBig(ttx.events[1].data, tokenValue, 'value');

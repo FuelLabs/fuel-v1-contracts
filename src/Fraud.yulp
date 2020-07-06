@@ -1,18 +1,18 @@
 import "./Block.yulp"
 import "./Utils.yulp"
 
+/// @title Fraud proof helper
 object "Fraud" is "Utils", "Block" {
   code {
-    const NoFraudAssertion := 0
-
+    /// @notice Either assertion must pass or process fraud proof
     function assertOrFraud(assertion, fraudCode, block) {
-      // Assert or Begin Fraud State Change Sequence
+      // Assert or begin fraud state change sequence
       if lt(assertion, 1) {
         // Fraud block details
         const fraudBlockHeight := BlockHeader.height(block)
         const fraudBlockProducer := BlockHeader.producer(block)
 
-        // Assert Fraud block cannot be the genesis block
+        // Fraud block must not be the genesis rollup block
         require(gt(fraudBlockHeight, 0), error"block-height-underflow")
 
         // Copy constructor args to memory
@@ -20,26 +20,31 @@ object "Fraud" is "Utils", "Block" {
         let bondSize := Constructor.bondSize(0)
         let penaltyDelay := Constructor.penaltyDelay(0)
 
-        // Assert fraud block cannot be finalized
+        // Fraud block must not be finalizable yet
         require(lt(number(), add(BlockHeader.ethereumBlockNumber(block), Constructor.finalizationDelay(0))),
           error"block-finalized")
 
         // Log block tips (old / new)
-        log4(0, 0, topic"event FraudCommitted(uint256 indexed previousTip, uint256 indexed currentTip, uint256 indexed fraudCode)",
+        log4(
+          0,
+          0,
+          topic"event FraudCommitted(uint256 indexed previousTip, uint256 indexed currentTip, uint256 indexed fraudCode)",
           blockTip(),
           sub(fraudBlockHeight, 1),
-          fraudCode)
+          fraudCode
+        )
 
-        // Set new block tip to before fraud block
+        // Roll back rollup chain: set new block tip to before fraud block
         sstore(Storage.BlockTip, sub(fraudBlockHeight, 1))
 
-        // Set the penalty, remove mempool submission delay required, free for all..
+        // Set the penalty as an offset from current Ethereum block number.
+        // This removes mempool submission delay requirements for everyone and operator priority.
         setPenalty(penaltyDelay)
 
-        // Transfer Half The Bond for this Block
+        // Transfer half the bond for this block
         transfer(div(bondSize, 2), 0, caller())
 
-        // stop execution from here
+        // Stop execution from here
         stop()
       }
     }

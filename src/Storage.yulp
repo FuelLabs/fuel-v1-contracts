@@ -1,3 +1,5 @@
+/// @title Storage indexer
+/// @notice Computes EVM storage slot keys for given objects.
 object "Storage" {
   code {
     enum Storage (
@@ -14,16 +16,22 @@ object "Storage" {
         Witness
     )
 
+    /// @notice Compute storage key for single-element object.
+    /// @return Key as bytes32
     function mappingKey(storageIndex, key) -> storageKey {
         mstore(0, storageIndex, key)
         storageKey := keccak256(0, 64)
     }
 
+    /// @notice Compute storage key for two-element object.
+    /// @return Key as bytes32
     function mappingKey2(storageIndex, key, key2) -> storageKey {
         mstore(0, storageIndex, key, key2)
         storageKey := keccak256(0, 96)
     }
 
+    /// @notice Compute storage key for three-element object.
+    /// @return Key as bytes32
     function mappingKey3(storageIndex, key, key2, key3) -> storageKey {
         mstore(0, storageIndex, key, key2, key3)
         storageKey := keccak256(0, 128)

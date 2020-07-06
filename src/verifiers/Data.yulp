@@ -10,28 +10,28 @@ object "VerifyData" is "Deposit", "Transaction" {
       for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(transaction))) {} {
         switch Input.type(pos)
 
-        case InputTypes.Transfer {
+        case InputType.Transfer {
           require(eq(TransactionProof.data(transaction, index), UTXO.keccak256(inputs)),
             error"utxo-proof")
 
           inputs := add(inputs, UTXO.size(inputs))
         }
 
-        case InputTypes.Deposit {
+        case InputType.Deposit {
           require(eq(TransactionProof.data(transaction, index), Deposit.keccak256(inputs)),
             error"deposit-proof")
 
           inputs := add(inputs, Deposit.size(inputs))
         }
 
-        case InputTypes.HTLC {
+        case InputType.HTLC {
           require(eq(TransactionProof.data(transaction, index), UTXO.keccak256(inputs)),
             error"utxo-proof")
 
           inputs := add(inputs, UTXO.size(inputs))
         }
 
-        case InputTypes.Root {
+        case InputType.Root {
           require(eq(TransactionProof.data(transaction, index), RootHeader.keccak256(inputs)),
             error"utxo-proof")
 

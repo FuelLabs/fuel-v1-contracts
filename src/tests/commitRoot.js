@@ -26,7 +26,7 @@ module.exports = test('commitRoot', async t => { try {
     const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, overrides),
       'valid submit', errors);
     t.equal(atx.logs.length, 1, 'length');
-    t.equalBig(await contract.blockRoots(aroot.keccak256Packed()), blocka, 'block');
+    t.equalBig(await contract.rootBlockNumberAt(aroot.keccak256Packed()), blocka, 'block');
     t.equalBig(atx.events[0].args.root, aroot.keccak256Packed(), 'root');
     t.equalBig(atx.events[0].args.rootProducer, producer, 'producer');
     t.equalBig(atx.events[0].args.merkleTreeRoot, merkleRootA, 'merkleRootA');
@@ -79,7 +79,7 @@ module.exports = test('commitRoot', async t => { try {
     const btx = await t.wait(contract.commitRoot(merkleRootB, 0, 0, emptyTxsB, overrides),
       'valid submit', errors);
     t.equal(btx.logs.length, 1, 'length');
-    t.equalBig(await contract.blockRoots(broot), blockb, 'block');
+    t.equalBig(await contract.rootBlockNumberAt(broot), blockb, 'block');
     t.equalBig(btx.events[0].args.root, broot, 'root');
     t.equalBig(btx.events[0].args.rootProducer, producer, 'producer');
     t.equalBig(btx.events[0].args.merkleTreeRoot, merkleRootB, 'merkleRootA');

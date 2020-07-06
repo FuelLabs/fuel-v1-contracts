@@ -18,7 +18,7 @@ contract RollupVote {
 
     bytes32 commit = keccak256(metadata, amount, owner, block.number);
 
-    require(commits[commit] === address(0));
+    require(commits[commit] == address(0));
     commits[commit] = msg.sender;
 
     if (owner == address(0)) {
@@ -33,7 +33,7 @@ contract RollupVote {
   function fraudInvalid(bytes8 metadata, uint256 amount, address owner, uint256 blockNumber, bytes proof) {
     bytes32 commit = keccak256(metadata, amount, owner, blockNumber);
 
-    require(commits[commit] !== address(0));
+    require(commits[commit] != address(0));
     require(block.number < finalization);
 
     if (!fuel.verifyMetadata(metadata, proof)) {
@@ -52,17 +52,17 @@ contract RollupVote {
     bytes32 commit = keccak256(metadata, amount, owner, blockNumber);
     bytes32 commit2 = keccak256(metadata2, amount2, owner2, blockNumber2);
 
-    require(commits[commit] !== address(0));
-    require(commits[commit2] !== address(0));
+    require(commits[commit] != address(0));
+    require(commits[commit2] != address(0));
 
-    if (metadata === metadata2) {
+    if (metadata == metadata2) {
       reverse(commit, owner, amount);
       reverse(commit2, owner2, amount2);
     }
   }
 
   function withdrawBond(bytes32 commit) {
-    require(commits[commit] === msg.sender);
+    require(commits[commit] == msg.sender);
     require(block.number > finalization);
     commits[commit] = address(0);
     transfer(msg.sender, bond);

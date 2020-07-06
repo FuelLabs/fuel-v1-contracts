@@ -24,14 +24,13 @@ module.exports = test('100k transactions', async t => { try {
   const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode, [producer, totalSupply]);
   let token = erc20.address;
   let tokenId = '0x01';
-  let numTokens = 2;
   const funnela = await contract.funnel(producer);
   const valuea = utils.bigNumberify(1000);
   await t.wait(erc20.transfer(funnela, valuea, overrides), 'erc20 transfer');
   await t.wait(contract.deposit(producer, token, overrides),
     'ether deposit', errors);
   await contract.commitAddress(producer, overrides);
-  const ownerId = await contract.addresses(producer);
+  const ownerId = await contract.addressId(producer);
 
   let transaction = await tx.Transaction({
     override: true,

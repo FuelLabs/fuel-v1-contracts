@@ -13,23 +13,23 @@ object "VerifyWitness" is "Deposit", "Transaction" {
       case WitnessTypes.Signature {
         switch Input.type(input)
 
-        case InputTypes.Deposit {
+        case InputType.Deposit {
           require(eq(
-            ecrecover(transactionHashId(transaction), witness),
+            ecrecover(transactionId(transaction), witness),
             Deposit.owner(inputs)
           ), error"witness-signature")
         }
 
-        case InputTypes.Root {
+        case InputType.Root {
           require(eq(
-            ecrecover(transactionHashId(transaction), witness),
+            ecrecover(transactionId(transaction), witness),
             TransactionProof.blockProducer(inputs)
           ), error"witness-signature")
         }
 
         default {
           require(eq(
-            ecrecover(transactionHashId(transaction), witness),
+            ecrecover(transactionId(transaction), witness),
             UTXO.owner(inputs)
           ), error"witness-signature")
         }
@@ -37,13 +37,13 @@ object "VerifyWitness" is "Deposit", "Transaction" {
 
       case WitnessTypes.Caller {
         require(eq(
-          witnesses(Caller.owner(witness), Caller.blockNumber(witness)),
-          transactionHashId(transaction)
+          witnessAt(Caller.owner(witness), Caller.blockNumber(witness)),
+          transactionId(transaction)
         ), error"witness-caller")
       }
 
       case WitnessTypes.Producer {
-        require(eq(Producer.hash(witness), transactionHashId(transaction)),
+        require(eq(Producer.hash(witness), transactionId(transaction)),
           error"witness-producer")
       }
 

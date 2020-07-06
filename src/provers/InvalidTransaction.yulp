@@ -11,7 +11,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       for {} lt(pos, end) {} {
         switch Input.type(pos)
 
-        case InputTypes.Deposit {
+        case InputType.Deposit {
           assertOrFraud(gt(MetadataDeposit.blockNumber(metadata), 0),
             error"metadata-deposit-height-underflow", proof)
 
@@ -43,17 +43,17 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
           assertOrFraud(gte(Metadata.transactionIndex(metadata), 0),
             error"metadata-index-underflow", proof)
 
-          assertOrFraud(lt(Metadata.transactionIndex(metadata), MaxTransactionsInRoot),
+          assertOrFraud(lt(Metadata.transactionIndex(metadata), MAX_TRANSACTIONS_IN_ROOT),
             error"metadata-index-overflow", proof)
 
           assertOrFraud(gte(Metadata.outputIndex(metadata), 0),
             error"metadata-output-underflow", proof)
 
-          assertOrFraud(lt(Metadata.outputIndex(metadata), MaxOutputs),
+          assertOrFraud(lt(Metadata.outputIndex(metadata), OUTPUTS_MAX),
             error"metadata-output-overflow", proof)
 
           // Root must always select tx and output index 0, in a previous block
-          if eq(Input.type(pos), InputTypes.Root) {
+          if eq(Input.type(pos), InputType.Root) {
             assertOrFraud(lt(Metadata.blockHeight(metadata), TransactionProof.blockHeight(proof)),
               error"root-height-overflow", proof)
 
@@ -66,7 +66,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         }
 
         pos := add(pos, inputSize(pos))
-        metadata := add(metadata, MetadataSize)
+        metadata := add(metadata, METADATA_SIZE)
       }
 
       assertOrFraud(eq(metadata, TransactionLeaf.metadata.offset(leaf)),
@@ -86,7 +86,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         case WitnessTypes.Signature {}
 
         case WitnessTypes.Caller {
-          let stateWitness := witnesses(Caller.owner(pos), Caller.blockNumber(pos))
+          let stateWitness := witnessAt(Caller.owner(pos), Caller.blockNumber(pos))
           assertOrFraud(gt(stateWitness, 0), error"witness-caller-empty", proof)
 
           assertOrFraud(lt(Caller.blockNumber(pos), TransactionProof.ethereumBlockNumber(proof)),
@@ -98,7 +98,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         pos := add(pos, witnessSize(pos))
         index := add(index, 1)
 
-        assertOrFraud(lt(index, MaxInputs), error"witnesses-index-overflow", proof)
+        assertOrFraud(lt(index, INPUTS_MAX), error"witnesses-index-overflow", proof)
       }
 
       assertOrFraud(eq(pos, end), error"witnesses-size-overflow", proof)
@@ -185,23 +185,23 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       for {} lt(pos, end) {} {
         switch Output.type(pos)
 
-        case OutputTypes.Transfer {
+        case OutputType.Transfer {
           proveOutputValue(pos, proof)
           proveOutputOwner(pos, proof)
         }
 
-        case OutputTypes.Withdraw {
+        case OutputType.Withdraw {
           proveOutputValue(pos, proof)
           proveOutputOwner(pos, proof)
         }
 
-        case OutputTypes.HTLC {
+        case OutputType.HTLC {
           proveOutputValue(pos, proof)
           proveOutputOwner(pos, proof)
           proveOutputReturnOwner(pos, proof)
         }
 
-        case OutputTypes.Return {
+        case OutputType.Return {
           assertOrFraud(gt(OutputReturn.data.length(pos), 0),
             error"outputs-data-underflow", proof)
 
@@ -216,7 +216,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         pos := add(pos, outputSize(pos))
         index := add(index, 1)
 
-        assertOrFraud(lt(index, MaxOutputs), error"outputs-index-overflow", proof)
+        assertOrFraud(lt(index, OUTPUTS_MAX), error"outputs-index-overflow", proof)
       }
 
       assertOrFraud(eq(pos, end), error"outputs-size", proof)
@@ -243,7 +243,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         index := add(index, 1)
       }
 
-      assertOrFraud(lt(index, MaxInputs), error"inputs-index-overflow", proof)
+      assertOrFraud(lt(index, INPUTS_MAX), error"inputs-index-overflow", proof)
       assertOrFraud(eq(pos, end), error"inputs-size", proof)
     }
 
@@ -254,27 +254,27 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       let size := TransactionLeaf.metadata.length(leaf)
 
       assertOrFraud(gt(size, 0), error"metadata-size-underflow", proof)
-      assertOrFraud(lte(size, MaxOutputs), error"metadata-size-overflow", proof)
+      assertOrFraud(lte(size, OUTPUTS_MAX), error"metadata-size-overflow", proof)
 
       size := TransactionLeaf.witnesses.length(leaf)
 
       assertOrFraud(gt(size, 0), error"witnesses-size-underflow", proof)
-      assertOrFraud(lte(size, TransactionSizeMaximum), error"witnesses-size-overflow", proof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"witnesses-size-overflow", proof)
 
       size := TransactionLeaf.inputs.length(leaf)
 
       assertOrFraud(gte(size, 2), error"inputs-size-underflow", proof)
-      assertOrFraud(lte(size, TransactionSizeMaximum), error"inputs-size-overflow", proof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"inputs-size-overflow", proof)
 
       size := TransactionLeaf.outputs.length(leaf)
 
       assertOrFraud(gte(size, 3), error"outputs-size-underflow", proof)
-      assertOrFraud(lte(size, TransactionSizeMaximum), error"outputs-size-overflow", proof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"outputs-size-overflow", proof)
 
       size := TransactionLeaf.size(leaf)
 
-      assertOrFraud(gt(size, TransactionSizeMinimum), error"transaction-size-underflow", proof)
-      assertOrFraud(lte(size, TransactionSizeMaximum), error"transaction-size-overflow", proof)
+      assertOrFraud(gt(size, TRANSACTION_SIZE_MIN), error"transaction-size-underflow", proof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"transaction-size-overflow", proof)
       assertOrFraud(eq(size, add(TransactionLeaf.length(leaf), 2)), error"transaction-length", proof)
 
       proveWitnesses(leaf, proof)

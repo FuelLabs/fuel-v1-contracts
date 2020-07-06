@@ -1,7 +1,10 @@
+/// @title Transaction metadata, inserted by block producer to enable compact fraud proofs
 object "Metadata" {
   code {
-    const MetadataSize := 8
+    // Size of metadata object in bytes
+    const METADATA_SIZE := 8
 
+    /// @notice Metadata object. Points to an exact entry in the ledger.
     mstruct Metadata (
       blockHeight: uint32,
       rootIndex: uint8,
@@ -9,13 +12,19 @@ object "Metadata" {
       outputIndex: uint8
     )
 
+    /// @notice Metadata for Deposit objects.
     mstruct MetadataDeposit (
+      // Token ID
       token: uint32,
+      // Ethereum block number deposit was made
       blockNumber: uint32
     )
 
-    function metadataId(metadata) -> id {
-      id := mslice(metadata, MetadataSize)
+    /// @notice Get metadata object from memory starting at an offset.
+    /// @return Metadata object as bytes32
+    // TODO this is never used
+    function metadataFromMemory(startOffset) -> metadata {
+      metadata := mslice(startOffset, METADATA_SIZE)
     }
   }
 }

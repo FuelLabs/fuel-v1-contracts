@@ -1,7 +1,8 @@
+/// @title Contract constructor helper
 object "Constructor" {
   code {
     mstruct Constructor (
-      blockProducer: bytes32,
+      operator: bytes32,
       finalizationDelay: uint256,
       submissionDelay: uint256,
       penaltyDelay: uint256,
@@ -13,7 +14,7 @@ object "Constructor" {
     )
 
     let Constructor.abi := sig"constructor(
-      address blockProducer,
+      address operator,
       uint256 finalizationDelay,
       uint256 submissionDelay,
       uint256 penaltyDelay,
