@@ -275,7 +275,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
     /// @notice Prove that a transaction was invalid.
     /// @param transactionProof Position in memory of transaction proof.
     function proveInvalidTransaction(transactionProof) {
-      verifyTransactionProof(proof, AssertFinalized.NotFinalized)
+      verifyTransactionProof(transactionProof, AssertFinalized.NotFinalized)
 
       let leaf := TransactionProof.transaction.position(transactionProof)
       let size := TransactionLeaf.metadata.length(leaf)
