@@ -8,10 +8,13 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
     /// @param transactionProof Position in memory of transaction proof.
     /// @param inputProofs Position in memory of inputs proofs.
     function proveWitness(transactionProof, inputProofs) {
+      // Get position in memory of start of leaf (i.e. transaction)
       let leaf := TransactionProof.transaction.position(transactionProof)
+      // Get position in memory of start of transaction inputs
       let pos := TransactionLeaf.inputs.position(leaf)
       let index := 0
 
+      // Loop over inputs. For each input, the recovered account address must match the owner.
       for {} lt(pos, TransactionLeaf.inputs.offset(leaf)) {} {
         switch Input.type(pos)
 
