@@ -11,7 +11,7 @@ import "./provers/MalformedBlock.yulp"
 import "./provers/InvalidInput.yulp"
 import "./provers/InvalidWitness.yulp"
 
-// Fuel optimistic rollup top-level contract
+/// @title Fuel optimistic rollup top-level contract
 object "Fuel" is "Constructor", "Tokens", "Address" {
   code {
     // Constants
@@ -29,7 +29,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
     indexToken(ETHER_TOKEN_ADDRESS, 0)
     indexAddress(ZERO_ADDRESS, 0)
 
-    // Genesis Block Log
+    // Log genesis block
     mstore(0, blockProducer, NUM_TOKENS_INIT, NUM_ADDRESSES_INIT, 128, GENESIS_ROOTS_LENGTH)
     log3(
       0,
@@ -55,6 +55,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
     datacopy(0, dataoffset("Runtime"), dataSize)
     return(0, dataSize)
   }
+
+  /// @notice Public methods
   object "Runtime" is
     "Constructor",
     "Calldata",
@@ -299,7 +301,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         require(0, error"invalid-signature")
       }
 
-      // Ensure Execution Stop
+      // Ensure execution stops
       stop()
     }
   }
