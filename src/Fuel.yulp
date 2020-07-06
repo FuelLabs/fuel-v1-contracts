@@ -170,16 +170,6 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(true)
       }
 
-      /*
-      case sig"verifyMetadata(bytes8 metadata, bytes proof) external view returns (bool)" {
-        let verified := verifyMetadata(
-          add(_calldata, 28), // _calldata + 4 + 24
-          abi.offset(calldata.word(1))
-        )
-        return.word(verified)
-      }
-      */
-
       case sig"selectUTXO(bytes proof) external view returns (
         bytes32 transactionId,
         uint8 outputIndex,
