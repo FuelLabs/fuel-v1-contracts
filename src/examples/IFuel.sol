@@ -21,8 +21,8 @@ contract IFuel {
   function selectUTXO(bytes proof) external view returns (bytes32 transactionHashId, uint8 outputIndex, uint8 outputType, address owner, uint256 amount, uint32 token, bytes32 digest, uint256 expiry, address returnOwner);
   function selectOutput(bytes proof) external view returns (bytes output);
   function selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata);
-  function outputId(bytes proof) external view returns (uint256 id);
-  function inputId(bytes proof) external view returns (uint256 id);
+  function outputMetadata(bytes proof) external view returns (uint256 id);
+  function inputMetadata(bytes proof) external view returns (uint256 id);
 
   function witnessAt(address account, address blockNumber) external view returns (bytes32 transactionHashId);
   function funnel(address account) external view returns (address);

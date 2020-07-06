@@ -201,13 +201,13 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return (pos, round32(outputSize(pos)))
       }
 
-      case sig"outputId(bytes proof) external view returns (uint256 id)" {
-        let id := outputId(abi.offset(calldata.word(0)))
+      case sig"outputMetadata(bytes proof) external view returns (uint256 id)" {
+        let id := outputMetadata(abi.offset(calldata.word(0)))
         return.word(id)
       }
 
-      case sig"inputId(bytes proof) external view returns (uint256 id)" {
-        let id := inputId(abi.offset(calldata.word(0)))
+      case sig"inputMetadata(bytes proof) external view returns (uint256 id)" {
+        let id := inputMetadata(abi.offset(calldata.word(0)))
         return.word(id)
       }
 

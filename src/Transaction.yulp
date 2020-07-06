@@ -63,7 +63,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       transactionIndex: uint16,
 
       transaction.length: uint16,
-      // Actual transaction (TransactionLeaf)
+      // Actual transaction leaf
       transaction: [bytes1],            // <--- transaction data begins inside here
       data.length: uint8,
       // TODO what is this?
@@ -222,11 +222,9 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.inputs.offset(leaf)), error"input-position-overflow")
     }
 
-    /// @notice Extract input metadata from proof.
-    /// @return Input metadata as bytes8
-    // TODO fix this naming
-    // TODO what is this actually doing?
-    function inputMetadataId(proof) -> id {
+    /// @notice Extract metadata of output referenced by input from proof.
+    /// @return Metadata as bytes8
+    function inputReferencedMetadata(proof) -> id {
       let leaf := TransactionProof.transaction.position(proof)
       let index := TransactionProof.input(proof)
       id := TransactionLeaf.metadata(leaf, index)
@@ -299,8 +297,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
 
     /// @notice Extract input metadata from proof.
     /// @return Input metadata as bytes8.
-    // TODO fix naming
-    function inputId(proof) -> id {
+    function inputMetadata(proof) -> id {
       mstore(4, TransactionProof.input(proof))
       mstore(2, TransactionProof.transactionIndex(proof))
       mstore(1, TransactionProof.rootIndex(proof))
@@ -310,8 +307,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
 
     /// @notice Extract output metadata from proof.
     /// @return Output metadata as bytes8.
-    // TODO fix naming
-    function outputId(proof) -> id {
+    function outputMetadata(proof) -> id {
       mstore(4, TransactionProof.output(proof))
       mstore(2, TransactionProof.transactionIndex(proof))
       mstore(1, TransactionProof.rootIndex(proof))
@@ -335,7 +331,8 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.metadata.offset(leaf)), error"input-position-overflow")
     }
 
-    /// @notice
+    /// @notice ecrecover given witness from proof
+    /// @return Recovered address as address
     function recoverFromWitness(witness, proof) -> addr {
       switch Signature.type(witness)
 
@@ -362,7 +359,8 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       default { require(0, error"witness-type") }
     }
 
-    /// @notice
+    /// @notice ecrecover witness with proof-specified index.
+    /// @return Recovered address as address
     function TransactionProof.input.recoverWitness(proof) -> addr {
       let witness := TransactionProof.input.witness(proof)
       addr := recoverFromWitness(witness, proof)

@@ -17,15 +17,15 @@ object "DoubleSpend" is "TransactionProof", "Fraud" {
       verifyTransactionProof(transactionB, 0)
 
        // Require the inputs are different
-      require(neq(inputId(transactionA), inputId(transactionB)),
+      require(neq(inputMetadata(transactionA), inputMetadata(transactionB)),
         error"input-id")
 
       // Metadata reference and input owner
-      mstore(0, inputMetadataId(transactionA), inputOwner(transactionA))
+      mstore(0, inputReferencedMetadata(transactionA), inputOwner(transactionA))
       let hashA := keccak256(0, 64)
 
       // Metadata reference and input owner
-      mstore(0, inputMetadataId(transactionB), inputOwner(transactionB))
+      mstore(0, inputReferencedMetadata(transactionB), inputOwner(transactionB))
       let hashB := keccak256(0, 64)
 
       // Assert Inputs are Different OR FRAUD Double Spend!

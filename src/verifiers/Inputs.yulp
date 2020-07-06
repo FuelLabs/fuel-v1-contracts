@@ -16,7 +16,7 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
         case InputType.Transfer {
           verifyTransactionProof(inputs, 2)
 
-          require(eq(outputId(inputs), TransactionLeaf.metadata(leaf, index)),
+          require(eq(outputMetadata(inputs), TransactionLeaf.metadata(leaf, index)),
             error"output-id")
 
           require(eq(TransactionProof.UTXO.keccak256(inputs),
@@ -52,7 +52,7 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
         case InputType.HTLC {
           verifyTransactionProof(inputs, 2)
 
-          require(eq(outputId(inputs), TransactionLeaf.metadata(leaf, index)),
+          require(eq(outputMetadata(inputs), TransactionLeaf.metadata(leaf, index)),
             error"output-id")
 
           require(eq(TransactionProof.UTXO.keccak256(inputs),
