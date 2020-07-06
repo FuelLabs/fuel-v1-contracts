@@ -50,8 +50,7 @@ object "MetadataVerifier" is "TransactionProof", "Transaction" {
       if iszero(gte(Metadata.transactionIndex(inputMetadata), 0)) {
         verified := false
       }
-
-      // TODO describe this
+      // Transaction index in metadata should match transaction index in transaction proof
       if eq(verifyMerkleProof(transactionProof), false) {
         if iszero(lte(Metadata.transactionIndex(inputMetadata),
           TransactionProof.transactionIndex(transactionProof))) {
