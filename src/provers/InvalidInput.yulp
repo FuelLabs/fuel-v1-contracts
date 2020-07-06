@@ -11,7 +11,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
 
       // Handle Deposit Input
       if eq(Input.type(input), InputType.Deposit) {
-        let depositAmount := deposits(InputDeposit.owner(input),
+        let depositAmount := depositAt(InputDeposit.owner(input),
           MetadataDeposit.token(metadata),
           MetadataDeposit.blockNumber(metadata))
 

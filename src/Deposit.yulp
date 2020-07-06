@@ -19,7 +19,7 @@ object "Deposit" is "Storage", "Tokens", "FunnelFactory" {
 
     /// @notice Get deposit at key
     /// @return Amount of tokens as uint256
-    function deposits(account, token, blockNumber) -> amount {
+    function depositAt(account, token, blockNumber) -> amount {
       amount := sload(mappingKey3(Storage.Deposits, account, token, blockNumber))
     }
 
@@ -65,7 +65,7 @@ object "Deposit" is "Storage", "Tokens", "FunnelFactory" {
 
       // Load current balance from storage
       // Deposits are uniquely identified by account, token, and Ethereum block numbers, so a second deposit in the same block will simply update a single deposit object
-      let balanceAmount := deposits(account, _tokenId, number())
+      let balanceAmount := depositAt(account, _tokenId, number())
       sstore(mappingKey3(Storage.Deposits, account, _tokenId, number()), add(balanceAmount, amount))
 
       mstore(0, amount)

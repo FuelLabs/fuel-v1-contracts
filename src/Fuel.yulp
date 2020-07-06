@@ -237,8 +237,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(addressId(calldata.word(0)))
       }
 
-      case sig"deposits(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount)" {
-        return.word(deposits(
+      case sig"depositAt(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount)" {
+        return.word(depositAt(
           calldata.word(0),
           calldata.word(1),
           calldata.word(2)
