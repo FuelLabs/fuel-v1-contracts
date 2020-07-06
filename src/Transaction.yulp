@@ -7,60 +7,97 @@ import "./EIP712.yulp"
 /// @title Transaction object
 object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
   code {
+    // Minimum transaction size in bytes
     const TRANSACTION_SIZE_MIN := 44
+    // Maximum transaction size in bytes
     const TRANSACTION_SIZE_MAX := 896
+    // Maximum number of inputs per transaction
     const INPUTS_MAX := 8
+    // Maximum number of outputs per transaction
     const OUTPUTS_MAX := 8
+    // Empty leaf hash default value
     const EMPTY_LEAF_HASH := 0
 
+    /// @notice Merkle proof to transaction.
     mstruct TransactionProof (
+      // Address of block producer
       blockProducer: address,
+      // Hash of previous block
       previousBlockHash: bytes32,
+      // Rollup block height
       blockHeight: uint256,
+      // Ethereum block number
       ethereumBlockNumber: uint256,
+      // Maximum registered token ID used through this rollup block
       numTokens: uint256,
+      // Maximum registered address used through this rollup block
       numAddresses: uint256,
       roots.length: uint16,
+      // List of transaction roots
       roots: [bytes32],
 
+      // Producer of root
       rootProducer: address,
+      // Root value
       merkleTreeRoot: bytes32,
+      // Hash of transactions committed to in root
       commitmentHash: bytes32,
+      // Number of bytes for transactions committed to in root
       rootLength: uint256,
+      // Token ID of fees
       feeToken: uint256,
+      // Claimed feerate for all transactions in root
       fee: uint256,
+      // Index of root in list of roots
       rootIndex: uint16,
 
       merkleProof.length: uint16,
+      // Merkle proof: neighbouring node values
       merkleProof: [bytes32],
 
+      // Index of input of transaction
       input: uint8,
+      // Index of output of transaction
       output: uint8,
+      // Index of transaction in list of transactions in root
       transactionIndex: uint16,
 
       transaction.length: uint16,
+      // Actual transaction
       transaction: [bytes1],
       data.length: uint8,
+      // TODO what is this?
       data: [bytes32],
+      // Implicit token ID to pay fees in
       signatureFeeToken: uint256,
+      // Implicit max fee rate
       signatureFee: uint256,
 
+      // TODO what is this?
       token: address,
+      // TODO what is this?
       selector: address
     )
 
+    /// @notice Leaf of transaction Merkle tree.
     mstruct TransactionLeaf (
+      // Length of leaf in bytes
       length: uint16,
       metadata.length: uint8,
+      // List of metadata, one per input
       metadata: [bytes8],
       witnesses.length: uint16,
+      // List of witnesses
       witnesses: [bytes1],
       inputs.length: uint16,
+      // List of inputs
       inputs: [bytes1],
       outputs.length: uint16,
+      // List of outputs
       outputs: [bytes1]
     )
 
+    /// @notice
     function TransactionProof.UTXO.assign(proof, pos) {
       let output := selectOutput(proof)
 
@@ -78,14 +115,18 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
           error"owner-return-equates")
       }
 
-      mstore(pos,
+      mstore(
+        pos,
         transactionHashId(proof),
         TransactionProof.output(proof),
         Output.type(output),
         TransactionProof.token(proof),
         outputAmount(output),
         Output.token.slice(output),
-        0, 0, 0) // digest, expiry return witness
+        0, // digest
+        0, // expiry
+        0  // return witness
+      )
 
       if eq(Output.type(output), OutputType.HTLC) {
         mstore(add(pos, 192), OutputHTLC.digest(output))
@@ -94,6 +135,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       }
     }
 
+    /// @notice
     function TransactionProof.UTXO.keccak256(proof) -> hash {
       // Assign utxo to memory
       TransactionProof.UTXO.assign(proof, 0)
@@ -102,22 +144,28 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       hash := UTXO.keccak256(0)
     }
 
+    /// @notice
     function TransactionProof.block(proof) -> pos {
       pos := TransactionProof.blockProducer.position(proof)
     }
 
+    /// @notice
     function TransactionProof.root(proof) -> pos {
       pos := TransactionProof.rootProducer.position(proof)
     }
 
+    ////////////////////////////////////////////////////////////////////////////
     // ABI Encoded Structures (Non-Tight Packed/Rolled)
+    ////////////////////////////////////////////////////////////////////////////
 
+    /// @notice
     function rootFee(proof, token) -> sum {
       if eq(TransactionProof.feeToken(proof), token) {
         sum := mul(TransactionProof.rootLength(proof), TransactionProof.fee(proof))
       }
     }
 
+    /// @notice
     function transactionHashId(proof) -> hash {
       let leaf := TransactionProof.transaction.position(proof)
       let start := TransactionLeaf.inputs.length.position(leaf)
@@ -125,6 +173,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       hash := eip712(keccak256(start, sub(end, start)))
     }
 
+    /// @notice
     function TransactionProof.witness(proof, index) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       pos := TransactionLeaf.witnesses.position(leaf)
@@ -137,11 +186,13 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.witnesses.offset(leaf)), error"witness-position-overflow")
     }
 
+    /// @notice
     function TransactionProof.input.witness(proof) -> pos {
       let index := Input.witnessReference(selectInput(proof))
       pos := TransactionProof.witness(proof, index)
     }
 
+    /// @notice
     function selectInput(proof) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       let index := TransactionProof.input(proof)
@@ -157,12 +208,14 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.inputs.offset(leaf)), error"input-position-overflow")
     }
 
+    /// @notice
     function inputMetadataId(proof) -> id {
       let leaf := TransactionProof.transaction.position(proof)
       let index := TransactionProof.input(proof)
       id := TransactionLeaf.metadata(leaf, index)
     }
 
+    /// @notice
     function selectOutput(proof) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       let index := TransactionProof.output(proof)
@@ -178,12 +231,14 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.outputs.offset(leaf)), error"output-position-overflow")
     }
 
+    /// @notice
     function outputExpired(input, proof) -> result {
       let output := selectOutput(input)
       let blockNumber := TransactionProof.ethereumBlockNumber(proof)
       result := gt(blockNumber, OutputHTLC.expiry(output))
     }
 
+    /// @notice
     function witnessesLength(leaf) -> len {
       let pos := TransactionLeaf.witnesses.position(leaf)
       let end := TransactionLeaf.witnesses.offset(leaf)
@@ -194,6 +249,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       }
     }
 
+    /// @notice
     function inputsLength(leaf) -> len {
       let pos := TransactionLeaf.inputs.position(leaf)
       let end := TransactionLeaf.inputs.offset(leaf)
@@ -204,6 +260,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       }
     }
 
+    /// @notice
     function TransactionProof.outputs.length(proof) -> len {
       let leaf := TransactionProof.transaction.position(proof)
       let pos := TransactionLeaf.outputs.position(leaf)
@@ -215,6 +272,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       }
     }
 
+    /// @notice
     function inputId(proof) -> id {
       mstore(4, TransactionProof.input(proof))
       mstore(2, TransactionProof.transactionIndex(proof))
@@ -223,6 +281,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       id := mslice(28, 8)
     }
 
+    /// @notice
     function outputId(proof) -> id {
       mstore(4, TransactionProof.output(proof))
       mstore(2, TransactionProof.transactionIndex(proof))
@@ -231,6 +290,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       id := mslice(28, 8)
     }
 
+    /// @notice
     function selectMetadata(proof, index) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       pos := TransactionLeaf.metadata.position(leaf)
@@ -245,6 +305,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.metadata.offset(leaf)), error"input-position-overflow")
     }
 
+    /// @notice
     function recoverFromWitness(witness, proof) -> addr {
       switch Signature.type(witness)
 
@@ -271,6 +332,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       default { require(0, error"witness-type") }
     }
 
+    /// @notice
     function TransactionProof.input.recoverWitness(proof) -> addr {
       let witness := TransactionProof.input.witness(proof)
       addr := recoverFromWitness(witness, proof)
