@@ -16,6 +16,7 @@ object "VerifyData" is "Deposit", "Transaction" {
       for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(transactionProof))) {} {
         switch Input.type(pos)
 
+        // TODO it's not clear what's being compared here for each case
         case InputType.Transfer {
           require(eq(TransactionProof.data(transactionProof, index), UTXO.keccak256(inputProofs)),
             error"utxo-proof")
