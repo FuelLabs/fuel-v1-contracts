@@ -1,9 +1,11 @@
 import "./Transaction.yulp"
 
+/// @title
 object "MerkleProof" is "Transaction" {
   code {
     const MerkleTreeHeightMaximum := 256
 
+    /// @notice
     function verifyMerkleProof(transaction) -> leftish {
       // Select Merkle Proof Height
       let treeHeight := TransactionProof.merkleProof.length(transaction)

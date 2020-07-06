@@ -1,8 +1,10 @@
 import "./Transaction.yulp"
 import "./Deposit.yulp"
 
+/// @title
 object "VerifyWitness" is "Deposit", "Transaction" {
   code {
+    /// @notice
     function verifyWitness(transaction, inputs) {
       let witness := TransactionProof.witness(transaction, 0)
       let leaf := TransactionProof.transaction.position(transaction)

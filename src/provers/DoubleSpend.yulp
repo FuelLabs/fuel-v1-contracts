@@ -1,35 +1,42 @@
 import "./verifiers/TransactionProof.yulp"
 import "./Fraud.yulp"
 
+/// @title Double spend prover
 object "DoubleSpend" is "TransactionProof", "Fraud" {
   code {
-    function inputOwner(transaction) -> addr {
-      let input := selectInput(transaction)
+    /// @notice Extract owner of input.
+    function inputOwner(transactionProof) -> addr {
+      // Get offset of input specified in the proof.
+      let input := selectInput(transactionProof)
 
+      // TODO ???
       if eq(Input.type(input), InputType.Deposit) {
         addr := InputDeposit.owner(input)
       }
     }
 
-    function proveDoubleSpend(transactionA, transactionB) {
-      // Check for Invalid Transaction Double Spend (Same Input Twice)
-      verifyTransactionProof(transactionA, 2)
-      verifyTransactionProof(transactionB, 0)
+    /// @notice Prove a double spend happened.
+    /// @param transactionProofA Proof of UTXO being spent once.
+    /// @param transactionProofB Proof of UTXO being spent again.
+    function proveDoubleSpend(transactionProofA, transactionProofB) {
+      // Verify both transaction proofs
+      verifyTransactionProof(transactionProofA, 2)
+      verifyTransactionProof(transactionProofB, 0)
 
-       // Require the inputs are different
-      require(neq(inputMetadata(transactionA), inputMetadata(transactionB)),
+       // Inputs must be different in the ledger
+      require(neq(inputMetadata(transactionProofA), inputMetadata(transactionProofB)),
         error"input-id")
 
-      // Metadata reference and input owner
-      mstore(0, inputReferencedMetadata(transactionA), inputOwner(transactionA))
+      // Get hash of referenced metadata and input owner A
+      mstore(0, inputReferencedMetadata(transactionProofA), inputOwner(transactionProofA))
       let hashA := keccak256(0, 64)
 
-      // Metadata reference and input owner
-      mstore(0, inputReferencedMetadata(transactionB), inputOwner(transactionB))
+      // Get hash of referenced metadata and input owner B
+      mstore(0, inputReferencedMetadata(transactionProofB), inputOwner(transactionProofB))
       let hashB := keccak256(0, 64)
 
-      // Assert Inputs are Different OR FRAUD Double Spend!
-      assertOrFraud(neq(hashA, hashB), error"double-spend", transactionB)
+      // Hashes must be different, otherwise a double spend happened
+      assertOrFraud(neq(hashA, hashB), error"double-spend", transactionProofB)
     }
   }
 }

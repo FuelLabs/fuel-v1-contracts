@@ -1,8 +1,10 @@
 import "./verifiers/TransactionProof.yulp"
 import "./Deposit.yulp"
 
+/// @title
 object "VerifyInputs" is "Deposit", "TransactionProof" {
   code {
+    /// @notice
     function verifyInputs(transaction, inputs) {
       verifyTransactionProof(transaction, 0)
 

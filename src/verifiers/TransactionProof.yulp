@@ -1,8 +1,10 @@
 import "./verifiers/BlockHeader.yulp"
 import "./verifiers/MerkleProof.yulp"
 
+/// @title
 object "TransactionProof" is "BlockHeader", "MerkleProof" {
   code {
+    /// @notice
     function verifyTransactionProof(transaction, assertFinalized) {
       verifyHeader(TransactionProof.block(transaction),
           TransactionProof.root(transaction),

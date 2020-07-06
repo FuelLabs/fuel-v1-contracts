@@ -1,8 +1,10 @@
 import "./verifiers/TransactionProof.yulp"
 import "./Transaction.yulp"
 
+/// @title
 object "MetadataVerifier" is "TransactionProof", "Transaction" {
   code {
+    /// @notice
     function verifyMetadata(inputMetadata, transaction) -> verified {
       verifyTransactionProof(transaction, 2)
       verified := true
