@@ -6,6 +6,7 @@
   await require('./bondWithdraw');
   await require('./verifyHeader');
   await require('./commitRoot');
+  await require('./commitBlock');
   await require('./proveDoubleSpend');
   await require('./proveInvalidSum');
   await require('./proveInvalidInput');
