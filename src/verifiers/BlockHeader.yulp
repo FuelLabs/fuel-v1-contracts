@@ -3,6 +3,15 @@ import "./Block.yulp"
 /// @title BlockHeader verifier
 object "BlockHeader" is "Block" {
   code {
+    enum AssertFinalized (
+      // Assert not finalized
+      NotFinalized,
+      // Assert finalized
+      Finalized,
+      // No assertion
+      None
+    )
+
     /// @notice Verifies a rollup block header
     function verifyHeader(blockHeader, root, rootIndex, assertFinalized) {
       // Extract rollup block height from block header
@@ -38,18 +47,18 @@ object "BlockHeader" is "Block" {
       Constructor.copy(0)
       let finalizationDelay := Constructor.finalizationDelay(0)
 
-      // If assertFinalized set, block must be finalizable
-      if eq(assertFinalized, 1) {
+      // If asserting finalized, block must be finalizable
+      if eq(assertFinalized, AssertFinalized.Finalized) {
         require(gte(
           number(),
           add(BlockHeader.ethereumBlockNumber(blockHeader), finalizationDelay)
         ), error"not-finalized")
       }
 
-      // If assertFinalized not set, block must not be finalizable
-      if lt(assertFinalized, 1) {
+      // If asserting not finalized, block must not be finalizable
+      if eq(assertFinalized, AssertFinalized.NotFinalized) {
         require(lt(
-          number(), // ethereumBlockNumber
+          number(),
           add(BlockHeader.ethereumBlockNumber(blockHeader), finalizationDelay)
         ), error"block-finalied")
       }
