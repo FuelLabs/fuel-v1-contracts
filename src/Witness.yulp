@@ -37,16 +37,16 @@ object "Witness" is "Storage" {
 
     /// @notice Get a Caller witness by owner and Ethereum block number.
     /// @return Witness ID as uint256
-    function witnessAt(owner, blockNumber) -> transactionHash {
-      transactionHash := sload(mappingKey2(Storage.Witness, owner, blockNumber))
+    function witnessAt(owner, blockNumber) -> transactionId {
+      transactionId := sload(mappingKey2(Storage.Witness, owner, blockNumber))
     }
 
     /// @notice Register a new Caller witness.
-    function commitWitness(transactionHash) {
+    function commitWitness(transactionId) {
       // Witness must not already be registered
       require(eq(witnessAt(caller(), number()), 0), error"already-witnessed")
       // Store the transaction hash keyed by the caller and block number
-      sstore(mappingKey2(Storage.Witness, caller(), number()), transactionHash)
+      sstore(mappingKey2(Storage.Witness, caller(), number()), transactionId)
     }
 
     /// @notice Get size of witness object.
