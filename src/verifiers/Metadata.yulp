@@ -6,7 +6,7 @@ object "MetadataVerifier" is "TransactionProof", "Transaction" {
   code {
     /// @notice
     function verifyMetadata(inputMetadata, transaction) -> verified {
-      verifyTransactionProof(transaction, 2)
+      verifyTransactionProof(transaction, AssertFinalized.None)
       verified := true
 
       if iszero(gt(Metadata.blockHeight(inputMetadata), 0)) {

@@ -76,7 +76,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     }
 
     function proveInvalidSum(proof, inputs) {
-      verifyTransactionProof(proof, false)
+      verifyTransactionProof(proof, AssertFinalized.NotFinalized)
       verifyWitness(proof, inputs)
       verifyData(proof, inputs)
       proveSum(proof, inputs)

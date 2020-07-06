@@ -79,7 +79,7 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
       verifyHeader(block,
         root,
         rootIndex,
-        0)
+        AssertFinalized.NotFinalized)
 
       // Require that commitment hash is the hash of the data provided
       require(eq(
