@@ -4,11 +4,11 @@ import "./verifiers/Inputs.yulp"
 /// @title Invalid witness prover
 object "InvalidWitness" is "VerifyInputs", "Fraud" {
   code {
-    /// @notice
-    /// @param
-    /// @param
-    function proveWitness(transaction, inputs) {
-      let leaf := TransactionProof.transaction.position(transaction)
+    /// @notice Helper: prove a witness is invalid.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @param inputProofs Position in memory of inputs proofs.
+    function proveWitness(transactionProof, inputProofs) {
+      let leaf := TransactionProof.transaction.position(transactionProof)
       let pos := TransactionLeaf.inputs.position(leaf)
       let index := 0
 
@@ -16,56 +16,56 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
         switch Input.type(pos)
 
         case InputType.Transfer {
-          if eq(index, TransactionProof.input(transaction)) {
-            assertOrFraud(ownerEquates(selectOutput(inputs),
-              TransactionProof.input.recoverWitness(transaction)), error"utxo-witness", transaction)
+          if eq(index, TransactionProof.input(transactionProof)) {
+            assertOrFraud(ownerEquates(selectOutput(inputProofs),
+              TransactionProof.input.recoverWitness(transactionProof)), error"utxo-witness", transactionProof)
           }
 
-          inputs := add(inputs, TransactionProof.size(inputs))
+          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
         case InputType.Deposit {
-          if eq(index, TransactionProof.input(transaction)) {
-            assertOrFraud(eq(Deposit.owner(inputs),
-              TransactionProof.input.recoverWitness(transaction)),
-              error"deposit-witness", transaction)
+          if eq(index, TransactionProof.input(transactionProof)) {
+            assertOrFraud(eq(Deposit.owner(inputProofs),
+              TransactionProof.input.recoverWitness(transactionProof)),
+              error"deposit-witness", transactionProof)
           }
 
-          inputs := add(inputs, Deposit.size(inputs))
+          inputProofs := add(inputProofs, Deposit.size(inputProofs))
         }
 
         case InputType.Root {
-          if eq(index, TransactionProof.input(transaction)) {
-            assertOrFraud(eq(TransactionProof.blockProducer(inputs),
-              TransactionProof.input.recoverWitness(transaction)), error"root-witness", transaction)
+          if eq(index, TransactionProof.input(transactionProof)) {
+            assertOrFraud(eq(TransactionProof.blockProducer(inputProofs),
+              TransactionProof.input.recoverWitness(transactionProof)), error"root-witness", transactionProof)
           }
 
-          inputs := add(inputs, TransactionProof.size(inputs))
+          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
         case InputType.HTLC {
-          if eq(index, TransactionProof.input(transaction)) {
-            switch outputExpired(inputs, transaction)
+          if eq(index, TransactionProof.input(transactionProof)) {
+            switch outputExpired(inputProofs, transactionProof)
 
             case 1 {
-              assertOrFraud(ownerReturnEquates(selectOutput(inputs),
-                TransactionProof.input.recoverWitness(transaction)),
-                error"htlc-owner-return", transaction)
+              assertOrFraud(ownerReturnEquates(selectOutput(inputProofs),
+                TransactionProof.input.recoverWitness(transactionProof)),
+                error"htlc-owner-return", transactionProof)
             }
 
             case 0 {
-              assertOrFraud(ownerEquates(selectOutput(inputs),
-                TransactionProof.input.recoverWitness(transaction)),
-                error"htlc-owner", transaction)
+              assertOrFraud(ownerEquates(selectOutput(inputProofs),
+                TransactionProof.input.recoverWitness(transactionProof)),
+                error"htlc-owner", transactionProof)
             }
           }
 
-          inputs := add(inputs, TransactionProof.size(inputs))
+          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
-        if eq(index, TransactionProof.input(transaction)) {
-          assertOrFraud(neq(TransactionProof.input.recoverWitness(transaction), 0),
-            error"null-witness", transaction)
+        if eq(index, TransactionProof.input(transactionProof)) {
+          assertOrFraud(neq(TransactionProof.input.recoverWitness(transactionProof), 0),
+            error"null-witness", transactionProof)
         }
 
         index := add(index, 1)
@@ -73,12 +73,12 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
       }
     }
 
-    /// @notice
-    /// @param
-    /// @param
-    function proveInvalidWitness(transaction, inputs) {
-      verifyInputs(transaction, inputs)
-      proveWitness(transaction, inputs)
+    /// @notice Prove a witness was invalid.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @param inputProofs Position in memory of inputs proofs.
+    function proveInvalidWitness(transactionProof, inputProofs) {
+      verifyInputs(transactionProof, inputProofs)
+      proveWitness(transactionProof, inputProofs)
     }
   }
 }
