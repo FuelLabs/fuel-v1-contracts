@@ -31,7 +31,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
 
     // Genesis Block Log
     mstore(0, blockProducer, numTokens, numAddresses, 128, genesisRootsLength)
-    log3(0, 160,
+    log3(
+      0,
+      160,
       topic"event BlockCommitted(
         address producer,
         uint256 numTokens,
@@ -39,7 +41,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         bytes32 indexed previousBlockHash,
         uint256 indexed height,
         bytes32[] roots)",
-      0, 0)
+      0,
+      0
+    )
 
     // Commit genesis block
     sstore(mappingKey(Storage.BlockCommitments, 0), genesis)
