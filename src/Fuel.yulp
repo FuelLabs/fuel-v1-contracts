@@ -15,9 +15,9 @@ import "./provers/InvalidWitness.yulp"
 object "Fuel" is "Constructor", "Tokens", "Address" {
   code {
     // Constants
-    const numTokens := 1
-    const numAddresses := 1
-    const genesisRootsLength := 0
+    const NUM_TOKENS_INIT := 1
+    const NUM_ADDRESSES_INIT := 1
+    const GENESIS_ROOTS_LENGTH := 0
 
     // Copy constructor arguments to memory, verify construction
     Constructor.copy(0)
@@ -30,7 +30,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
     indexAddress(ZERO_ADDRESS, 0)
 
     // Genesis Block Log
-    mstore(0, blockProducer, numTokens, numAddresses, 128, genesisRootsLength)
+    mstore(0, blockProducer, NUM_TOKENS_INIT, NUM_ADDRESSES_INIT, 128, GENESIS_ROOTS_LENGTH)
     log3(
       0,
       160,

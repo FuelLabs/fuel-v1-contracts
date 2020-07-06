@@ -24,7 +24,6 @@ module.exports = test('75k Burn Transactions', async t => { try {
   const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode, [producer, totalSupply]);
   let token = erc20.address;
   let tokenId = '0x01';
-  let numTokens = 2;
   const funnela = await contract.funnel(producer);
   const valuea = utils.bigNumberify(1000);
   await t.wait(erc20.transfer(funnela, valuea, overrides), 'erc20 transfer');
