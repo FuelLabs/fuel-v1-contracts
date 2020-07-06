@@ -5,7 +5,7 @@ object "BlockHeader" is "Block" {
   code {
     /// @notice Verifies a rollup block header
     function verifyHeader(blockHeader, root, rootIndex, assertFinalized) {
-      // Extract block height from block header
+      // Extract rollup block height from block header
       const blockHeight := BlockHeader.height(blockHeader)
       // Extract transaction roots length from block header
       const rootsLength := BlockHeader.roots.length(blockHeader)
