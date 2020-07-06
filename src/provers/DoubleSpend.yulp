@@ -22,7 +22,6 @@ object "DoubleSpend" is "TransactionProof", "Fraud" {
     /// @param transactionProofB Position in memory of proof of UTXO being spent again.
     function proveDoubleSpend(transactionProofA, transactionProofB) {
       // Verify both transaction proofs
-      // TODO this could also be not finalized!
       verifyTransactionProof(transactionProofA, AssertFinalized.None)
       verifyTransactionProof(transactionProofB, AssertFinalized.NotFinalized)
 
