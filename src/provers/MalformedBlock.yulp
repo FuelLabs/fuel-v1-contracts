@@ -3,8 +3,14 @@ import "./Transaction.yulp"
 import "./Fraud.yulp"
 import "./Calldata.yulp"
 
+/// @title Malformed block prover
 object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
   code {
+    /// @notice
+    /// @param
+    /// @param
+    /// @param
+    /// @return
     function constructMerkleTreeRoot(transactions, transactionsLength, fraudBlock) -> merkleTreeRoot {
       // Start Memory Position at Transactions Data
       let memoryPosition := transactions
@@ -74,6 +80,12 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
       merkleTreeRoot := mload(memoryPosition)
     }
 
+    /// @notice
+    /// @param
+    /// @param
+    /// @param
+    /// @param
+    /// @param
     function proveMalformedBlock(block, root, rootIndex, transactions, transactionsLength) {
       // Verify the header
       verifyHeader(block,

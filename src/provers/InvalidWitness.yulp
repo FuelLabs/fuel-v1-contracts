@@ -1,8 +1,12 @@
 import "./Fraud.yulp"
 import "./verifiers/Inputs.yulp"
 
+/// @title Invalid witness prover
 object "InvalidWitness" is "VerifyInputs", "Fraud" {
   code {
+    /// @notice
+    /// @param
+    /// @param
     function proveWitness(transaction, inputs) {
       let leaf := TransactionProof.transaction.position(transaction)
       let pos := TransactionLeaf.inputs.position(leaf)
@@ -69,6 +73,9 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
       }
     }
 
+    /// @notice
+    /// @param
+    /// @param
     function proveInvalidWitness(transaction, inputs) {
       verifyInputs(transaction, inputs)
       proveWitness(transaction, inputs)

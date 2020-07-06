@@ -4,7 +4,8 @@ import "./Fraud.yulp"
 /// @title Double spend prover
 object "DoubleSpend" is "TransactionProof", "Fraud" {
   code {
-    /// @notice Extract owner of input.
+    /// @notice Helper function: extract owner of input.
+    /// @param
     function inputOwner(transactionProof) -> addr {
       // Get offset of input specified in the proof.
       let input := selectInput(transactionProof)

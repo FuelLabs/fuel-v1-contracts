@@ -1,8 +1,12 @@
 import "./verifiers/TransactionProof.yulp"
 import "./Fraud.yulp"
 
+/// @title Invalid transaction prover
 object "InvalidTransaction" is "TransactionProof", "Fraud" {
   code {
+    /// @notice
+    /// @param
+    /// @param
     function proveMetadata(leaf, proof) {
       let pos := TransactionLeaf.inputs.position(leaf)
       let end := TransactionLeaf.inputs.offset(leaf)
@@ -73,6 +77,9 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         error"metadata-size-overflow", proof)
     }
 
+    /// @notice
+    /// @param
+    /// @param
     function proveWitnesses(leaf, proof) {
       let pos := TransactionLeaf.witnesses.position(leaf)
       let end := TransactionLeaf.witnesses.offset(leaf)
@@ -104,6 +111,9 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       assertOrFraud(eq(pos, end), error"witnesses-size-overflow", proof)
     }
 
+    /// @notice
+    /// @param
+    /// @param
     function proveSizes(leaf, proof) {
       let metadataSize := TransactionLeaf.metadata.length(leaf)
       let inputsSize := inputsLength(leaf)
@@ -112,6 +122,9 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
          error"metadata-inputs", proof)
     }
 
+    /// @notice
+    /// @param
+    /// @param
     function proveOutputValue(pos, proof) {
       let _numTokens := TransactionProof.numTokens(proof)
 
@@ -146,6 +159,9 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         error"outputs-amount-overflow", proof)
     }
 
+    /// @notice
+    /// @param
+    /// @param
     function proveOutputOwner(pos, proof) {
       let _numAddresses := TransactionProof.numAddresses(proof)
 
@@ -161,6 +177,9 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       }
     }
 
+    /// @notice
+    /// @param
+    /// @param
     function proveOutputReturnOwner(pos, proof) {
       let _numAddresses := TransactionProof.numAddresses(proof)
 
@@ -176,6 +195,9 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       }
     }
 
+    /// @notice
+    /// @param
+    /// @param
     function proveOutputs(leaf, proof) {
       let witnessLength := witnessesLength(leaf)
       let pos := TransactionLeaf.outputs.position(leaf)
@@ -222,6 +244,9 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       assertOrFraud(eq(pos, end), error"outputs-size", proof)
     }
 
+    /// @notice
+    /// @param
+    /// @param
     function proveInputs(leaf, proof) {
       let witnessLength := witnessesLength(leaf)
       let pos := TransactionLeaf.inputs.position(leaf)
@@ -247,6 +272,8 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       assertOrFraud(eq(pos, end), error"inputs-size", proof)
     }
 
+    /// @notice
+    /// @param
     function proveInvalidTransaction(proof) {
       verifyTransactionProof(proof, AssertFinalized.NotFinalized)
 

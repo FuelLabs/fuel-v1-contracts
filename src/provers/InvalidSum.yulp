@@ -3,8 +3,13 @@ import "./verifiers/Data.yulp"
 import "./verifiers/TransactionProof.yulp"
 import "./Fraud.yulp"
 
+/// @title Invalid sum prover
 object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud" {
   code {
+    /// @notice
+    /// @param
+    /// @param
+    /// @return
     function ins(proof, inputs) -> sum {
       let pos := TransactionLeaf.inputs.position(TransactionProof.transaction.position(proof))
       let token := tokenId(TransactionProof.token(proof))
@@ -50,6 +55,10 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
       }
     }
 
+    /// @notice
+    /// @param
+    /// @param
+    /// @return
     function outs(token, proof) -> sum {
       let leaf := TransactionProof.transaction.position(proof)
       let pos := TransactionLeaf.outputs.position(leaf)
@@ -67,6 +76,9 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
       }
     }
 
+    /// @notice
+    /// @param
+    /// @param
     function proveSum(proof, inputs) {
       let token := tokenId(TransactionProof.token(proof))
       let outsum := add(rootFee(proof, token), outs(token, proof))
@@ -75,6 +87,9 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
       assertOrFraud(eq(outsum, insum), error"sum", proof)
     }
 
+    /// @notice
+    /// @param
+    /// @param
     function proveInvalidSum(proof, inputs) {
       verifyTransactionProof(proof, AssertFinalized.NotFinalized)
       verifyWitness(proof, inputs)

@@ -2,10 +2,12 @@ import "./verifiers/TransactionProof.yulp"
 import "./Fraud.yulp"
 import "./Deposit.yulp"
 
-/// @title
+/// @title Invalid input prover
 object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
   code {
     /// @notice
+    /// @param
+    /// @param
     function proveInvalidInput(proof, transaction) {
       verifyTransactionProof(transaction, AssertFinalized.NotFinalized)
       let input := selectInput(transaction)
