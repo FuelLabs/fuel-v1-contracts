@@ -196,24 +196,41 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// FRAUD PROOFS END
       //////////////////////////////////////////////////////////////////////////
 
+      /// @notice Complete a withdrawal.
+      /// @param proof Inclusion proof for withdrawal on the rollup chain.
+      /// @dev Withdraw::withdraw
       case sig"withdraw(bytes proof) external" {
         withdraw(abi.offset(calldata.word(0)))
       }
 
+      /// @notice Withdraw the block proposer's bond for a finalized block.
+      /// @param blockHeader Rollup block header of block to withdraw bond for.
+      /// @dev Withdraw::bondWithdraw
       case sig"bondWithdraw(bytes blockHeader) external" {
         bondWithdraw(abi.offset(calldata.word(0)))
       }
 
-      // TODO fix this, blockNumber should be uint32
+      /// @notice Get the transaction ID a registered witness authorizes.
+      /// @param account Authorizing address.
+      /// @param blockNumber Ethereum block number registration took place.
+      /// @return Transaction ID being authorized, 0 if witness is not registered.
+      /// @dev Witness::witnessAt
+      // TODO fix this, blockNumber should be uint32 or uint256
       case sig"witnessAt(address account, address blockNumber) external view returns (bytes32 transactionId)" {
         return.word(witnessAt(calldata.word(0),
           calldata.word(1)))
       }
 
+      /// @notice
+      /// @return
+      /// @dev FunnelFactory::calculateFunnelAddress
       case sig"funnel(address account) external view returns (address)" {
         return.word(calculateFunnelAddress(calldata.word(0)))
       }
 
+      /// @notice
+      /// @return
+      /// @dev verifiers::BlockHeader::verifyHeader
       case sig"verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 finalization) external view returns (bool)" {
         verifyHeader(
           abi.offset(calldata.word(0)),
@@ -224,6 +241,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(true)
       }
 
+      /// @notice
+      /// @return
+      /// @dev verifiers::TransactionProof::verifyTransactionProof
       case sig"verifyTransaction(bytes proof, uint8 finalization) external view returns (bool)" {
         verifyTransactionProof(
           abi.offset(calldata.word(0)),
@@ -232,6 +252,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(true)
       }
 
+      /// @notice
+      /// @return
+      /// @return
+      /// @dev Transaction::TransactionProof.UTXO.assign
       case sig"selectUTXO(bytes proof) external view returns (
         bytes32 transactionId,
         uint8 outputIndex,
@@ -246,6 +270,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return (0, UTXO.size(0))
       }
 
+      /// @notice
+      /// @return
+      /// @dev Transaction::selectOutput
       case sig"selectOutput(bytes proof) external view returns (bytes output)" {
         let pos := selectOutput(abi.offset(calldata.word(0)))
         mstore(sub(pos, 64), 32)
@@ -253,46 +280,73 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return (pos, round32(outputSize(pos)))
       }
 
+      /// @notice
+      /// @return
+      /// @dev Transaction::outputMetadata
       case sig"outputMetadata(bytes proof) external view returns (uint256 metadata)" {
         let metadata := outputMetadata(abi.offset(calldata.word(0)))
         return.word(metadata)
       }
 
+      /// @notice
+      /// @dev Transaction::inputMetadata
       case sig"inputMetadata(bytes proof) external view returns (uint256 metadata)" {
         let metadata := inputMetadata(abi.offset(calldata.word(0)))
         return.word(metadata)
       }
 
+      /// @notice
+      /// @return
+      /// @dev Transaction::selectMetadata
       case sig"selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata)" {
         let pos := selectMetadata(abi.offset(calldata.word(0)), calldata.word(1))
         return.word(mslice(pos, 8))
       }
 
+      /// @notice
+      /// @return
       case sig"blockProducer() external view returns (address blockProducer)" {
         Constructor.copy(0)
         return(Constructor.blockProducer.position(0), 32)
       }
 
+      /// @notice
+      /// @return
+      /// @dev Block::blockTip
       case sig"blockTip() external view  returns (uint256 blockTip)" {
         return.word(blockTip())
       }
 
+      /// @notice
+      /// @dev Tokens::numTokens
       case sig"numTokens() external view  returns (uint256 numTokens)" {
         return.word(numTokens())
       }
 
+      /// @notice
+      /// @return
+      /// @dev Tokens::tokenId
       case sig"tokens(address token) external view  returns (uint256 tokenId)" {
         return.word(tokenId(calldata.word(0)))
       }
 
+      /// @notice
+      /// @return
+      /// @dev Address::numAddresses
       case sig"numAddresses() external view  returns (uint256 numAddresses)" {
         return.word(numAddresses())
       }
 
+      /// @notice
+      /// @return
+      /// @dev Address::addressId
       case sig"addressId(address owner) external view  returns (uint256 addressId)" {
         return.word(addressId(calldata.word(0)))
       }
 
+      /// @notice
+      /// @return
+      /// @dev Deposit::depositAt
       case sig"depositAt(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount)" {
         return.word(depositAt(
           calldata.word(0),
@@ -301,14 +355,23 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         ))
       }
 
+      /// @notice
+      /// @return
+      /// @dev Block::blockCommitment
       case sig"blockCommitment(uint256 blockNumber) external view  returns (bytes32 blockHash)" {
         return.word(blockCommitment(calldata.word(0)))
       }
 
+      /// @notice
+      /// @return
+      /// @dev Root::rootBlockNumberAt
       case sig"rootBlockNumberAt(bytes32 root) external view  returns (uint256 blockNumber)" {
         return.word(rootBlockNumberAt(calldata.word(0)))
       }
 
+      /// @notice
+      /// @return
+      /// @dev Withdraw::isWithdrawalProcessed
       case sig"isWithdrawalProcessed(uint256 blockHeight, bytes32 withdrawalHashId) external view returns (bool withdrawn)" {
         return.word(isWithdrawalProcessed(calldata.word(0), calldata.word(1)))
       }
