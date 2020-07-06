@@ -9,7 +9,7 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
     /// @param inputProofs Memory offset of start of input proofs.
     function verifyInputs(transactionProof, inputProofs) {
       // Verify transaction proof
-      verifyTransactionProof(transactionProof, 0)
+      verifyTransactionProof(transactionProof, AssertFinalized.NotFinalized)
 
       let leaf := TransactionProof.transaction.position(transactionProof)
       let pos := TransactionLeaf.inputs.position(leaf)
@@ -19,7 +19,7 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
         switch Input.type(pos)
 
         case InputType.Transfer {
-          verifyTransactionProof(inputProofs, 2)
+          verifyTransactionProof(inputProofs, AssertFinalized.None)
 
           require(eq(outputMetadata(inputProofs), TransactionLeaf.metadata(leaf, index)),
             error"output-id")
@@ -46,7 +46,7 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
         }
 
         case InputType.Root {
-          verifyTransactionProof(inputProofs, 2)
+          verifyTransactionProof(inputProofs, AssertFinalized.None)
 
           require(eq(RootHeader.keccak256(TransactionProof.rootProducer.position(inputProofs)),
             TransactionProof.data(transactionProof, index)), error"root-data")
@@ -55,7 +55,7 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
         }
 
         case InputType.HTLC {
-          verifyTransactionProof(inputProofs, 2)
+          verifyTransactionProof(inputProofs, AssertFinalized.None)
 
           require(eq(outputMetadata(inputProofs), TransactionLeaf.metadata(leaf, index)),
             error"output-id")

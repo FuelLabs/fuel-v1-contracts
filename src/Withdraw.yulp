@@ -26,7 +26,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
     /// @notice Do a withdrawal.
     function withdraw(transactionProof) {
       // Verify transaction proof
-      verifyTransactionProof(transactionProof, 1)
+      verifyTransactionProof(transactionProof, AssertFinalized.Finalized)
 
       // Select the output from the proof
       let output := selectOutput(transactionProof)
@@ -101,7 +101,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
       let blockHeight := BlockHeader.height(blockHeader)
 
       // Verify block header is finalized
-      verifyHeader(blockHeader, 0, 0, 1)
+      verifyHeader(blockHeader, 0, 0, AssertFinalized.Finalized)
 
       // Caller must be block producer
       require(eq(BlockHeader.producer(blockHeader), caller()),

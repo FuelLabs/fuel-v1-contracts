@@ -248,7 +248,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
     }
 
     function proveInvalidTransaction(proof) {
-      verifyTransactionProof(proof, false)
+      verifyTransactionProof(proof, AssertFinalized.NotFinalized)
 
       let leaf := TransactionProof.transaction.position(proof)
       let size := TransactionLeaf.metadata.length(leaf)

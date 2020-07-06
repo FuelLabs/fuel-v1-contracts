@@ -20,8 +20,9 @@ object "DoubleSpend" is "TransactionProof", "Fraud" {
     /// @param transactionProofB Proof of UTXO being spent again.
     function proveDoubleSpend(transactionProofA, transactionProofB) {
       // Verify both transaction proofs
-      verifyTransactionProof(transactionProofA, 2)
-      verifyTransactionProof(transactionProofB, 0)
+      // TODO this could also be not finalized!
+      verifyTransactionProof(transactionProofA, AssertFinalized.None)
+      verifyTransactionProof(transactionProofB, AssertFinalized.NotFinalized)
 
        // Inputs must be different in the ledger
       require(neq(inputMetadata(transactionProofA), inputMetadata(transactionProofB)),

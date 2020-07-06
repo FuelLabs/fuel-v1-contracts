@@ -14,7 +14,7 @@ contract IFuel {
   function proveInvalidWitness(bytes proof, bytes inputs) external;
   function proveInvalidSum(bytes proof, bytes inputs) external;
 
-  function verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 finalization) external view returns (bool);
+  function verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 assertFinalized) external view returns (bool);
   function verifyTransaction(bytes proof, uint8 finalization) external view returns (bool);
   function verifyMetadata(bytes8 metadata, bytes proof) external view returns (bool);
 

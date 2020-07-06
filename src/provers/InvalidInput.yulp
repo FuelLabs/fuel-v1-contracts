@@ -7,7 +7,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
   code {
     /// @notice
     function proveInvalidInput(proof, transaction) {
-      verifyTransactionProof(transaction, 0)
+      verifyTransactionProof(transaction, AssertFinalized.NotFinalized)
       let input := selectInput(transaction)
       let metadata := selectMetadata(transaction, TransactionProof.input(transaction))
 
@@ -27,7 +27,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
       verifyHeader(TransactionProof.block(proof),
           TransactionProof.root(proof),
           TransactionProof.rootIndex(proof),
-          2)
+          AssertFinalized.None)
 
       require(eq(Metadata.blockHeight(metadata),
         TransactionProof.blockHeight(proof)), error"block-height-mismatch")

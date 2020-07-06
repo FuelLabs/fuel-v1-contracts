@@ -234,10 +234,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param blockHeader Block header.
       /// @param root Root to verify.
       /// @param rootIndex Index of root in block header.
-      /// @param finalization Boolean flag. If set, assert that the block must be finalized.
+      /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
       /// @return If block header passes verification.
       /// @dev verifiers::BlockHeader::verifyHeader
-      case sig"verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 finalization) external view returns (bool)" {
+      case sig"verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 assertFinalized) external view returns (bool)" {
         verifyHeader(
           abi.offset(calldata.word(0)),
           abi.offset(calldata.word(1)),
@@ -249,10 +249,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
 
       /// @notice Verify a transaction.
       /// @param proof Transcation proof.
-      /// @param finalization Boolean flag. If set, assert that the block must be finalized.
+      /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
       /// @return If transaction passes verification.
       /// @dev verifiers::TransactionProof::verifyTransactionProof
-      case sig"verifyTransaction(bytes proof, uint8 finalization) external view returns (bool)" {
+      case sig"verifyTransaction(bytes proof, uint8 assertFinalized) external view returns (bool)" {
         verifyTransactionProof(
           abi.offset(calldata.word(0)),
           calldata.word(1)
