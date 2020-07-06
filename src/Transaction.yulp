@@ -63,15 +63,15 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       transactionIndex: uint16,
 
       transaction.length: uint16,
-      // Actual transaction
-      transaction: [bytes1],
+      // Actual transaction (TransactionLeaf)
+      transaction: [bytes1],            // <--- transaction data begins inside here
       data.length: uint8,
       // TODO what is this?
       data: [bytes32],
       // Implicit token ID to pay fees in
       signatureFeeToken: uint256,
-      // Implicit max fee rate
-      signatureFee: uint256,
+      // Implicit fee rate
+      signatureFee: uint256,            // <--- transaction data ends here
 
       // TODO what is this?
       token: address,
@@ -89,7 +89,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       witnesses.length: uint16,
       // List of witnesses
       witnesses: [bytes1],
-      inputs.length: uint16,
+      inputs.length: uint16,            // <--- transaction data begins here
       // List of inputs
       inputs: [bytes1],
       outputs.length: uint16,
@@ -164,26 +164,32 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     // ABI Encoded Structures (Non-Tight Packed/Rolled)
     ////////////////////////////////////////////////////////////////////////////
 
-    /// @notice
+    /// @notice Calculate the fee of a root. This is feerate x length of transactions in bytes.
+    /// @return Fee for root as uint256
     function rootFee(proof, token) -> sum {
       if eq(TransactionProof.feeToken(proof), token) {
         sum := mul(TransactionProof.rootLength(proof), TransactionProof.fee(proof))
       }
     }
 
-    /// @notice
+    /// @notice Get transaction ID from proof.
+    /// @return Transaction ID as bytes32
     function transactionHashId(proof) -> hash {
       let leaf := TransactionProof.transaction.position(proof)
+      // Transaction IDs are the EIP-712 hash of the non-witness transaction data.
+      // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md
       let start := TransactionLeaf.inputs.length.position(leaf)
       let end := TransactionProof.signatureFee.offset(proof)
       hash := eip712(keccak256(start, sub(end, start)))
     }
 
-    /// @notice
+    /// @notice Find the position of the witness at a given index.
+    /// @return Position of witness as uint256
     function TransactionProof.witness(proof, index) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       pos := TransactionLeaf.witnesses.position(leaf)
 
+      // Iterate through list of witnesses until index is reached
       for {} gt(index, 0) {} {
         pos := add(pos, witnessSize(pos))
         index := sub(index, 1)
@@ -192,13 +198,15 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.witnesses.offset(leaf)), error"witness-position-overflow")
     }
 
-    /// @notice
+    /// @notice Find the position of the witness with proof-specified index.
+    /// @return Position of witness as uint256
     function TransactionProof.input.witness(proof) -> pos {
       let index := Input.witnessReference(selectInput(proof))
       pos := TransactionProof.witness(proof, index)
     }
 
-    /// @notice
+    /// @notice Find the position of the input with proof-specified index.
+    /// @return Position of input as uint256
     function selectInput(proof) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       let index := TransactionProof.input(proof)
@@ -214,14 +222,18 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.inputs.offset(leaf)), error"input-position-overflow")
     }
 
-    /// @notice
+    /// @notice Extract input metadata from proof.
+    /// @return Input metadata as bytes8
+    // TODO fix this naming
+    // TODO what is this actually doing?
     function inputMetadataId(proof) -> id {
       let leaf := TransactionProof.transaction.position(proof)
       let index := TransactionProof.input(proof)
       id := TransactionLeaf.metadata(leaf, index)
     }
 
-    /// @notice
+    /// @notice Find the position of the output with proof-specified index.
+    /// @return Position of output as uint256
     function selectOutput(proof) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       let index := TransactionProof.output(proof)
@@ -237,48 +249,57 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.outputs.offset(leaf)), error"output-position-overflow")
     }
 
-    /// @notice
+    /// @notice Check if HTLC output has timed out.
+    /// @return If the output has timed out as bool
     function outputExpired(input, proof) -> result {
       let output := selectOutput(input)
       let blockNumber := TransactionProof.ethereumBlockNumber(proof)
       result := gt(blockNumber, OutputHTLC.expiry(output))
     }
 
-    /// @notice
+    /// @notice Get total length of witneses, in bytes.
+    /// @return Length of witnesses as uint256
     function witnessesLength(leaf) -> len {
       let pos := TransactionLeaf.witnesses.position(leaf)
       let end := TransactionLeaf.witnesses.offset(leaf)
 
+      // Iterate over witness lengths and accumulate
       for {} lt(pos, end) {} {
         pos := add(pos, witnessSize(pos))
         len := add(len, 1)
       }
     }
 
-    /// @notice
+    /// @notice Get total length of inputs, in bytes.
+    /// @return Length of inputs as uint256
     function inputsLength(leaf) -> len {
       let pos := TransactionLeaf.inputs.position(leaf)
       let end := TransactionLeaf.inputs.offset(leaf)
 
+      // Iterate over input lengths and accumulate
       for {} lt(pos, end) {} {
         pos := add(pos, inputSize(pos))
         len := add(len, 1)
       }
     }
 
-    /// @notice
+    /// @notice Get total length of outputs, in bytes.
+    /// @return Length of outputs as uint256
     function TransactionProof.outputs.length(proof) -> len {
       let leaf := TransactionProof.transaction.position(proof)
       let pos := TransactionLeaf.outputs.position(leaf)
       let end := TransactionLeaf.outputs.offset(leaf)
 
+      // Iterate over output lengths and accumulate
       for {} lt(pos, end) {} {
         pos := add(pos, outputSize(pos))
         len := add(len, 1)
       }
     }
 
-    /// @notice
+    /// @notice Extract input metadata from proof.
+    /// @return Input metadata as bytes8.
+    // TODO fix naming
     function inputId(proof) -> id {
       mstore(4, TransactionProof.input(proof))
       mstore(2, TransactionProof.transactionIndex(proof))
@@ -287,7 +308,9 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       id := mslice(28, 8)
     }
 
-    /// @notice
+    /// @notice Extract output metadata from proof.
+    /// @return Output metadata as bytes8.
+    // TODO fix naming
     function outputId(proof) -> id {
       mstore(4, TransactionProof.output(proof))
       mstore(2, TransactionProof.transactionIndex(proof))
@@ -296,7 +319,8 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       id := mslice(28, 8)
     }
 
-    /// @notice
+    /// @notice Find the position of the metadata with given index.
+    /// @return Position of metadata as uint256
     function selectMetadata(proof, index) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       pos := TransactionLeaf.metadata.position(leaf)
