@@ -7,14 +7,14 @@ object "MerkleProof" is "Transaction" {
     const MERKLE_TREE_HEIGHT_MAX := 256
 
     /// @notice Verify a Merkle proof.
-    /// @param transactionProof Memory offset to start of transaction proof.
+    /// @param transactionProof Position in memory of transaction proof.
     /// @return Boolean flag: if the leaf is *not* the rightmost.
     function verifyMerkleProof(transactionProof) -> leftish {
       // Memory position of number of nodes in Merkle proof
       let treeHeight := TransactionProof.merkleProof.length(transactionProof)
       // Memory position of Merkle branch
       let branchStartPosition := TransactionProof.merkleProof.position(transactionProof)
-      // memory position of transaction index (which indicates left or right sibling at each depth)
+      // Memory position of transaction index (which indicates left or right sibling at each depth)
       let transactionIndex := TransactionProof.transactionIndex(transactionProof)
 
       // Check bound on Merkle tree height

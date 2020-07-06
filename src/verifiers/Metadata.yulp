@@ -5,8 +5,8 @@ import "./Transaction.yulp"
 object "MetadataVerifier" is "TransactionProof", "Transaction" {
   code {
     /// @notice Verify metadata.
-    /// @param inputMetadata Metadata of input.
-    /// @param transactionProof Memory offset to start of transaction proof.
+    /// @param inputMetadata Position in memory of input metadata object.
+    /// @param transactionProof Position in memory of transaction proof.
     /// @return If the proof verified correctly as bool.
     function verifyMetadata(inputMetadata, transactionProof) -> verified {
       // Verify transaction proof first

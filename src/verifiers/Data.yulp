@@ -5,14 +5,14 @@ import "./Deposit.yulp"
 object "VerifyData" is "Deposit", "Transaction" {
   code {
     /// @notice Verify proof of data.
-    /// @param transactionProof Memory offset to start of transaction proof.
-    /// @param inputProofs Memory offset of start of input proofs.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @param inputProofs Position in memory of input proofs.
     function verifyData(transactionProof, inputProofs) {
-      // Get starting position in memory of inputs bytes
+      // Get starting position in memory of input in transaction proof
       let pos := TransactionLeaf.inputs.position(TransactionProof.transaction.position(transactionProof))
       let index := 0
 
-      // Loop through each input until we've reached the end of the inputs bytes
+      // Loop through each input until we've reached the end of the inputs in transaction proof
       for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(transactionProof))) {} {
         switch Input.type(pos)
 

@@ -5,8 +5,8 @@ import "./Deposit.yulp"
 object "VerifyWitness" is "Deposit", "Transaction" {
   code {
     /// @notice Verify a witness proof.
-    /// @param transactionProof Memory offset to start of transaction proof.
-    /// @param inputProofs Memory offset of start of input proofs.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @param inputProofs Position in memory of input proofs.
     function verifyWitness(transactionProof, inputProofs) {
       let witness := TransactionProof.witness(transactionProof, 0)
       let leaf := TransactionProof.transaction.position(transactionProof)

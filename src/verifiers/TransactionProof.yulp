@@ -5,7 +5,7 @@ import "./verifiers/MerkleProof.yulp"
 object "TransactionProof" is "BlockHeader", "MerkleProof" {
   code {
     /// @notice Verify a transaction proof.
-    /// @param transactionProof Memory offset to start of transaction proof.
+    /// @param transactionProof Position in memory of transaction proof.
     /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
     function verifyTransactionProof(transactionProof, assertFinalized) {
       // Verify the block header

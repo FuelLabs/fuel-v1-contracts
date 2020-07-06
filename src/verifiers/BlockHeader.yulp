@@ -13,6 +13,10 @@ object "BlockHeader" is "Block" {
     )
 
     /// @notice Verifies a rollup block header
+    /// @param blockHeader Position in memory of block header object.
+    /// @param root Position in memory of root object.
+    /// @param rootIndex Position in memory of root index.
+    /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
     function verifyHeader(blockHeader, root, rootIndex, assertFinalized) {
       // Extract rollup block height from block header
       const blockHeight := BlockHeader.height(blockHeader)

@@ -5,7 +5,7 @@ import "./Fraud.yulp"
 object "DoubleSpend" is "TransactionProof", "Fraud" {
   code {
     /// @notice Helper function: extract owner of input.
-    /// @param
+    /// @param transactionProof Position in memory of transaction proof.
     function inputOwner(transactionProof) -> addr {
       // Get offset of input specified in the proof.
       let input := selectInput(transactionProof)
@@ -17,8 +17,8 @@ object "DoubleSpend" is "TransactionProof", "Fraud" {
     }
 
     /// @notice Prove a double spend happened.
-    /// @param transactionProofA Proof of UTXO being spent once.
-    /// @param transactionProofB Proof of UTXO being spent again.
+    /// @param transactionProofA Position in memory of proof of UTXO being spent once.
+    /// @param transactionProofB Position in memory of proof of UTXO being spent again.
     function proveDoubleSpend(transactionProofA, transactionProofB) {
       // Verify both transaction proofs
       // TODO this could also be not finalized!
