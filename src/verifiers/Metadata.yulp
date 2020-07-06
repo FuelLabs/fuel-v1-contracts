@@ -1,12 +1,15 @@
 import "./verifiers/TransactionProof.yulp"
 import "./Transaction.yulp"
 
-/// @title
+/// @title Metadata verifier
 object "MetadataVerifier" is "TransactionProof", "Transaction" {
   code {
-    /// @notice
-    function verifyMetadata(inputMetadata, transaction) -> verified {
-      verifyTransactionProof(transaction, AssertFinalized.None)
+    /// @notice Verify metadata.
+    /// @param transactionProof Memory offset to start of transaction proof.
+    /// @param inputProofs Memory offset of start of input proofs.
+    /// @return If the proof verified as bool.
+    function verifyMetadata(inputMetadata, transactionProof) -> verified {
+      verifyTransactionProof(transactionProof, AssertFinalized.None)
       verified := true
 
       if iszero(gt(Metadata.blockHeight(inputMetadata), 0)) {
@@ -19,7 +22,7 @@ object "MetadataVerifier" is "TransactionProof", "Transaction" {
 
       if eq(verified, true) {
         require(eq(Metadata.blockHeight(inputMetadata),
-          TransactionProof.blockHeight(transaction)), error"block-height-mismatch")
+          TransactionProof.blockHeight(transactionProof)), error"block-height-mismatch")
       }
 
       if iszero(gte(Metadata.rootIndex(inputMetadata), 0)) {
@@ -27,29 +30,29 @@ object "MetadataVerifier" is "TransactionProof", "Transaction" {
       }
 
       if iszero(lt(Metadata.rootIndex(inputMetadata),
-        TransactionProof.roots.length(transaction))) {
+        TransactionProof.roots.length(transactionProof))) {
         verified := false
       }
 
       if eq(verified, true) {
         require(eq(Metadata.rootIndex(inputMetadata),
-          TransactionProof.rootIndex(transaction)), error"root-index-mismatch")
+          TransactionProof.rootIndex(transactionProof)), error"root-index-mismatch")
       }
 
       if iszero(gte(Metadata.transactionIndex(inputMetadata), 0)) {
         verified := false
       }
 
-      if eq(verifyMerkleProof(transaction), false) {
+      if eq(verifyMerkleProof(transactionProof), false) {
         if iszero(lte(Metadata.transactionIndex(inputMetadata),
-          TransactionProof.transactionIndex(transaction))) {
+          TransactionProof.transactionIndex(transactionProof))) {
           verified := false
         }
       }
 
       if eq(verified, true) {
         require(eq(Metadata.transactionIndex(inputMetadata),
-          TransactionProof.transactionIndex(transaction)), error"transaction-index-mismatch")
+          TransactionProof.transactionIndex(transactionProof)), error"transaction-index-mismatch")
       }
 
       if iszero(gte(Metadata.outputIndex(inputMetadata), 0)) {
@@ -57,13 +60,13 @@ object "MetadataVerifier" is "TransactionProof", "Transaction" {
       }
 
       if iszero(lt(Metadata.outputIndex(inputMetadata),
-        TransactionProof.outputs.length(transaction))) {
+        TransactionProof.outputs.length(transactionProof))) {
         verified := false
       }
 
       if eq(verified, true) {
         require(eq(Metadata.outputIndex(inputMetadata),
-          TransactionProof.output(transaction)), error"output-index-mismatch")
+          TransactionProof.output(transactionProof)), error"output-index-mismatch")
       }
     }
   }

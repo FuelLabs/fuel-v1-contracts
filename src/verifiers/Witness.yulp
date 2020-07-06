@@ -1,13 +1,15 @@
 import "./Transaction.yulp"
 import "./Deposit.yulp"
 
-/// @title
+/// @title Witness verifier
 object "VerifyWitness" is "Deposit", "Transaction" {
   code {
-    /// @notice
-    function verifyWitness(transaction, inputs) {
-      let witness := TransactionProof.witness(transaction, 0)
-      let leaf := TransactionProof.transaction.position(transaction)
+    /// @notice Verify a witness proof.
+    /// @param transactionProof Memory offset to start of transaction proof.
+    /// @param inputProofs Memory offset of start of input proofs.
+    function verifyWitness(transactionProof, inputProofs) {
+      let witness := TransactionProof.witness(transactionProof, 0)
+      let leaf := TransactionProof.transaction.position(transactionProof)
       let input := TransactionLeaf.inputs.position(leaf)
 
       switch Signature.type(witness)
@@ -17,22 +19,22 @@ object "VerifyWitness" is "Deposit", "Transaction" {
 
         case InputType.Deposit {
           require(eq(
-            ecrecover(transactionId(transaction), witness),
-            Deposit.owner(inputs)
+            ecrecover(transactionId(transactionProof), witness),
+            Deposit.owner(inputProofs)
           ), error"witness-signature")
         }
 
         case InputType.Root {
           require(eq(
-            ecrecover(transactionId(transaction), witness),
-            TransactionProof.blockProducer(inputs)
+            ecrecover(transactionId(transactionProof), witness),
+            TransactionProof.blockProducer(inputProofs)
           ), error"witness-signature")
         }
 
         default {
           require(eq(
-            ecrecover(transactionId(transaction), witness),
-            UTXO.owner(inputs)
+            ecrecover(transactionId(transactionProof), witness),
+            UTXO.owner(inputProofs)
           ), error"witness-signature")
         }
       }
@@ -40,12 +42,12 @@ object "VerifyWitness" is "Deposit", "Transaction" {
       case WitnessTypes.Caller {
         require(eq(
           witnessAt(Caller.owner(witness), Caller.blockNumber(witness)),
-          transactionId(transaction)
+          transactionId(transactionProof)
         ), error"witness-caller")
       }
 
       case WitnessTypes.Producer {
-        require(eq(Producer.hash(witness), transactionId(transaction)),
+        require(eq(Producer.hash(witness), transactionId(transactionProof)),
           error"witness-producer")
       }
 

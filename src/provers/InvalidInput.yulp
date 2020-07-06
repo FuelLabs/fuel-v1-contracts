@@ -43,7 +43,6 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
         stop()
       }
 
-
       // Transaction index
       if eq(verifyMerkleProof(proof), false) {
         assertOrFraud(lte(Metadata.transactionIndex(metadata),

@@ -1,20 +1,22 @@
 import "./Transaction.yulp"
 
-/// @title
+/// @title Merkle proof verifier
 object "MerkleProof" is "Transaction" {
   code {
     const MerkleTreeHeightMaximum := 256
 
-    /// @notice
-    function verifyMerkleProof(transaction) -> leftish {
+    /// @notice Verify a Merkle proof.
+    /// @param transactionProof Memory offset to start of transaction proof.
+    /// @return Boolean flag: if the leaf is *not* the rightmost.
+    function verifyMerkleProof(transactionProof) -> leftish {
       // Select Merkle Proof Height
-      let treeHeight := TransactionProof.merkleProof.length(transaction)
+      let treeHeight := TransactionProof.merkleProof.length(transactionProof)
 
       // Select Tree (ahead of Array length)
-      let treeMemoryPosition := TransactionProof.merkleProof.position(transaction)
+      let treeMemoryPosition := TransactionProof.merkleProof.position(transactionProof)
 
       // Select Transaction Index
-      let transactionIndex := TransactionProof.transactionIndex(transaction)
+      let transactionIndex := TransactionProof.transactionIndex(transactionProof)
 
       // Assert Valid Merkle Tree Height (i.e. below Maximum)
       require(lt(treeHeight, MerkleTreeHeightMaximum),
@@ -24,8 +26,8 @@ object "MerkleProof" is "Transaction" {
       let computedHash := 0
 
       // if the transaction has length, than hash it
-      if gt(TransactionProof.transaction.length(transaction), 0) {
-        computedHash := TransactionProof.transaction.keccak256(transaction)
+      if gt(TransactionProof.transaction.length(transactionProof), 0) {
+        computedHash := TransactionProof.transaction.keccak256(transactionProof)
       }
 
       // Clean Rightmost (leftishness) Detection Var (i.e. any previous use of this Stack Position)
@@ -65,7 +67,7 @@ object "MerkleProof" is "Transaction" {
       }
 
       // Assert constructed merkle tree root is provided merkle tree root, or else, Invalid Inclusion!
-      require(eq(computedHash, TransactionProof.merkleTreeRoot(transaction)),
+      require(eq(computedHash, TransactionProof.merkleTreeRoot(transactionProof)),
         error"invalid-merkle-root")
     }
   }
