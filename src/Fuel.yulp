@@ -151,9 +151,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice Prove that a transaction was invalid.
-      /// @param proof Proof.
+      /// @param transactionProof Proof.
       /// @dev provers::InvalidTransaction::proveInvalidTransaction
-      case sig"proveInvalidTransaction(bytes proof) external" {
+      case sig"proveInvalidTransaction(bytes transactionProof) external" {
         proveInvalidTransaction(abi.offset(calldata.word(0)))
       }
 
@@ -162,10 +162,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param proofB Second proof.
       /// @dev provers::InvalidInput::proveInvalidInput
       case sig"proveInvalidInput(bytes proofA, bytes proofB) external" {
-        let transactionA := abi.offset(calldata.word(0))
-        let transactionB := abi.offset(calldata.word(1))
+        let transactionProofA := abi.offset(calldata.word(0))
+        let transactionProofB := abi.offset(calldata.word(1))
 
-        proveInvalidInput(transactionA, transactionB)
+        proveInvalidInput(transactionProofA, transactionProofB)
       }
 
       /// @notice Prove that a UTXO was double-spent.

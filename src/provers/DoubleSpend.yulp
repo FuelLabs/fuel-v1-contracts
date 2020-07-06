@@ -6,6 +6,7 @@ object "DoubleSpend" is "TransactionProof", "Fraud" {
   code {
     /// @notice Helper function: extract owner of input.
     /// @param transactionProof Position in memory of transaction proof.
+    /// @return Address of owner of input.
     function inputOwner(transactionProof) -> addr {
       // Get offset of input specified in the proof.
       let input := selectInput(transactionProof)

@@ -5,13 +5,13 @@ import "./Deposit.yulp"
 /// @title Invalid input prover
 object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
   code {
-    /// @notice
-    /// @param
-    /// @param
-    function proveInvalidInput(proof, transaction) {
-      verifyTransactionProof(transaction, AssertFinalized.NotFinalized)
-      let input := selectInput(transaction)
-      let metadata := selectMetadata(transaction, TransactionProof.input(transaction))
+    /// @notice Prove that an input is invalid.
+    /// @param proof Position in memory of proof.
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveInvalidInput(proof, transactionProof) {
+      verifyTransactionProof(transactionProof, AssertFinalized.NotFinalized)
+      let input := selectInput(transactionProof)
+      let metadata := selectMetadata(transactionProof, TransactionProof.input(transactionProof))
 
       // Handle Deposit Input
       if eq(Input.type(input), InputType.Deposit) {
@@ -20,7 +20,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
           MetadataDeposit.blockNumber(metadata))
 
         assertOrFraud(gt(depositAmount, 0), error"input-deposit-value-underflow",
-          transaction)
+          transactionProof)
 
         stop()
       }
@@ -35,7 +35,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
         TransactionProof.blockHeight(proof)), error"block-height-mismatch")
 
       assertOrFraud(lt(Metadata.rootIndex(metadata),
-        TransactionProof.roots.length(proof)), error"input-root-index-overflow", transaction)
+        TransactionProof.roots.length(proof)), error"input-root-index-overflow", transactionProof)
 
       require(eq(Metadata.rootIndex(metadata),
         TransactionProof.rootIndex(proof)), error"root-index-mismatch")
@@ -49,14 +49,14 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
       if eq(verifyMerkleProof(proof), false) {
         assertOrFraud(lte(Metadata.transactionIndex(metadata),
           TransactionProof.transactionIndex(proof)), error"input-transaction-index-overflow",
-          transaction)
+          transactionProof)
       }
 
       require(eq(Metadata.transactionIndex(metadata),
         TransactionProof.transactionIndex(proof)), error"transaction-index-mismatch")
 
       assertOrFraud(gt(TransactionProof.transaction.length(proof), 0),
-        error"empty-transaction", transaction)
+        error"empty-transaction", transactionProof)
 
       // Output
       let output := selectOutput(proof)
@@ -64,7 +64,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
       // Output Index
       assertOrFraud(lt(Metadata.outputIndex(metadata),
         TransactionProof.outputs.length(proof)), error"input-output-index-overflow",
-        transaction)
+        transactionProof)
 
       require(eq(Metadata.outputIndex(metadata),
         TransactionProof.output(proof)), error"output-index-mismatch")
@@ -72,10 +72,10 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
 
       // Output Types
       assertOrFraud(neq(Output.type(output), OutputType.Withdraw),
-        error"input-withdraw", transaction)
+        error"input-withdraw", transactionProof)
 
       assertOrFraud(neq(Output.type(output), OutputType.Return),
-        error"input-return", transaction)
+        error"input-return", transactionProof)
 
 
       // Input Checks
@@ -83,17 +83,17 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
 
       case InputType.Transfer {
         assertOrFraud(eq(Output.type(output), OutputType.Transfer),
-          error"input-utxo-type", transaction)
+          error"input-utxo-type", transactionProof)
       }
 
       case InputType.HTLC {
         assertOrFraud(eq(Output.type(output), OutputType.HTLC),
-          error"input-htlc-type", transaction)
+          error"input-htlc-type", transactionProof)
 
-        if lt(TransactionProof.blockHeight(transaction),
+        if lt(TransactionProof.blockHeight(transactionProof),
           OutputHTLC.expiry(output)) {
           assertOrFraud(eq(OutputHTLC.digest(output),
-            InputHTLC.preImage.keccak256(input)), error"htlc-preimage", transaction)
+            InputHTLC.preImage.keccak256(input)), error"htlc-preimage", transactionProof)
         }
       }
     }

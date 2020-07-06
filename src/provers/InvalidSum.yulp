@@ -6,47 +6,47 @@ import "./Fraud.yulp"
 /// @title Invalid sum prover
 object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud" {
   code {
-    /// @notice
-    /// @param
-    /// @param
-    /// @return
-    function ins(proof, inputs) -> sum {
-      let pos := TransactionLeaf.inputs.position(TransactionProof.transaction.position(proof))
-      let token := tokenId(TransactionProof.token(proof))
+    /// @notice Compute sum of inputs in token specified in transaction proof.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @param inputProofs Position in memory of inputs proofs.
+    /// @return Sum of inputs in token.
+    function ins(transactionProof, inputProofs) -> sum {
+      let pos := TransactionLeaf.inputs.position(TransactionProof.transaction.position(transactionProof))
+      let token := tokenId(TransactionProof.token(transactionProof))
 
-      for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(proof))) {} {
+      for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(transactionProof))) {} {
         switch Input.type(pos)
 
         case InputType.Transfer {
-          if eq(token, UTXO.token(inputs)) {
-            sum := add(sum, UTXO.amount(inputs))
+          if eq(token, UTXO.token(inputProofs)) {
+            sum := add(sum, UTXO.amount(inputProofs))
           }
 
-          inputs := add(inputs, UTXO.size(inputs))
+          inputProofs := add(inputProofs, UTXO.size(inputProofs))
         }
 
         case InputType.Deposit {
-          if eq(token, Deposit.token(inputs)) {
-            sum := add(sum, Deposit.value(inputs))
+          if eq(token, Deposit.token(inputProofs)) {
+            sum := add(sum, Deposit.value(inputProofs))
           }
 
-          inputs := add(inputs, Deposit.size(inputs))
+          inputProofs := add(inputProofs, Deposit.size(inputProofs))
         }
 
         case InputType.HTLC {
-          if eq(token, UTXO.token(inputs)) {
-            sum := add(sum, UTXO.amount(inputs))
+          if eq(token, UTXO.token(inputProofs)) {
+            sum := add(sum, UTXO.amount(inputProofs))
           }
 
-          inputs := add(inputs, UTXO.size(inputs))
+          inputProofs := add(inputProofs, UTXO.size(inputProofs))
         }
 
         case InputType.Root {
-          if eq(token, TransactionProof.feeToken(inputs)) {
-            sum := add(sum, mul(TransactionProof.fee(inputs), TransactionProof.rootLength(inputs)))
+          if eq(token, TransactionProof.feeToken(inputProofs)) {
+            sum := add(sum, mul(TransactionProof.fee(inputProofs), TransactionProof.rootLength(inputProofs)))
           }
 
-          inputs := add(inputs, TransactionProof.size(inputs))
+          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
         default { require(0, error"input-data-length") }
@@ -55,12 +55,12 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
       }
     }
 
-    /// @notice
-    /// @param
-    /// @param
-    /// @return
-    function outs(token, proof) -> sum {
-      let leaf := TransactionProof.transaction.position(proof)
+    /// @notice Compute sum of outputs in given token.
+    /// @param token Token ID.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @return Sum of outputs in token.
+    function outs(token, transactionProof) -> sum {
+      let leaf := TransactionProof.transaction.position(transactionProof)
       let pos := TransactionLeaf.outputs.position(leaf)
       let end := TransactionLeaf.outputs.offset(leaf)
 
@@ -76,25 +76,25 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
       }
     }
 
-    /// @notice
-    /// @param
-    /// @param
-    function proveSum(proof, inputs) {
-      let token := tokenId(TransactionProof.token(proof))
-      let outsum := add(rootFee(proof, token), outs(token, proof))
-      let insum := ins(proof, inputs)
+    /// @notice Helper function to prove that sum of outputs violates sum of inputs, assuming proofs are verified.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @param inputProofs Position in memory of inputs proofs.
+    function proveSum(transactionProof, inputProofs) {
+      let token := tokenId(TransactionProof.token(transactionProof))
+      let outsum := add(rootFee(transactionProof, token), outs(token, transactionProof))
+      let insum := ins(transactionProof, inputProofs)
 
       assertOrFraud(eq(outsum, insum), error"sum", proof)
     }
 
-    /// @notice
-    /// @param
-    /// @param
-    function proveInvalidSum(proof, inputs) {
-      verifyTransactionProof(proof, AssertFinalized.NotFinalized)
-      verifyWitness(proof, inputs)
-      verifyData(proof, inputs)
-      proveSum(proof, inputs)
+    /// @notice Prove that the sum of outputs violates the sum of inputs.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @param inputProofs Position in memory of inputs proofs.
+    function proveInvalidSum(transactionProof, inputProofs) {
+      verifyTransactionProof(transactionProof, AssertFinalized.NotFinalized)
+      verifyWitness(transactionProof, inputProofs)
+      verifyData(transactionProof, inputProofs)
+      proveSum(transactionProof, inputProofs)
     }
   }
 }
