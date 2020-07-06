@@ -4,17 +4,19 @@ import "./Deposit.yulp"
 /// @title Input verifier
 object "VerifyInputs" is "Deposit", "TransactionProof" {
   code {
-    /// @notice Verify an input proof.
+    /// @notice Verify input proofs.
     /// @param transactionProof Memory offset to start of transaction proof.
     /// @param inputProofs Memory offset of start of input proofs.
     function verifyInputs(transactionProof, inputProofs) {
       // Verify transaction proof
       verifyTransactionProof(transactionProof, AssertFinalized.NotFinalized)
 
+      // Get positions of leaf and input
       let leaf := TransactionProof.transaction.position(transactionProof)
       let pos := TransactionLeaf.inputs.position(leaf)
       let index := 0
 
+      // Loop over inputs and verify each input proof
       for {} lt(pos, TransactionLeaf.inputs.offset(leaf)) {} {
         switch Input.type(pos)
 
