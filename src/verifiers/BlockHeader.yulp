@@ -3,44 +3,42 @@ import "./Block.yulp"
 /// @title BlockHeader verifier
 object "BlockHeader" is "Block" {
   code {
+    /// @notice Verifies a rollup block header
     function verifyHeader(blockHeader, root, rootIndex, assertFinalized) {
-      // Select BlockHeight from Memory
+      // Extract block height from block header
       const blockHeight := BlockHeader.height(blockHeader)
-
-      // Transaction Roots Length
+      // Extract transaction roots length from block header
       const rootsLength := BlockHeader.roots.length(blockHeader)
 
-      // Assert Block is not Genesis
+      // Block must not be genesis block
       require(gt(blockHeight, 0),
           error"block-height-underflow")
 
-      // Assert Block Height is Valid (i.e. before tip)
+      // Block height must be at most the tip height
       require(lte(blockHeight, blockTip()),
           error"block-height-overflow")
 
-      // Assert Previous Block Hash
+      // Previous block hash must match with known previous block hash at height
       require(eq(
           blockCommitment(safeSub(blockHeight, 1)),
           BlockHeader.previousBlockHash(blockHeader)),
           error"previous-block-hash")
 
-      // Transactions roots length underflow
+      // Check bounds on transaction roots length
       require(gt(rootsLength, 0),
           error"roots-length-underflow")
-
-      // Transactions roots length underflow
       require(lte(rootsLength, TRANSACTION_ROOTS_MAX),
           error"roots-length-overflow")
 
-      // Assert Block Commitment Exists
+      // Block must be known (already committed)
       require(eq(blockCommitment(blockHeight), BlockHeader.keccak256(blockHeader)),
           error"block-commitment")
 
-      // Copy Code to Memory
+      // Load finalization delay parameter from constructor
       Constructor.copy(0)
       let finalizationDelay := Constructor.finalizationDelay(0)
 
-      // If requested, Assert Block is Finalized
+      // If assertFinalized set, block must be finalizable
       if eq(assertFinalized, 1) {
         require(gte(
           number(),
@@ -48,7 +46,7 @@ object "BlockHeader" is "Block" {
         ), error"not-finalized")
       }
 
-      // If requested, Assert Block is Not Finalized
+      // If assertFinalized not set, block must not be finalizable
       if lt(assertFinalized, 1) {
         require(lt(
           number(), // ethereumBlockNumber
@@ -56,17 +54,15 @@ object "BlockHeader" is "Block" {
         ), error"block-finalied")
       }
 
-      // if transaction root is present, validate it
+      // If transaction root is present, validate it
       if gt(root, 0) {
-        // Assert root index is not overflowing
+        // Check bounds on transaction root index
         require(lt(rootIndex, rootsLength),
             error"root-index-underflow")
-
-        // Assert root invalid overflow
         require(lt(rootsLength, TRANSACTION_ROOTS_MAX),
             error"root-index-overflow")
 
-        // Assert transaction root index is correct!
+        // Transaction root index must be correct
         require(eq(
             RootHeader.keccak256(root),
             BlockHeader.roots(blockHeader, rootIndex)),
