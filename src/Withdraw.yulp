@@ -72,7 +72,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
         outputAmount(output),
         TransactionProof.rootIndex(transactionProof),
         outputIndex,
-        transactionHashId(transactionProof)
+        transactionId(transactionProof)
       )
       log4(
         0,

@@ -89,7 +89,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         )
       }
 
-      case sig"commitWitness(bytes32 transactionHashId) external" {
+      case sig"commitWitness(bytes32 transactionId) external" {
         commitWitness(calldata.word(0))
       }
 
@@ -143,7 +143,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       // TODO fix this, blockNumber should be uint32
-      case sig"witnessAt(address account, address blockNumber) external view returns (bytes32 transactionHashId)" {
+      case sig"witnessAt(address account, address blockNumber) external view returns (bytes32 transactionId)" {
         return.word(witnessAt(calldata.word(0),
           calldata.word(1)))
       }
@@ -181,7 +181,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       */
 
       case sig"selectUTXO(bytes proof) external view returns (
-        bytes32 transactionHashId,
+        bytes32 transactionId,
         uint8 outputIndex,
         uint8 outputType,
         address owner,
@@ -201,14 +201,14 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return (pos, round32(outputSize(pos)))
       }
 
-      case sig"outputMetadata(bytes proof) external view returns (uint256 id)" {
-        let id := outputMetadata(abi.offset(calldata.word(0)))
-        return.word(id)
+      case sig"outputMetadata(bytes proof) external view returns (uint256 metadata)" {
+        let metadata := outputMetadata(abi.offset(calldata.word(0)))
+        return.word(metadata)
       }
 
-      case sig"inputMetadata(bytes proof) external view returns (uint256 id)" {
-        let id := inputMetadata(abi.offset(calldata.word(0)))
-        return.word(id)
+      case sig"inputMetadata(bytes proof) external view returns (uint256 metadata)" {
+        let metadata := inputMetadata(abi.offset(calldata.word(0)))
+        return.word(metadata)
       }
 
       case sig"selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata)" {

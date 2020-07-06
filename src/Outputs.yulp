@@ -64,7 +64,7 @@ object "Outputs" {
     /// @notice A rollup state element: a UTXO. The UTXO ID is the hash of its fields.
     mstruct UTXO (
       // Transaction ID (witnesses sign over this value)
-      transactionHashId: bytes32,
+      transactionId: bytes32,
       // Output index in list of outputs
       outputIndex: uint256,
       outputType: uint256,

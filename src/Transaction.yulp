@@ -119,7 +119,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       // Save the proof to memory
       mstore(
         pos,
-        transactionHashId(proof),
+        transactionId(proof),
         TransactionProof.output(proof),
         Output.type(output),
         TransactionProof.token(proof),
@@ -174,7 +174,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
 
     /// @notice Get transaction ID from proof.
     /// @return Transaction ID as bytes32
-    function transactionHashId(proof) -> hash {
+    function transactionId(proof) -> hash {
       let leaf := TransactionProof.transaction.position(proof)
       // Transaction IDs are the EIP-712 hash of the non-witness transaction data.
       // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md
@@ -337,13 +337,13 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       switch Signature.type(witness)
 
       case WitnessTypes.Signature {
-        addr := ecrecover(transactionHashId(proof), witness)
+        addr := ecrecover(transactionId(proof), witness)
       }
 
       case WitnessTypes.Caller {
         addr := Caller.owner(witness)
 
-        if neq(witnessAt(addr, Caller.blockNumber(witness)), transactionHashId(proof)) {
+        if neq(witnessAt(addr, Caller.blockNumber(witness)), transactionId(proof)) {
           addr := 0
         }
       }
@@ -351,7 +351,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       case WitnessTypes.Producer {
         addr := TransactionProof.blockProducer(proof)
 
-        if neq(Producer.hash(witness), transactionHashId(proof)) {
+        if neq(Producer.hash(witness), transactionId(proof)) {
           addr := 0
         }
       }

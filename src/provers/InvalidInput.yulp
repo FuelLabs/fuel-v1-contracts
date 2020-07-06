@@ -7,13 +7,13 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
     function proveInvalidInput(proof, transaction) {
       verifyTransactionProof(transaction, 0)
       let input := selectInput(transaction)
-      let inputMetadata := selectMetadata(transaction, TransactionProof.input(transaction))
+      let metadata := selectMetadata(transaction, TransactionProof.input(transaction))
 
       // Handle Deposit Input
       if eq(Input.type(input), InputType.Deposit) {
         let depositAmount := deposits(InputDeposit.owner(input),
-          MetadataDeposit.token(inputMetadata),
-          MetadataDeposit.blockNumber(inputMetadata))
+          MetadataDeposit.token(metadata),
+          MetadataDeposit.blockNumber(metadata))
 
         assertOrFraud(gt(depositAmount, 0), error"input-deposit-value-underflow",
           transaction)
@@ -27,13 +27,13 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
           TransactionProof.rootIndex(proof),
           2)
 
-      require(eq(Metadata.blockHeight(inputMetadata),
+      require(eq(Metadata.blockHeight(metadata),
         TransactionProof.blockHeight(proof)), error"block-height-mismatch")
 
-      assertOrFraud(lt(Metadata.rootIndex(inputMetadata),
+      assertOrFraud(lt(Metadata.rootIndex(metadata),
         TransactionProof.roots.length(proof)), error"input-root-index-overflow", transaction)
 
-      require(eq(Metadata.rootIndex(inputMetadata),
+      require(eq(Metadata.rootIndex(metadata),
         TransactionProof.rootIndex(proof)), error"root-index-mismatch")
 
       // Handle Root Spend
@@ -44,12 +44,12 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
 
       // Transaction index
       if eq(verifyMerkleProof(proof), false) {
-        assertOrFraud(lte(Metadata.transactionIndex(inputMetadata),
+        assertOrFraud(lte(Metadata.transactionIndex(metadata),
           TransactionProof.transactionIndex(proof)), error"input-transaction-index-overflow",
           transaction)
       }
 
-      require(eq(Metadata.transactionIndex(inputMetadata),
+      require(eq(Metadata.transactionIndex(metadata),
         TransactionProof.transactionIndex(proof)), error"transaction-index-mismatch")
 
       assertOrFraud(gt(TransactionProof.transaction.length(proof), 0),
@@ -59,11 +59,11 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
       let output := selectOutput(proof)
 
       // Output Index
-      assertOrFraud(lt(Metadata.outputIndex(inputMetadata),
+      assertOrFraud(lt(Metadata.outputIndex(metadata),
         TransactionProof.outputs.length(proof)), error"input-output-index-overflow",
         transaction)
 
-      require(eq(Metadata.outputIndex(inputMetadata),
+      require(eq(Metadata.outputIndex(metadata),
         TransactionProof.output(proof)), error"output-index-mismatch")
 
 
