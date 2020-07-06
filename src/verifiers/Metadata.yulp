@@ -5,44 +5,53 @@ import "./Transaction.yulp"
 object "MetadataVerifier" is "TransactionProof", "Transaction" {
   code {
     /// @notice Verify metadata.
+    /// @param inputMetadata Metadata of input.
     /// @param transactionProof Memory offset to start of transaction proof.
-    /// @param inputProofs Memory offset of start of input proofs.
-    /// @return If the proof verified as bool.
+    /// @return If the proof verified correctly as bool.
     function verifyMetadata(inputMetadata, transactionProof) -> verified {
+      // Verify transaction proof first
       verifyTransactionProof(transactionProof, AssertFinalized.None)
       verified := true
 
+      // Block height should be between genesis (exclusive) and tip (inclusive)
       if iszero(gt(Metadata.blockHeight(inputMetadata), 0)) {
         verified := false
       }
-
       if iszero(lte(Metadata.blockHeight(inputMetadata), blockTip())) {
         verified := false
       }
 
+      // Block height in input metadata must match block height in transaction proof
       if eq(verified, true) {
-        require(eq(Metadata.blockHeight(inputMetadata),
-          TransactionProof.blockHeight(transactionProof)), error"block-height-mismatch")
+        require(
+          eq(Metadata.blockHeight(inputMetadata), TransactionProof.blockHeight(transactionProof)),
+          error"block-height-mismatch"
+        )
       }
 
+      // Root index in metadata should be bounded by number of roots in transaction proof
       if iszero(gte(Metadata.rootIndex(inputMetadata), 0)) {
         verified := false
       }
-
       if iszero(lt(Metadata.rootIndex(inputMetadata),
         TransactionProof.roots.length(transactionProof))) {
         verified := false
       }
 
+      // Root index in input metadata must match root index in transaction proof
       if eq(verified, true) {
-        require(eq(Metadata.rootIndex(inputMetadata),
-          TransactionProof.rootIndex(transactionProof)), error"root-index-mismatch")
+        require(
+          eq(Metadata.rootIndex(inputMetadata), TransactionProof.rootIndex(transactionProof)),
+          error"root-index-mismatch"
+        )
       }
 
+      // Transaction index in metadata should greater than 0
       if iszero(gte(Metadata.transactionIndex(inputMetadata), 0)) {
         verified := false
       }
 
+      // TODO describe this
       if eq(verifyMerkleProof(transactionProof), false) {
         if iszero(lte(Metadata.transactionIndex(inputMetadata),
           TransactionProof.transactionIndex(transactionProof))) {
@@ -50,23 +59,29 @@ object "MetadataVerifier" is "TransactionProof", "Transaction" {
         }
       }
 
+      // Transaction index in input metadata must match transaction index in transaction proof
       if eq(verified, true) {
-        require(eq(Metadata.transactionIndex(inputMetadata),
-          TransactionProof.transactionIndex(transactionProof)), error"transaction-index-mismatch")
+        require(
+          eq(Metadata.transactionIndex(inputMetadata), TransactionProof.transactionIndex(transactionProof)),
+          error"transaction-index-mismatch"
+        )
       }
 
+      // Output index in metadata should be bounded by number of outputs in transaction proof
       if iszero(gte(Metadata.outputIndex(inputMetadata), 0)) {
         verified := false
       }
-
       if iszero(lt(Metadata.outputIndex(inputMetadata),
         TransactionProof.outputs.length(transactionProof))) {
         verified := false
       }
 
+      // Output index in input metadata must match output index in transaction proof
       if eq(verified, true) {
-        require(eq(Metadata.outputIndex(inputMetadata),
-          TransactionProof.output(transactionProof)), error"output-index-mismatch")
+        require(
+          eq(Metadata.outputIndex(inputMetadata), TransactionProof.output(transactionProof)),
+          error"output-index-mismatch"
+        )
       }
     }
   }

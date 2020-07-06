@@ -45,7 +45,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       0
     )
 
-    // Commit genesis block
+    // Implicitly commit genesis block
     sstore(mappingKey(Storage.BlockCommitments, 0), genesis)
 
     // Add extra data for block producer
