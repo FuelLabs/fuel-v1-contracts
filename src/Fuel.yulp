@@ -221,14 +221,19 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
           calldata.word(1)))
       }
 
-      /// @notice
-      /// @return
+      /// @notice Calculate the funnel contract address for an account.
+      /// @param account Account to calculate address for.
+      /// @return Fuel contract address.
       /// @dev FunnelFactory::calculateFunnelAddress
       case sig"funnel(address account) external view returns (address)" {
         return.word(calculateFunnelAddress(calldata.word(0)))
       }
 
-      /// @notice
+      /// @notice Verify a block header.
+      /// @param
+      /// @param
+      /// @param
+      /// @param
       /// @return
       /// @dev verifiers::BlockHeader::verifyHeader
       case sig"verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 finalization) external view returns (bool)" {
@@ -241,7 +246,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(true)
       }
 
-      /// @notice
+      /// @notice Verify a transaction.
+      /// @param
+      /// @param
       /// @return
       /// @dev verifiers::TransactionProof::verifyTransactionProof
       case sig"verifyTransaction(bytes proof, uint8 finalization) external view returns (bool)" {
@@ -253,6 +260,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice
+      /// @param
       /// @return
       /// @return
       /// @dev Transaction::TransactionProof.UTXO.assign
@@ -271,6 +279,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice
+      /// @param
       /// @return
       /// @dev Transaction::selectOutput
       case sig"selectOutput(bytes proof) external view returns (bytes output)" {
@@ -281,6 +290,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice
+      /// @param
       /// @return
       /// @dev Transaction::outputMetadata
       case sig"outputMetadata(bytes proof) external view returns (uint256 metadata)" {
@@ -289,6 +299,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice
+      /// @param
+      /// @return
       /// @dev Transaction::inputMetadata
       case sig"inputMetadata(bytes proof) external view returns (uint256 metadata)" {
         let metadata := inputMetadata(abi.offset(calldata.word(0)))
@@ -296,6 +308,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice
+      /// @param
+      /// @param
       /// @return
       /// @dev Transaction::selectMetadata
       case sig"selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata)" {
@@ -338,6 +352,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice
+      /// @param
       /// @return
       /// @dev Address::addressId
       case sig"addressId(address owner) external view  returns (uint256 addressId)" {
@@ -345,6 +360,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice
+      /// @param
+      /// @param
+      /// @param
       /// @return
       /// @dev Deposit::depositAt
       case sig"depositAt(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount)" {
@@ -356,6 +374,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice
+      /// @param
       /// @return
       /// @dev Block::blockCommitment
       case sig"blockCommitment(uint256 blockNumber) external view  returns (bytes32 blockHash)" {
@@ -363,6 +382,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice
+      /// @param
       /// @return
       /// @dev Root::rootBlockNumberAt
       case sig"rootBlockNumberAt(bytes32 root) external view  returns (uint256 blockNumber)" {
@@ -370,6 +390,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice
+      /// @param
+      /// @param
       /// @return
       /// @dev Withdraw::isWithdrawalProcessed
       case sig"isWithdrawalProcessed(uint256 blockHeight, bytes32 withdrawalHashId) external view returns (bool withdrawn)" {
