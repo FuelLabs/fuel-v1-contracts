@@ -23,7 +23,7 @@ object "Block" is "Constructor", "Root", "Address" {
       numAddresses: uint256,
       // Number of transaction roots
       roots.length: uint16,
-      // List of transaction roots
+      // List of transaction roots. Each root is the Merkle root of a list of transactions.
       roots: [bytes32]
     )
 
