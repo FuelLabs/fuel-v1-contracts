@@ -100,15 +100,17 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
 
       /// @notice Commit a new block.
       /// @param minimum Minimum Ethereum block number that this commitment is valid for.
+      /// @param minimumHash Minimum Ethereum block hash that this commitment is valid for.
       /// @param height Rollup block height.
       /// @param roots List of roots in block.
       /// @dev Block::commitBlock
-      case sig"commitBlock(uint32 minimum, uint32 height, bytes32[] roots) external" {
+      case sig"commitBlock(uint32 minimum, bytes32 minimumHash, uint32 height, bytes32[] roots) external" {
         commitBlock(
           calldata.word(0),
           calldata.word(1),
-          abi.length(calldata.word(2)),
-          abi.offset(calldata.word(2))
+          calldata.word(2),
+          abi.length(calldata.word(3)),
+          abi.offset(calldata.word(3))
         )
       }
 
@@ -215,8 +217,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param blockNumber Ethereum block number registration took place.
       /// @return Transaction ID being authorized, 0 if witness is not registered.
       /// @dev Witness::witnessAt
-      // TODO fix this, blockNumber should be uint32 or uint256
-      case sig"witnessAt(address account, address blockNumber) external view returns (bytes32 transactionId)" {
+      case sig"witnessAt(address account, uint32 blockNumber) external view returns (bytes32 transactionId)" {
         return.word(witnessAt(calldata.word(0),
           calldata.word(1)))
       }

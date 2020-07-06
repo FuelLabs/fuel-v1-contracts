@@ -58,15 +58,15 @@ object "Block" is "Constructor", "Root", "Address" {
     }
 
     /// @notice Commits a new rollup block.
-    function commitBlock(minBlockNumber, height, rootsLength, rootsPosition) {
+    function commitBlock(minBlockNumber, minBlockHash, height, rootsLength, rootsPosition) {
       let _blockTip := blockTip()
       let previousBlockHash := blockCommitment(sub(height, 1))
 
       // To avoid Ethereum re-org attacks, commitment transactions include a minimum
-      //  Ethereum block number and block hash
-      // TODO also check a block hash, requires ABI changes
-      // TODO add test for this
       require(gt(number(), minBlockNumber), error"minimum-block-number")
+
+      //  Ethereum block number and block hash
+      require(eq(blockhash(minBlockNumber), minBlockHash), error"minimum-block-hash")
 
       // Check that new rollup blocks builds on top of the tip
       require(eq(height, add(_blockTip, 1)), error"block-height")

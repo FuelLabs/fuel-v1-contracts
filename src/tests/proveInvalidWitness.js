@@ -285,8 +285,11 @@ module.exports = test('proveInvalidWitness', async t => {
         numAddresses: opts.commitAddress ? 2 : 1,
         roots: [root.keccak256Packed()],
       }));
+
+      const currentBlock = await t.provider.getBlockNumber();
+      const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
       const block = await t.wait(
-          contract.commitBlock(0, 1, [root.keccak256Packed()], {
+          contract.commitBlock(currentBlock, currentBlockHash, 1, [root.keccak256Packed()], {
             ...overrides,
             value: await contract.BOND_SIZE(),
           }),
@@ -412,8 +415,9 @@ module.exports = test('proveInvalidWitness', async t => {
                 root2.properties.merkleTreeRoot.get(), 0, 0, combine(txs2),
                 overrides),
             'valid submit', errors);
+
         await t.wait(
-            contract.commitBlock(0, 2, [root2.keccak256Packed()], {
+            contract.commitBlock(currentBlock, currentBlockHash, 2, [root2.keccak256Packed()], {
               ...overrides,
               value: await contract.BOND_SIZE(),
             }),

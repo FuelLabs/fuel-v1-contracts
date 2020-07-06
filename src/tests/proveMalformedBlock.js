@@ -46,7 +46,10 @@ module.exports = test('proveMalformedBlock', async t => { try {
         numAddresses: 1,
         roots: [aroot.keccak256Packed()],
       }));
-      const ctx = await t.wait(contract.commitBlock(0, 1, [aroot.keccak256Packed()], {
+
+      const currentBlock = await t.provider.getBlockNumber();
+      const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
+      const ctx = await t.wait(contract.commitBlock(currentBlock, currentBlockHash, 1, [aroot.keccak256Packed()], {
         ...overrides,
         value: await contract.BOND_SIZE(),
       }), 'commit block', errors);

@@ -42,7 +42,9 @@ module.exports = test('commitBlock', async t => { try {
       numAddresses: 1,
     }));
 
-    const ctx = await t.wait(contract.commitBlock(0, 1, [aroot], {
+    const currentBlock = await t.provider.getBlockNumber();
+    const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
+    const ctx = await t.wait(contract.commitBlock(currentBlock, currentBlockHash, 1, [aroot], {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), 'commit block', errors);
@@ -75,7 +77,7 @@ module.exports = test('commitBlock', async t => { try {
       numTokens: 1,
       numAddresses: 1,
     })).encodePacked();
-    await t.revert(contract.commitBlock(0, 1, [croot], {
+    await t.revert(contract.commitBlock(currentBlock, currentBlockHash, 1, [croot], {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), errors['block-height'], 'block-height', errors);
@@ -91,7 +93,7 @@ module.exports = test('commitBlock', async t => { try {
       numTokens: 1,
       numAddresses: 1,
     })).encodePacked();
-    await t.revert(contract.commitBlock(0, 2, [croot], {
+    await t.revert(contract.commitBlock(currentBlock, currentBlockHash, 2, [croot], {
       ...overrides,
       value: utils.bigNumberify(await contract.BOND_SIZE()).sub(1),
     }), errors['bond-value'], 'bond-value');
@@ -108,7 +110,7 @@ module.exports = test('commitBlock', async t => { try {
       numTokens: 1,
       numAddresses: 1,
     })).encodePacked();
-    await t.revert(contract.commitBlock(0, 2, [], {
+    await t.revert(contract.commitBlock(currentBlock, currentBlockHash, 2, [], {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), errors['roots-length-underflow'], 'roots-length-underflow');
@@ -126,7 +128,7 @@ module.exports = test('commitBlock', async t => { try {
       numTokens: 1,
       numAddresses: 1,
     })).encodePacked();
-    await t.revert(contract.commitBlock(0, 2, overflowRoots, {
+    await t.revert(contract.commitBlock(currentBlock, currentBlockHash, 2, overflowRoots, {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), errors['roots-length-overflow'], 'roots-length-overflow');
@@ -143,7 +145,7 @@ module.exports = test('commitBlock', async t => { try {
       numTokens: 1,
       numAddresses: 1,
     })).encodePacked();
-    await t.revert(contract.commitBlock(0, 2, [utils.emptyBytes32], {
+    await t.revert(contract.commitBlock(currentBlock, currentBlockHash, 2, [utils.emptyBytes32], {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), errors["root-existance"], "root-existance");
@@ -162,7 +164,7 @@ module.exports = test('commitBlock', async t => { try {
       numTokens: 1,
       numAddresses: 1,
     })).encodePacked();
-    await t.revert(other.commitBlock(0, 2, [croot], {
+    await t.revert(other.commitBlock(currentBlock, currentBlockHash, 2, [croot], {
       ...overrides,
       value: await other.BOND_SIZE(),
     }), errors["caller-producer"], "caller-producer");
@@ -179,7 +181,7 @@ module.exports = test('commitBlock', async t => { try {
       numTokens: 1,
       numAddresses: 1,
     }));
-    const cvtx = await t.wait(contract.commitBlock(0, 2, [croot], {
+    const cvtx = await t.wait(contract.commitBlock(currentBlock, currentBlockHash, 2, [croot], {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), 'commit block', errors);
@@ -226,7 +228,7 @@ module.exports = test('commitBlock', async t => { try {
       numTokens: 1,
       numAddresses: 1,
     })).encodePacked();
-    const etx = await t.wait(other.commitBlock(0, 3, [broot], {
+    const etx = await t.wait(other.commitBlock(currentBlock, currentBlockHash, 3, [broot], {
       ...overrides,
       value: await other.BOND_SIZE(),
     }), 'commit block', errors);
