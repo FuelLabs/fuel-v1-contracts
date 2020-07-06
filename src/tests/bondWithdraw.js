@@ -75,7 +75,7 @@ module.exports = test('bondWithdraw', async t => { try {
     t.equalBig(bwtx.events[0].args.rootIndex, 0, 'rootIndex');
     t.equalBig(bwtx.events[0].args.transactionLeafHash, 0, 'transactionLeafHash');
     t.equalBig(bwtx.events[0].args.outputIndex, 0, 'outputIndex');
-    t.equalBig(bwtx.events[0].args.transactionHashId, 0, 'transactionHashId');
+    t.equalBig(bwtx.events[0].args.withdrawalId, 0, 'withdrawalId');
 
 
     await t.revert(contract.bondWithdraw(header.encodePacked(), overrides),

@@ -1,46 +1,71 @@
+/// @title Transaction output
+/// @notice Transaction produce outputs.
 object "Outputs" {
   code {
-    enum OutputTypes (
+    enum OutputType (
+      // Simple transfer UTXO, no special conditions
       Transfer,
+      // Burn coins to enable withdrawing them
       Withdraw,
+      // An HTLC UTXO
       HTLC,
+      // A non-send; used for posting data
       Return
     )
 
+    /// @notice Generic output. Transfer and Withdraw.
     mstruct Output (
+      // Output type
       type: uint8,
       token.length: uint8,
+      // Token ID, as varint
       token: [bytes1],
       amount.shift: uint8,
       amount.length: uint8,
+      // Amount of tokens, as packed varint
       amount: [uint8],
       owner.length: uint8,
+      // Recipient, as varint
       owner: [bytes1]
     )
 
+    /// @notice An HTLC output.
     mstruct OutputHTLC (
+      // Output type
       type: uint8,
       token.length: uint8,
+      // Token ID, as varint
       token: [bytes1],
       amount.shift: uint8,
       amount.length: uint8,
+      // Amount of tokens, as packed varint
       amount: [uint8],
       owner.length: uint8,
+      // Recipient, as varint
       owner: [bytes1],
+      // Hashlock digest
       digest: bytes32,
+      // Timelock expiry (Ethereum block number)
       expiry: uint32,
       returnOwner.length: uint8,
+      // Return owner if timelock expires, as varint
       returnOwner: [bytes1]
     )
 
+    /// @notice A Return output. Not added to rollup state.
     mstruct OutputReturn (
+      // Output type
       type: uint8,
       data.length: uint16,
+      // Raw data byte array
       data: [bytes1]
     )
 
+    /// @notice A rollup state element: a UTXO. The UTXO ID is the hash of its fields.
     mstruct UTXO (
-      transactionHashId: bytes32,
+      // Transaction ID (witnesses sign over this value)
+      transactionId: bytes32,
+      // Output index in list of outputs
       outputIndex: uint256,
       outputType: uint256,
       owner: bytes32,
@@ -51,6 +76,7 @@ object "Outputs" {
       returnOwner: bytes32
     )
 
+    /// @notice Parse out the amount from an output object.
     function outputAmount(output) -> amount {
       let pos := Output.amount.position(output)
       let shift := Output.amount.shift(output)
@@ -63,22 +89,23 @@ object "Outputs" {
       amount := shl(shift, mslice(pos, len))
     }
 
+    /// @notice Get the size of an output object.
     function outputSize(output) -> size {
       switch Output.type(output)
 
-      case OutputTypes.Transfer {
+      case OutputType.Transfer {
         size := Output.size(output)
       }
 
-      case OutputTypes.Withdraw {
+      case OutputType.Withdraw {
         size := Output.size(output)
       }
 
-      case OutputTypes.HTLC {
+      case OutputType.HTLC {
         size := OutputHTLC.size(output)
       }
 
-      case OutputTypes.Return {
+      case OutputType.Return {
         size := OutputReturn.size(output)
       }
 
@@ -87,34 +114,40 @@ object "Outputs" {
       }
     }
 
+    /// @notice Parse out the token ID from an output object.
     function outputToken(output) -> id {
       id := Output.token.slice(output)
     }
 
+    /// @notice Checks non-Return output owner.
+    /// @return If output owner matches as bool
     function ownerEquates(output, owner) -> result {
       let len := Output.owner.length(output)
 
+      // Length of owner field must be <= 20 bytes
       require(gt(len, 0), error"owner-length-underflow")
       require(lte(len, 20), error"owner-length-overflow")
 
       switch len
 
-      case 20 { // address
+      case 20 { // raw address
         result := or(
           eq(Output.owner.slice(output), owner),
           eq(Output.owner.slice(output), calculateFunnelAddress(owner))
         )
       }
 
-      default { // id
+      default { // registered address ID
         let id := Output.owner.slice(output)
         result := or(
-          eq(id, addresses(owner)),
-          eq(id, addresses(calculateFunnelAddress(owner)))
+          eq(id, addressId(owner)),
+          eq(id, addressId(calculateFunnelAddress(owner)))
         )
       }
     }
 
+    /// @notice Checks Return output owner.
+    /// @return If output owner matches as bool
     function ownerReturnEquates(output, owner) -> result {
       let len := OutputHTLC.returnOwner.length(output)
 
@@ -123,18 +156,18 @@ object "Outputs" {
 
       switch len
 
-      case 20 { // address
+      case 20 { // raw address
         result := or(
           eq(OutputHTLC.returnOwner.slice(output), owner),
           eq(OutputHTLC.returnOwner.slice(output), calculateFunnelAddress(owner))
         )
       }
 
-      default { // id
+      default { // registered address ID
         let id := OutputHTLC.returnOwner.slice(output)
         result := or(
-          eq(id, addresses(owner)),
-          eq(id, addresses(calculateFunnelAddress(owner)))
+          eq(id, addressId(owner)),
+          eq(id, addressId(calculateFunnelAddress(owner)))
         )
       }
     }

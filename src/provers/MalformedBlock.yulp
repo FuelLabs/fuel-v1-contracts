@@ -15,11 +15,11 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
         let len := add(mslice(memoryPosition, 2), 2)
 
         // if transaction length is below minimum transaction length, stop
-        assertOrFraud(gt(len, TransactionSizeMinimum),
+        assertOrFraud(gt(len, TRANSACTION_SIZE_MIN),
             error"transaction-length-underflow", fraudBlock)
 
         // Assert transaction length is not too long
-        assertOrFraud(lt(len, TransactionSizeMaximum),
+        assertOrFraud(lt(len, TRANSACTION_SIZE_MAX),
             error"transaction-length-overflow", fraudBlock)
 
         // computed length greater than provided payload
@@ -39,7 +39,7 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
         transactionIndex := add(transactionIndex, 1)
 
         // Transactions overflow
-        assertOrFraud(lt(transactionIndex, MaxTransactionsInRoot),
+        assertOrFraud(lt(transactionIndex, MAX_TRANSACTIONS_IN_ROOT),
             error"transaction-index-overflow", fraudBlock)
       }
 

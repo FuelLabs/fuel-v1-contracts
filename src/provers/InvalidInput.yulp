@@ -7,13 +7,13 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
     function proveInvalidInput(proof, transaction) {
       verifyTransactionProof(transaction, 0)
       let input := selectInput(transaction)
-      let inputMetadata := selectMetadata(transaction, TransactionProof.input(transaction))
+      let metadata := selectMetadata(transaction, TransactionProof.input(transaction))
 
       // Handle Deposit Input
-      if eq(Input.type(input), InputTypes.Deposit) {
-        let depositAmount := deposits(InputDeposit.owner(input),
-          MetadataDeposit.token(inputMetadata),
-          MetadataDeposit.blockNumber(inputMetadata))
+      if eq(Input.type(input), InputType.Deposit) {
+        let depositAmount := depositAt(InputDeposit.owner(input),
+          MetadataDeposit.token(metadata),
+          MetadataDeposit.blockNumber(metadata))
 
         assertOrFraud(gt(depositAmount, 0), error"input-deposit-value-underflow",
           transaction)
@@ -27,29 +27,29 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
           TransactionProof.rootIndex(proof),
           2)
 
-      require(eq(Metadata.blockHeight(inputMetadata),
+      require(eq(Metadata.blockHeight(metadata),
         TransactionProof.blockHeight(proof)), error"block-height-mismatch")
 
-      assertOrFraud(lt(Metadata.rootIndex(inputMetadata),
+      assertOrFraud(lt(Metadata.rootIndex(metadata),
         TransactionProof.roots.length(proof)), error"input-root-index-overflow", transaction)
 
-      require(eq(Metadata.rootIndex(inputMetadata),
+      require(eq(Metadata.rootIndex(metadata),
         TransactionProof.rootIndex(proof)), error"root-index-mismatch")
 
       // Handle Root Spend
-      if eq(Input.type(input), InputTypes.Root) {
+      if eq(Input.type(input), InputType.Root) {
         stop()
       }
 
 
       // Transaction index
       if eq(verifyMerkleProof(proof), false) {
-        assertOrFraud(lte(Metadata.transactionIndex(inputMetadata),
+        assertOrFraud(lte(Metadata.transactionIndex(metadata),
           TransactionProof.transactionIndex(proof)), error"input-transaction-index-overflow",
           transaction)
       }
 
-      require(eq(Metadata.transactionIndex(inputMetadata),
+      require(eq(Metadata.transactionIndex(metadata),
         TransactionProof.transactionIndex(proof)), error"transaction-index-mismatch")
 
       assertOrFraud(gt(TransactionProof.transaction.length(proof), 0),
@@ -59,32 +59,32 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
       let output := selectOutput(proof)
 
       // Output Index
-      assertOrFraud(lt(Metadata.outputIndex(inputMetadata),
+      assertOrFraud(lt(Metadata.outputIndex(metadata),
         TransactionProof.outputs.length(proof)), error"input-output-index-overflow",
         transaction)
 
-      require(eq(Metadata.outputIndex(inputMetadata),
+      require(eq(Metadata.outputIndex(metadata),
         TransactionProof.output(proof)), error"output-index-mismatch")
 
 
       // Output Types
-      assertOrFraud(neq(Output.type(output), OutputTypes.Withdraw),
+      assertOrFraud(neq(Output.type(output), OutputType.Withdraw),
         error"input-withdraw", transaction)
 
-      assertOrFraud(neq(Output.type(output), OutputTypes.Return),
+      assertOrFraud(neq(Output.type(output), OutputType.Return),
         error"input-return", transaction)
 
 
       // Input Checks
       switch Input.type(input)
 
-      case InputTypes.Transfer {
-        assertOrFraud(eq(Output.type(output), OutputTypes.Transfer),
+      case InputType.Transfer {
+        assertOrFraud(eq(Output.type(output), OutputType.Transfer),
           error"input-utxo-type", transaction)
       }
 
-      case InputTypes.HTLC {
-        assertOrFraud(eq(Output.type(output), OutputTypes.HTLC),
+      case InputType.HTLC {
+        assertOrFraud(eq(Output.type(output), OutputType.HTLC),
           error"input-htlc-type", transaction)
 
         if lt(TransactionProof.blockHeight(transaction),

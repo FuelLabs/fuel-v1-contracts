@@ -4,67 +4,79 @@ import "./Transaction.yulp"
 import "./Utils.yulp"
 import "./verifiers/BlockHeader.yulp"
 
+/// @title Withdrawal object
 object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction", "Utils" {
   code {
-    mstruct WithdrawalProof(
+    /// @notice Metadata of a withdrawal transcation in the rollup. Points to an entry in a block.
+    mstruct WithdrawalMetadata(
+      // Index of root in list of roots
       rootIndex: uint256,
+      // Hash of transaction leaf in tree rooted at rootIndex
       transactionLeafHash: bytes32,
+      // Index of output in list of outputs of transcation in the transaction leaf
       outputIndex: uint256
     )
 
-    function withdrawals(blockNumber, withdrawalHashId) -> result {
-      result := sload(mappingKey2(Storage.Withdrawals, blockNumber, withdrawalHashId))
+    /// @notice Check if the withdrawal has already need processed.
+    /// @return If the withdrawal has already been processed as bool
+    function isWithdrawalProcessed(blockNumber, withdrawalId) -> result {
+      result := sload(mappingKey2(Storage.Withdrawals, blockNumber, withdrawalId))
     }
 
-    function withdraw(transaction) {
+    /// @notice Do a withdrawal.
+    function withdraw(transactionProof) {
       // Verify transaction proof
-      verifyTransactionProof(transaction, 1)
+      verifyTransactionProof(transactionProof, 1)
 
-      // Select the Output
-      let output := selectOutput(transaction)
+      // Select the output from the proof
+      let output := selectOutput(transactionProof)
 
-      // withdrawal Token
-      let token := TransactionProof.token(transaction)
+      // Get token ID from the proof, and owner
+      let token := TransactionProof.token(transactionProof)
       let owner := caller()
 
-      // check owner
+      // Owner must match
       require(ownerEquates(output, owner), error"output-owner")
 
-      // check token id
+      // Token ID must match
       require(eq(Output.token.slice(output), tokenId(token)),
         error"token-id")
 
-      // Check Proof Type is Correct
-      require(eq(Output.type(output), OutputTypes.Withdraw),
+      // Output type must be Withdraw
+      require(eq(Output.type(output), OutputType.Withdraw),
           error"output-type")
 
       // Get transaction details
-      let transactionLeafHash := TransactionProof.transaction.keccak256(transaction)
-      let outputIndex := TransactionProof.output(transaction)
-      let blockHeight := TransactionProof.blockHeight(transaction)
+      let transactionLeafHash := TransactionProof.transaction.keccak256(transactionProof)
+      let outputIndex := TransactionProof.output(transactionProof)
+      let blockHeight := TransactionProof.blockHeight(transactionProof)
 
-      // Construct withdrawal hash id
-      mstore(0, TransactionProof.rootIndex(transaction), transactionLeafHash, outputIndex)
-      let withdrawalHashId := WithdrawalProof.keccak256(0)
+      // Construct withdrawal ID
+      mstore(0, TransactionProof.rootIndex(transactionProof), transactionLeafHash, outputIndex)
+      let withdrawalId := WithdrawalMetadata.keccak256(0)
 
-      // This output has not been withdrawn yet!
-      require(eq(withdrawals(blockHeight, withdrawalHashId), false),
+      // This withdrawal must not have been processed yet
+      require(eq(isWithdrawalProcessed(blockHeight, withdrawalId), false),
         error"withdrawal-occured")
 
       // Transfer amount out
       transfer(outputAmount(output), token, owner)
 
-      // Set withdrawals
-      sstore(mappingKey2(Storage.Withdrawals, blockHeight, withdrawalHashId), true)
+      // Set withdrawal as processed
+      sstore(mappingKey2(Storage.Withdrawals, blockHeight, withdrawalId), true)
 
-      // Construct Log Data for withdrawal
-      mstore(0,
+      // Construct log for withdrawal
+      mstore(
+        0,
         token,
         outputAmount(output),
-        TransactionProof.rootIndex(transaction),
+        TransactionProof.rootIndex(transactionProof),
         outputIndex,
-        transactionHashId(transaction))
-      log4(0, mul32(5),
+        transactionId(transactionProof)
+      )
+      log4(
+        0,
+        mul32(5),
         topic"event WithdrawalMade(
           address indexed account,
           address token,
@@ -73,43 +85,47 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
           uint256 rootIndex,
           bytes32 indexed transactionLeafHash,
           uint8 outputIndex,
-          bytes32 transactionHashId)",
+          bytes32 withdrawalId)",
         owner,
         blockHeight,
-        transactionLeafHash)
+        transactionLeafHash
+      )
     }
 
+    /// @notice Withdraw a block producer bond from a finalizable block.
     function bondWithdraw(blockHeader) {
-      // Setup block producer withdrawal hash ID (i.e. Zero)
-      let withdrawalHashId := 0
+      // Setup block producer withdrawal ID (i.e. zero)
+      let withdrawalId := 0
 
-      // block height
+      // Setup block height
       let blockHeight := BlockHeader.height(blockHeader)
 
-      // Verify block header proof is finalized!
+      // Verify block header is finalized
       verifyHeader(blockHeader, 0, 0, 1)
 
-      // Assert Caller is Block Producer
+      // Caller must be block producer
       require(eq(BlockHeader.producer(blockHeader), caller()),
           error"caller-producer")
 
-      // Assert Block Bond withdrawal has not been Made!
-      require(eq(withdrawals(blockHeight, withdrawalHashId), false),
+      // Block bond withdrawal must not have been processed yet
+      require(eq(isWithdrawalProcessed(blockHeight, withdrawalId), false),
           error"already-withdrawn")
 
-      // Bond size
+      // Get bond amount
       Constructor.copy(0)
       let bondSize := Constructor.bondSize(0)
 
-      // Transfer Bond Amount back to Block Producer
-      transfer(bondSize, EtherToken, caller())
+      // Transfer bond back to block producer
+      transfer(bondSize, ETHER_TOKEN_ADDRESS, caller())
 
-      // Set withdrawal
-      sstore(mappingKey2(Storage.Withdrawals, blockHeight, withdrawalHashId), true)
+      // Set withdrawal as processed
+      sstore(mappingKey2(Storage.Withdrawals, blockHeight, withdrawalId), true)
 
       // Log withdrawal data and topics
-      mstore(0, EtherToken, bondSize, 0, 0, 0)
-      log4(0, mul32(5),
+      mstore(0, ETHER_TOKEN_ADDRESS, bondSize, 0, 0, 0)
+      log4(
+        0,
+        mul32(5),
         topic"event WithdrawalMade(
           address indexed account,
           address token,
@@ -118,10 +134,11 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
           uint256 rootIndex,
           bytes32 indexed transactionLeafHash,
           uint8 outputIndex,
-          bytes32 transactionHashId)",
+          bytes32 withdrawalId)",
         caller(),
         blockHeight,
-        EmptyLeafHash)
+        EMPTY_LEAF_HASH
+      )
     }
   }
 }

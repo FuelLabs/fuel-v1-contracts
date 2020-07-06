@@ -30,17 +30,17 @@ module.exports = test('constructor', async t => { try {
     t.equalBig(logs[2].values.numAddresses, numAddresses, 'addresses');
     t.equal(logs[2].values.roots.length, 0, 'roots');
 
-    t.equalBig(await contract.blockProducer(), producer, 'producer');
+    t.equalBig(await contract.operator(), producer, 'producer');
     t.equalBig(await contract.blockTip(), blockTip, 'tip');
     t.equalBig(await contract.numTokens(), numTokens, 'numTokens');
     t.equalBig(await contract.numAddresses(), numAddresses, 'numTokens');
-    t.equalBig(await contract.tokens(utils.emptyAddress), 0, 'ether address');
+    t.equalBig(await contract.tokenId(utils.emptyAddress), 0, 'ether address');
     t.equalBig(await contract.numAddresses(), 1, 'num addresses');
-    t.equalBig(await contract.addresses(utils.emptyAddress), 0, 'empty address');
-    t.equalBig(await contract.deposits(utils.emptyAddress, 0, 0), 0, 'empty deposit');
-    t.equalBig(await contract.blockCommitments(0), block.genesis, 'genesis');
-    t.equalBig(await contract.blockRoots(utils.emptyBytes32), 0, 'empty root');
-    t.equal(await contract.withdrawals(0, utils.emptyBytes32), false, 'empty withdrawal');
+    t.equalBig(await contract.addressId(utils.emptyAddress), 0, 'empty address');
+    t.equalBig(await contract.depositAt(utils.emptyAddress, 0, 0), 0, 'empty deposit');
+    t.equalBig(await contract.blockCommitment(0), block.genesis, 'genesis');
+    t.equalBig(await contract.rootBlockNumberAt(utils.emptyBytes32), 0, 'empty root');
+    t.equal(await contract.isWithdrawalProcessed(0, utils.emptyBytes32), false, 'empty withdrawal');
     t.equalBig(await contract.SUBMISSION_DELAY(), params[2], 'SUBMISSION_DELAY');
     t.equalBig(await contract.MAX_ROOT_SIZE(), 57600, 'MAX_ROOT_SIZE');
     t.equalBig(await contract.BOND_SIZE(), params[4], 'BOND_SIZE');

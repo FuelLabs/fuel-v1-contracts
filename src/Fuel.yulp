@@ -11,27 +11,29 @@ import "./provers/MalformedBlock.yulp"
 import "./provers/InvalidInput.yulp"
 import "./provers/InvalidWitness.yulp"
 
-// Fuel Version 1.0.0 Optimistic Rollup
+/// @title Fuel optimistic rollup top-level contract
 object "Fuel" is "Constructor", "Tokens", "Address" {
   code {
     // Constants
-    const numTokens := 1
-    const numAddresses := 1
-    const genesisRootsLength := 0
+    const NUM_TOKENS_INIT := 1
+    const NUM_ADDRESSES_INIT := 1
+    const GENESIS_ROOTS_LENGTH := 0
 
     // Copy constructor arguments to memory, verify construction
     Constructor.copy(0)
     Constructor.verify(0)
-    let blockProducer := Constructor.blockProducer(0)
+    let operator := Constructor.operator(0)
     let genesis := Constructor.genesis(0)
 
-    // Index the Ether and Null Address
-    indexToken(EtherToken, 0)
-    indexAddress(NullAddress, 0)
+    // Index the ETH token ID and zero address
+    indexToken(ETHER_TOKEN_ADDRESS, 0)
+    indexAddress(ZERO_ADDRESS, 0)
 
-    // Genesis Block Log
-    mstore(0, blockProducer, numTokens, numAddresses, 128, genesisRootsLength)
-    log3(0, 160,
+    // Log genesis block
+    mstore(0, operator, NUM_TOKENS_INIT, NUM_ADDRESSES_INIT, 128, GENESIS_ROOTS_LENGTH)
+    log3(
+      0,
+      160,
       topic"event BlockCommitted(
         address producer,
         uint256 numTokens,
@@ -39,7 +41,9 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         bytes32 indexed previousBlockHash,
         uint256 indexed height,
         bytes32[] roots)",
-      0, 0)
+      0,
+      0
+    )
 
     // Commit genesis block
     sstore(mappingKey(Storage.BlockCommitments, 0), genesis)
@@ -51,6 +55,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
     datacopy(0, dataoffset("Runtime"), dataSize)
     return(0, dataSize)
   }
+
+  /// @notice Public methods
   object "Runtime" is
     "Constructor",
     "Calldata",
@@ -63,14 +69,26 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
     "Address",
     "InvalidSum" {
     code {
+      // Load calldata to memory
       calldata.copy()
 
+      // Call a different method depending on method signature in calldata
       switch calldata.signature()
 
+      /// @notice Deposit a token.
+      /// @param account Address of token owner.
+      /// @param token Token address.
+      /// @dev Deposit::deposit
       case sig"deposit(address account, address token) external" {
         deposit(calldata.word(0), calldata.word(1))
       }
 
+      /// @notice Commit a new root.
+      /// @param merkleTreeRoot Root of transactions tree.
+      /// @param token Token ID for fee payments for this root.
+      /// @param fee Feerate for this root.
+      /// @param transactions List of transactions.
+      /// @dev Root::commitRoot
       case sig"commitRoot(bytes32 merkleTreeRoot, uint256 token,
         uint256 fee, bytes transactions) external" {
         commitRoot(calldata.word(0),
@@ -80,6 +98,11 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
           calldata.word(2))
       }
 
+      /// @notice Commit a new block.
+      /// @param minimum Minimum Ethereum block number that this commitment is valid for.
+      /// @param height Rollup block height.
+      /// @param roots List of roots in block.
+      /// @dev Block::commitBlock
       case sig"commitBlock(uint32 minimum, uint32 height, bytes32[] roots) external" {
         commitBlock(
           calldata.word(0),
@@ -89,14 +112,31 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         )
       }
 
-      case sig"commitWitness(bytes32 transactionHashId) external" {
+      /// @notice Commit a new witness. Used for authorizing rollup transactions via an Ethereum smart contract.
+      /// @param transactionId Transaction ID to authorize.
+      /// @dev Witness::commitWitness
+      case sig"commitWitness(bytes32 transactionId) external" {
         commitWitness(calldata.word(0))
       }
 
+      /// @notice Register a new address for cheaper transactions.
+      /// @param addr Address to register.
+      /// @return New ID assigned to address, or existing ID if already assigned.
+      /// @dev Address::commitAddress
       case sig"commitAddress(address addr) external returns (uint256 id)" {
         return.word(commitAddress(calldata.word(0)))
       }
 
+      //////////////////////////////////////////////////////////////////////////
+      /// FRAUD PROOFS BEGIN
+      //////////////////////////////////////////////////////////////////////////
+
+      /// @notice Prove that a block was malformed.
+      /// @param blockHeader Block header.
+      /// @param rootHeader Full root header.
+      /// @param rootIndex Index to root in block header.
+      /// @param transactions List of transactions committed to in root.
+      /// @dev provers::MalformedBlock::proveMalformedBlock
       case sig"proveMalformedBlock(bytes blockHeader, bytes rootHeader,
         uint16 rootIndex, bytes transactions) external" {
         let block := abi.offset(calldata.word(0))
@@ -108,10 +148,16 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         proveMalformedBlock(block, root, rootIndex, transactions, transactionsLength)
       }
 
+      /// @notice Prove that a transaction was invalid.
+      /// @param proof Proof.
+      /// @dev provers::InvalidTransaction::proveInvalidTransaction
       case sig"proveInvalidTransaction(bytes proof) external" {
         proveInvalidTransaction(abi.offset(calldata.word(0)))
       }
 
+      /// @notice Prove that an input was invalid.
+      /// @param proof Proof.
+      /// @dev provers::InvalidInput::proveInvalidInput
       case sig"proveInvalidInput(bytes proofA, bytes proofB) external" {
         let transactionA := abi.offset(calldata.word(0))
         let transactionB := abi.offset(calldata.word(1))
@@ -119,6 +165,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         proveInvalidInput(transactionA, transactionB)
       }
 
+      /// @notice Prove that a UTXO was double-spent.
+      /// @param proofA Proof of UTXO being spent once.
+      /// @param proofB Proof of UTXO being spent again.
+      /// @dev provers::DoubleSpend::proveDoubleSpend
       case sig"proveDoubleSpend(bytes proofA, bytes proofB) external" {
         let transactionA := abi.offset(calldata.word(0))
         let transactionB := abi.offset(calldata.word(1))
@@ -126,31 +176,66 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         proveDoubleSpend(transactionA, transactionB)
       }
 
+      /// @notice Prove that a witness was invalid.
+      /// @param proof Proof.
+      /// @param inputs Proof for inputs being spent.
+      /// @dev provers::InvalidWitness::proveInvalidWitness
       case sig"proveInvalidWitness(bytes proof, bytes inputs) external" {
         proveInvalidWitness(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
       }
 
+      /// @notice Prove that a transation produced more than it consumed.
+      /// @param proof Proof.
+      /// @param inputs Proof for inputs being spent.
+      /// @dev provers::InvalidSum::proveInvalidSum
       case sig"proveInvalidSum(bytes proof, bytes inputs) external" {
         proveInvalidSum(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
       }
 
+      //////////////////////////////////////////////////////////////////////////
+      /// FRAUD PROOFS END
+      //////////////////////////////////////////////////////////////////////////
+
+      /// @notice Complete a withdrawal.
+      /// @param proof Inclusion proof for withdrawal on the rollup chain.
+      /// @dev Withdraw::withdraw
       case sig"withdraw(bytes proof) external" {
         withdraw(abi.offset(calldata.word(0)))
       }
 
+      /// @notice Withdraw the block proposer's bond for a finalized block.
+      /// @param blockHeader Rollup block header of block to withdraw bond for.
+      /// @dev Withdraw::bondWithdraw
       case sig"bondWithdraw(bytes blockHeader) external" {
         bondWithdraw(abi.offset(calldata.word(0)))
       }
 
-      case sig"witnesses(address account, address blockNumber) external view returns (bytes32 transactionHashId)" {
-        return.word(witnesses(calldata.word(0),
+      /// @notice Get the transaction ID a registered witness authorizes.
+      /// @param account Authorizing address.
+      /// @param blockNumber Ethereum block number registration took place.
+      /// @return Transaction ID being authorized, 0 if witness is not registered.
+      /// @dev Witness::witnessAt
+      // TODO fix this, blockNumber should be uint32 or uint256
+      case sig"witnessAt(address account, address blockNumber) external view returns (bytes32 transactionId)" {
+        return.word(witnessAt(calldata.word(0),
           calldata.word(1)))
       }
 
+      /// @notice Calculate the funnel contract address for an account.
+      /// @param account Account to calculate address for.
+      /// @return Fuel contract address.
+      /// @dev FunnelFactory::calculateFunnelAddress
       case sig"funnel(address account) external view returns (address)" {
         return.word(calculateFunnelAddress(calldata.word(0)))
       }
 
+      /// @notice Verify a rollup block header.
+      /// @param blockHeader Block header.
+      /// @param root Root to verify.
+      /// @param rootIndex Index of root in block header.
+      /// @param finalization Boolean flag. If set, assert that the block must be finalized.
+      /// @return If block header passes verification.
+      /// @dev verifiers::BlockHeader::verifyHeader
       case sig"verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 finalization) external view returns (bool)" {
         verifyHeader(
           abi.offset(calldata.word(0)),
@@ -161,6 +246,11 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(true)
       }
 
+      /// @notice Verify a transaction.
+      /// @param proof Transcation proof.
+      /// @param finalization Boolean flag. If set, assert that the block must be finalized.
+      /// @return If transaction passes verification.
+      /// @dev verifiers::TransactionProof::verifyTransactionProof
       case sig"verifyTransaction(bytes proof, uint8 finalization) external view returns (bool)" {
         verifyTransactionProof(
           abi.offset(calldata.word(0)),
@@ -169,18 +259,12 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(true)
       }
 
-      /*
-      case sig"verifyMetadata(bytes8 metadata, bytes proof) external view returns (bool)" {
-        let verified := verifyMetadata(
-          add(_calldata, 28), // _calldata + 4 + 24
-          abi.offset(calldata.word(1))
-        )
-        return.word(verified)
-      }
-      */
-
+      /// @notice Extract a UTXO from a proof.
+      /// @param proof Proof.
+      /// @return UTXO data structure.
+      /// @dev Transaction::TransactionProof.UTXO.assign
       case sig"selectUTXO(bytes proof) external view returns (
-        bytes32 transactionHashId,
+        bytes32 transactionId,
         uint8 outputIndex,
         uint8 outputType,
         address owner,
@@ -193,6 +277,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return (0, UTXO.size(0))
       }
 
+      /// @notice Extract an output from a proof.
+      /// @param proof Proof.
+      /// @return The output.
+      /// @dev Transaction::selectOutput
       case sig"selectOutput(bytes proof) external view returns (bytes output)" {
         let pos := selectOutput(abi.offset(calldata.word(0)))
         mstore(sub(pos, 64), 32)
@@ -200,111 +288,179 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return (pos, round32(outputSize(pos)))
       }
 
-      case sig"outputId(bytes proof) external view returns (uint256 id)" {
-        let id := outputId(abi.offset(calldata.word(0)))
-        return.word(id)
+      /// @notice Extract output metadata from a proof.
+      /// @param proof Proof.
+      /// @return The output metadata.
+      /// @dev Transaction::outputMetadata
+      case sig"outputMetadata(bytes proof) external view returns (uint256 metadata)" {
+        let metadata := outputMetadata(abi.offset(calldata.word(0)))
+        return.word(metadata)
       }
 
-      case sig"inputId(bytes proof) external view returns (uint256 id)" {
-        let id := inputId(abi.offset(calldata.word(0)))
-        return.word(id)
+      /// @notice Extract input metadata from a proof.
+      /// @param proof Proof.
+      /// @return The input metadata.
+      /// @dev Transaction::inputMetadata
+      case sig"inputMetadata(bytes proof) external view returns (uint256 metadata)" {
+        let metadata := inputMetadata(abi.offset(calldata.word(0)))
+        return.word(metadata)
       }
 
+      /// @notice Extract metadata at a given index from a proof.
+      /// @param proof Proof.
+      /// @param index Metadata index.
+      /// @return The metadata.
+      /// @dev Transaction::selectMetadata
       case sig"selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata)" {
         let pos := selectMetadata(abi.offset(calldata.word(0)), calldata.word(1))
         return.word(mslice(pos, 8))
       }
 
-      case sig"blockProducer() external view returns (address blockProducer)" {
+      /// @notice Get the operator address.
+      /// @return The operator address.
+      case sig"operator() external view returns (address operator)" {
         Constructor.copy(0)
-        return(Constructor.blockProducer.position(0), 32)
+        return(Constructor.operator.position(0), 32)
       }
 
+      /// @notice Get the rollup block height tip.
+      /// @return The tip height.
+      /// @dev Block::blockTip
       case sig"blockTip() external view  returns (uint256 blockTip)" {
         return.word(blockTip())
       }
 
+      /// @notice Get number of registered tokens.
+      /// @return The number of registered tokens.
+      /// @dev Tokens::numTokens
       case sig"numTokens() external view  returns (uint256 numTokens)" {
         return.word(numTokens())
       }
 
-      case sig"tokens(address token) external view  returns (uint256 tokenId)" {
+      /// @notice Get token ID of a token.
+      /// @param token Address of token contract.
+      /// @return The token ID. 0 if not registered.
+      /// @dev Tokens::tokenId
+      case sig"tokenId(address token) external view  returns (uint256 tokenId)" {
         return.word(tokenId(calldata.word(0)))
       }
 
+      /// @notice Get number of registered addresses.
+      /// @return The number of registered addresses.
+      /// @dev Address::numAddresses
       case sig"numAddresses() external view  returns (uint256 numAddresses)" {
         return.word(numAddresses())
       }
 
-      case sig"addresses(address owner) external view  returns (uint256 addressId)" {
-        return.word(addresses(calldata.word(0)))
+      /// @notice Get address ID of an address.
+      /// @param owner Registered address.
+      /// @return The address ID. 0 if not registered.
+      /// @dev Address::addressId
+      case sig"addressId(address owner) external view  returns (uint256 addressId)" {
+        return.word(addressId(calldata.word(0)))
       }
 
-      case sig"deposits(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount)" {
-        return.word(deposits(
+      /// @notice Get deposit amount for a particular deposit.
+      /// @param account Account that deposited.
+      /// @param token Deposited token ID.
+      /// @param blockNumber Ethereum block number the deposit was made.
+      /// @return The deposit amount. 0 if no deposit made.
+      /// @dev Deposit::depositAt
+      case sig"depositAt(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount)" {
+        return.word(depositAt(
           calldata.word(0),
           calldata.word(1),
           calldata.word(2)
         ))
       }
 
-      case sig"blockCommitments(uint256 blockNumber) external view  returns (bytes32 blockHash)" {
-        return.word(blockCommitments(calldata.word(0)))
+      /// @notice Get block hash for a given rollup block height.
+      /// @param blockHeight Rollup block height.
+      /// @return The rollup block hash at the height.
+      /// @dev Block::blockCommitment
+      case sig"blockCommitment(uint256 blockHeight) external view  returns (bytes32 blockHash)" {
+        return.word(blockCommitment(calldata.word(0)))
       }
 
-      case sig"blockRoots(bytes32 root) external view  returns (uint256 blockNumber)" {
-        return.word(roots(calldata.word(0)))
+      /// @notice Get Ethereum block number root was committed at.
+      /// @param root Root.
+      /// @return The Ethereum block number.
+      /// @dev Root::rootBlockNumberAt
+      case sig"rootBlockNumberAt(bytes32 root) external view  returns (uint256 blockNumber)" {
+        return.word(rootBlockNumberAt(calldata.word(0)))
       }
 
-      case sig"withdrawals(uint256 blockHeight, bytes32 withdrawalHashId) external view returns (bool withdrawn)" {
-        return.word(withdrawals(calldata.word(0), calldata.word(1)))
+      /// @notice Is a withdrawal processed (completed).
+      /// @param blockHeight Rollup block height of withdrawal.
+      /// @param withdrawalId Withdrawal ID.
+      /// @return If the withdrawal has been processed.
+      /// @dev Withdraw::isWithdrawalProcessed
+      case sig"isWithdrawalProcessed(uint256 blockHeight, bytes32 withdrawalId) external view returns (bool withdrawn)" {
+        return.word(isWithdrawalProcessed(calldata.word(0), calldata.word(1)))
       }
 
+      /// @notice Get bond size constant.
+      /// @return Bond size.
       case sig"BOND_SIZE() external view returns (uint256)" {
         Constructor.copy(0)
         return(Constructor.bondSize.position(0), 32)
       }
 
+      /// @notice Get maximum size of transactions committed to in a root constant, in bytes.
+      /// @return Max root size.
       case sig"MAX_ROOT_SIZE() external view returns (uint256)" {
         return.word(MAX_ROOT_SIZE)
       }
 
+      /// @notice Get submission delay constant. Ethereum blocks non-operator must wait after committing a root before committing to a block that includes it.
+      /// @return Submission delay.
       case sig"SUBMISSION_DELAY() external view returns (uint256)" {
         Constructor.copy(0)
         return(Constructor.submissionDelay.position(0), 32)
       }
 
+      /// @notice Get finalization delay constant. Ethereum blocks before rollup blocks are finalized.
+      /// @return Finalization delay.
       case sig"FINALIZATION_DELAY() external view returns (uint256)" {
         Constructor.copy(0)
         return(Constructor.finalizationDelay.position(0), 32)
       }
 
+      /// @notice Get penalty delay constant. Ethereum blocks after a fraud during which anyone may commit new blocks without submission delay.
+      /// @return Penalty delay.
       case sig"PENALTY_DELAY() external view returns (uint256)" {
         Constructor.copy(0)
         return(Constructor.penaltyDelay.position(0), 32)
       }
 
+      /// @notice Get Ethereum block number until which operator is penalized.
+      /// @return Current penalty block.
       case sig"penalty() external view returns (uint256)" {
         return.word(getPenalty())
       }
 
+      /// @notice Get contract name.
+      /// @return Name.
       case sig"name() external view returns (string)" {
         Constructor.copy(0)
         Constructor.name.copy(0, 0)
         return(0, 96)
       }
 
+      /// @notice Get contract version.
+      /// @return Version.
       case sig"version() external view returns (string)" {
         Constructor.copy(0)
         Constructor.version.copy(0, 0)
         return(0, 96)
       }
 
+      /// @notice Not one of the above, invalid method signature.
       default {
         require(0, error"invalid-signature")
       }
 
-      // Ensure Execution Stop
+      // Ensure execution stops
       stop()
     }
   }
