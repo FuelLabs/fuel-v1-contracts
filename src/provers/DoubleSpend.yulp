@@ -30,6 +30,7 @@ object "DoubleSpend" is "TransactionProof", "Fraud" {
       require(neq(inputMetadata(transactionProofA), inputMetadata(transactionProofB)),
         error"input-id")
 
+      // TODO shouldn't this use the owner, block number, and token ID to uniquely index deposits?
       // Get hash of referenced metadata and input owner A
       mstore(0, inputReferencedMetadata(transactionProofA), inputOwner(transactionProofA))
       let hashA := keccak256(0, 64)
