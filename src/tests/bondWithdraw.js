@@ -37,7 +37,9 @@ module.exports = test('bondWithdraw', async t => { try {
       numAddresses: 1,
       roots: [aroot],
     }));
-    const ctx = await t.wait(contract.commitBlock(0, 1, [aroot], {
+    const currentBlock = await t.provider.getBlockNumber();
+    const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
+    const ctx = await t.wait(contract.commitBlock(currentBlock, currentBlockHash, 1, [aroot], {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), 'commit block', errors);
@@ -67,7 +69,7 @@ module.exports = test('bondWithdraw', async t => { try {
     await t.balanceEqual(contract.address, 0, 'balance');
     t.equalBig(await contract.blockTip(), 1, 'tip');
     t.equal(bwtx.logs.length, 1, 'length');
-    t.equalBig(bwtx.events[0].args.account, producer, 'account');
+    t.equalBig(bwtx.events[0].args.owner, producer, 'owner');
     t.equalBig(bwtx.events[0].args.token, 0, 'token');
     t.equalBig(bwtx.events[0].args.amount, await contract.BOND_SIZE(), 'amount');
     t.equalBig(bwtx.events[0].args.blockHeight, header.properties.height.get(),
@@ -75,7 +77,7 @@ module.exports = test('bondWithdraw', async t => { try {
     t.equalBig(bwtx.events[0].args.rootIndex, 0, 'rootIndex');
     t.equalBig(bwtx.events[0].args.transactionLeafHash, 0, 'transactionLeafHash');
     t.equalBig(bwtx.events[0].args.outputIndex, 0, 'outputIndex');
-    t.equalBig(bwtx.events[0].args.withdrawalId, 0, 'withdrawalId');
+    t.equalBig(bwtx.events[0].args.transactionIndex, 0, 'transactionIndex');
 
 
     await t.revert(contract.bondWithdraw(header.encodePacked(), overrides),

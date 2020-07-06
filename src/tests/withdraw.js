@@ -104,7 +104,10 @@ module.exports = test('withdraw', async t => { try {
       numAddresses: opts.registeredAddress ? 2 : 1,
       roots: [root.keccak256Packed()],
     }));
-    const block = await t.wait(contract.commitBlock(0, 1, [root.keccak256Packed()], {
+
+    const currentBlock = await t.provider.getBlockNumber();
+    const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
+    const block = await t.wait(contract.commitBlock(currentBlock, currentBlockHash, 1, [root.keccak256Packed()], {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), 'commit block', errors);
