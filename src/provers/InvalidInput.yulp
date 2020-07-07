@@ -109,6 +109,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
           error"input-htlc-type", transactionProof)
 
         // If spending transaction is before timeout then:
+        // TODO this should be using Ethereum block number, not rollup block height
         if lt(TransactionProof.blockHeight(transactionProof),
           OutputHTLC.expiry(output)) {
           // The hash of the preimage in the transaction proof must match the digest in the input proof
