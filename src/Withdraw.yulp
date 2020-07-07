@@ -19,8 +19,8 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
 
     /// @notice Check if the withdrawal has already need processed.
     /// @return If the withdrawal has already been processed as bool
-    function isWithdrawalProcessed(blockNumber, withdrawalId) -> result {
-      result := sload(mappingKey2(Storage.Withdrawals, blockNumber, withdrawalId))
+    function isWithdrawalProcessed(blockHeight, withdrawalId) -> result {
+      result := sload(mappingKey2(Storage.Withdrawals, blockHeight, withdrawalId))
     }
 
     /// @notice Do a withdrawal.
