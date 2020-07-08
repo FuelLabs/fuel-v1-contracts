@@ -21,7 +21,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     /// @notice Merkle proof to specific input or output of a transaction in the rollup chain.
     mstruct TransactionProof (
       // Address of block producer
-      blockProducer: address,
+      blockProducer: address,           // <--- block header begins here
       // Hash of previous block
       previousBlockHash: bytes32,
       // Rollup block height
@@ -34,10 +34,10 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       numAddresses: uint256,
       roots.length: uint16,
       // List of transaction roots
-      roots: [bytes32],
+      roots: [bytes32],                 // <--- block header ends here
 
       // Producer of root
-      rootProducer: address,
+      rootProducer: address,            // <-- root header begins here
       // Root value
       merkleTreeRoot: bytes32,
       // Hash of transactions committed to in root
@@ -47,7 +47,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       // Token ID of fees
       feeToken: uint256,
       // Claimed feerate for all transactions in root
-      fee: uint256,
+      fee: uint256,                     // <--- root header ends here
       // Index of root in list of roots
       rootIndex: uint16,
 
