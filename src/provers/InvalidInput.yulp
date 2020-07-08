@@ -82,17 +82,15 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
         TransactionProof.outputs.length(inputProof)), error"input-output-index-overflow",
         transactionProof)
 
-      // Cehck that output index in input proof matches with output index in transaction proof
+      // Check that output index in input proof matches with output index in transaction proof
       require(eq(Metadata.outputIndex(metadata),
         TransactionProof.output(inputProof)), error"output-index-mismatch")
-
 
       // Output type must not be Withdraw of Return (those outputs can't be spent and are proven elsewhere)
       assertOrFraud(neq(Output.type(output), OutputType.Withdraw),
         error"input-withdraw", transactionProof)
       assertOrFraud(neq(Output.type(output), OutputType.Return),
         error"input-return", transactionProof)
-
 
       // Do final checks based on input type
       switch Input.type(input)
