@@ -336,11 +336,11 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     function recoverFromWitness(witness, proof) -> addr {
       switch Signature.type(witness)
 
-      case WitnessTypes.Signature {
+      case WitnessType.Signature {
         addr := ecrecover(transactionId(proof), witness)
       }
 
-      case WitnessTypes.Caller {
+      case WitnessType.Caller {
         addr := Caller.owner(witness)
 
         if neq(witnessAt(addr, Caller.blockNumber(witness)), transactionId(proof)) {
@@ -348,7 +348,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
         }
       }
 
-      case WitnessTypes.Producer {
+      case WitnessType.Producer {
         addr := TransactionProof.blockProducer(proof)
 
         if neq(Producer.hash(witness), transactionId(proof)) {

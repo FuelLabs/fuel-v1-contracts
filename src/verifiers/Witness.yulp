@@ -15,7 +15,7 @@ object "VerifyWitness" is "Deposit", "Transaction" {
       switch Signature.type(witness)
 
       // Witness is a signature
-      case WitnessTypes.Signature {
+      case WitnessType.Signature {
         switch Input.type(input)
 
         // Deposit: recovered address must match input owner
@@ -44,7 +44,7 @@ object "VerifyWitness" is "Deposit", "Transaction" {
       }
 
       // Witness is a caller (i.e. contract authorized a transaction)
-      case WitnessTypes.Caller {
+      case WitnessType.Caller {
         require(eq(
           witnessAt(Caller.owner(witness), Caller.blockNumber(witness)),
           transactionId(transactionProof)
@@ -52,7 +52,7 @@ object "VerifyWitness" is "Deposit", "Transaction" {
       }
 
       // Witness is address of producer (implied by producer of block)
-      case WitnessTypes.Producer {
+      case WitnessType.Producer {
         require(eq(Producer.hash(witness), transactionId(transactionProof)),
           error"witness-producer")
       }

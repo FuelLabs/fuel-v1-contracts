@@ -103,9 +103,9 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
 
         switch Signature.type(pos)
 
-        case WitnessTypes.Signature {}
+        case WitnessType.Signature {}
 
-        case WitnessTypes.Caller {
+        case WitnessType.Caller {
           let stateWitness := witnessAt(Caller.owner(pos), Caller.blockNumber(pos))
           assertOrFraud(gt(stateWitness, 0), error"witness-caller-empty", transactionProof)
 
@@ -113,7 +113,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
             error"witness-caller-overflow", transactionProof)
         }
 
-        case WitnessTypes.Producer {}
+        case WitnessType.Producer {}
 
         pos := add(pos, witnessSize(pos))
         index := add(index, 1)
