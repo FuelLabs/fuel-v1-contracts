@@ -12,9 +12,9 @@ object "BlockHeader" is "Block" {
       None
     )
 
-    /// @notice Verifies a rollup block header
+    /// @notice Verifies a block header and root header.
     /// @param blockHeader Position in memory of block header object.
-    /// @param root Position in memory of root object.
+    /// @param root Position in memory of root header object. If `0`, only verify the block header, not the root header.
     /// @param rootIndex Position in memory of root index.
     /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
     function verifyHeader(blockHeader, root, rootIndex, assertFinalized) {
@@ -67,7 +67,7 @@ object "BlockHeader" is "Block" {
         ), error"block-finalied")
       }
 
-      // If transaction root is present, validate it
+      // If root header is present, verify it
       if gt(root, 0) {
         // Check bounds on transaction root index
         require(lt(rootIndex, rootsLength),
@@ -76,7 +76,7 @@ object "BlockHeader" is "Block" {
         require(lt(rootsLength, TRANSACTION_ROOTS_MAX),
             error"root-index-overflow")
 
-        // Transaction root index must be correct
+        // Hash of root header must match root header hash from proof
         require(eq(
             RootHeader.keccak256(root),
             BlockHeader.roots(blockHeader, rootIndex)),
