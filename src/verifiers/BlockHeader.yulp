@@ -72,6 +72,7 @@ object "BlockHeader" is "Block" {
         // Check bounds on transaction root index
         require(lt(rootIndex, rootsLength),
             error"root-index-underflow")
+        // TODO this is redundant, remove (and maybe add check that rootIndex gte 0?)
         require(lt(rootsLength, TRANSACTION_ROOTS_MAX),
             error"root-index-overflow")
 
