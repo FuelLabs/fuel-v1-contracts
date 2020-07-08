@@ -23,7 +23,7 @@ object "Witness" is "Storage" {
     mstruct Caller (
       // Witness type
       type: uint8,
-      // Token owner's address in the rollup
+      // Authorizing caller address
       owner: address,
       // Ethereum block number witness was registered
       blockNumber: uint32
@@ -32,11 +32,14 @@ object "Witness" is "Storage" {
     mstruct Producer (
       // Witness type
       type: uint8,
+      // Transaction ID being witnessed
       hash: bytes32
     )
 
     /// @notice Get authorized transaction ID by owner and Ethereum block number.
     /// @return Transaction ID as bytes32
+    // TODO can this be transactionID => owner?
+    // TODO care for re-org attacks
     function witnessAt(owner, blockNumber) -> id {
       id := sload(mappingKey2(Storage.Witness, owner, blockNumber))
     }

@@ -331,8 +331,8 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.metadata.offset(leaf)), error"input-position-overflow")
     }
 
-    /// @notice ecrecover given witness from proof
-    /// @return Recovered address as address
+    /// @notice Recover witness address from proof.
+    /// @return Recovered address as address. 0 on fail.
     function recoverFromWitness(witness, proof) -> addr {
       switch Signature.type(witness)
 
