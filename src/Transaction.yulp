@@ -148,14 +148,14 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       hash := UTXO.keccak256(0)
     }
 
-    /// @notice Find the position of the block producer field.
-    /// @return Position of block producer field as uint256
+    /// @notice Find the position of the start of the block substructure.
+    /// @return Position of block substructure as uint256
     function TransactionProof.block(proof) -> pos {
       pos := TransactionProof.blockProducer.position(proof)
     }
 
-    /// @notice Find the position of the root producer field.
-    /// @return Position of root producer field as uint256
+    /// @notice Find the position of start of the root substructure.
+    /// @return Position of root substructure as uint256
     function TransactionProof.root(proof) -> pos {
       pos := TransactionProof.rootProducer.position(proof)
     }
