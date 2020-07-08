@@ -66,7 +66,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       // Actual transaction leaf
       transaction: [bytes1],            // <--- transaction data begins inside here
       data.length: uint8,
-      // TODO what is this?
+      // Implicit list of unique identifiers being spent (UTXO ID, deposit ID)
       data: [bytes32],
       // Implicit token ID to pay fees in
       signatureFeeToken: uint256,
