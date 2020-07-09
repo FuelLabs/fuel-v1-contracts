@@ -19,7 +19,7 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
         switch Input.type(pos)
 
         case InputType.Transfer {
-          if eq(index, TransactionProof.input(transactionProof)) {
+          if eq(index, TransactionProof.inputOutputIndex(transactionProof)) {
             assertOrFraud(ownerEquates(selectOutput(inputProofs),
               TransactionProof.input.recoverWitness(transactionProof)), error"utxo-witness", transactionProof)
           }
@@ -28,7 +28,7 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
         }
 
         case InputType.Deposit {
-          if eq(index, TransactionProof.input(transactionProof)) {
+          if eq(index, TransactionProof.inputOutputIndex(transactionProof)) {
             assertOrFraud(eq(Deposit.owner(inputProofs),
               TransactionProof.input.recoverWitness(transactionProof)),
               error"deposit-witness", transactionProof)
@@ -38,7 +38,7 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
         }
 
         case InputType.Root {
-          if eq(index, TransactionProof.input(transactionProof)) {
+          if eq(index, TransactionProof.inputOutputIndex(transactionProof)) {
             assertOrFraud(eq(TransactionProof.blockProducer(inputProofs),
               TransactionProof.input.recoverWitness(transactionProof)), error"root-witness", transactionProof)
           }
@@ -47,7 +47,7 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
         }
 
         case InputType.HTLC {
-          if eq(index, TransactionProof.input(transactionProof)) {
+          if eq(index, TransactionProof.inputOutputIndex(transactionProof)) {
             switch outputExpired(inputProofs, transactionProof)
 
             case 1 {
@@ -66,7 +66,7 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
           inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
-        if eq(index, TransactionProof.input(transactionProof)) {
+        if eq(index, TransactionProof.inputOutputIndex(transactionProof)) {
           assertOrFraud(neq(TransactionProof.input.recoverWitness(transactionProof), 0),
             error"null-witness", transactionProof)
         }
