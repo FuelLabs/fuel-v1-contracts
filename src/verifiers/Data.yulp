@@ -25,7 +25,7 @@ object "VerifyData" is "Deposit", "Transaction" {
         }
 
         case InputType.Deposit {
-          // here we compare the provided data hash to the supplied utxo hash to enforce proper proof construction
+          // here we compare the provided data hash to the supplied deposit hash to enforce proper proof construction
           require(eq(TransactionProof.data(transactionProof, index), Deposit.keccak256(inputProofs)),
             error"deposit-proof")
 
@@ -41,7 +41,7 @@ object "VerifyData" is "Deposit", "Transaction" {
         }
 
         case InputType.Root {
-          // here we compare the provided data hash to the supplied utxo hash to enforce proper proof construction
+          // here we compare the provided data hash to the supplied root header hash to enforce proper proof construction
           require(eq(TransactionProof.data(transactionProof, index), RootHeader.keccak256(inputProofs)),
             error"utxo-proof")
 
