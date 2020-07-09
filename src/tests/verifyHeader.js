@@ -118,7 +118,7 @@ module.exports = test('verifyHeader', async t => { try {
     const proof = tx.TransactionProof({
       block: header,
       root,
-      indexes: { output: 1 },
+      inputOutputIndex: 1,
       transactions: txs,
       transactionIndex: 0,
       token,

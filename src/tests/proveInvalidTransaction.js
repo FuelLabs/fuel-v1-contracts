@@ -408,7 +408,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
       block: header,
       root,
       transactions: txs,
-      indexes: { output: 1 },
+      inputOutputIndex: 1,
       transactionIndex: 0,
       token,
     });

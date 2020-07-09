@@ -123,7 +123,7 @@ module.exports = test('proveDoubleSpend', async t => { try {
       root,
       rootIndex: 0,
       transactions: txs,
-      indexes: { output: 1 },
+      inputOutputIndex: 1,
       transactionIndex: 0,
       token,
     });
@@ -132,7 +132,7 @@ module.exports = test('proveDoubleSpend', async t => { try {
       root,
       rootIndex: 0,
       transactions: txs,
-      indexes: { output: 1 },
+      inputOutputIndex: 1,
       transactionIndex: 1,
       token,
     });

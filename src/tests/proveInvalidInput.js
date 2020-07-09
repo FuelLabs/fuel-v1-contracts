@@ -350,9 +350,7 @@ module.exports = test('proveInvalidInput', async t => { try {
         root,
         rootIndex: 0,
         transactions: txs,
-        indexes: {
-          output: outputIndex
-        },
+        inputOutputIndex: outputIndex,
         transactionIndex: 0,
         token,
       }).encodePacked();
@@ -363,7 +361,7 @@ module.exports = test('proveInvalidInput', async t => { try {
       root,
       rootIndex: 0,
       transactions: txs,
-      indexes: { input: 0 },
+      inputOutputIndex: 0,
       transactionIndex: opts.fraud === 'empty-transaction' ? 0 : 1,
       token,
     });

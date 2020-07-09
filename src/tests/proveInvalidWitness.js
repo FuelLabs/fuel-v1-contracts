@@ -313,7 +313,7 @@ module.exports = test('proveInvalidWitness', async t => {
         root,
         rootIndex: 0,
         transactions: txs,
-        indexes: {output: 0},
+        inputOutputIndex: 0,
         transactionIndex: 1,
         token: opts.commitAddress ? (opts.funnel ? outputOwner : producer) :
                                     outputOwner,
@@ -333,7 +333,7 @@ module.exports = test('proveInvalidWitness', async t => {
                      root,
                      rootIndex: 0,
                      transactions: txs,
-                     indexes: {output: inputsOutputIndex},
+                     inputOutputIndex: inputsOutputIndex,
                      transactionIndex: 0,
                      token: opts.commitAddress ?
                          (opts.funnel ? outputOwner : producer) :
@@ -436,7 +436,7 @@ module.exports = test('proveInvalidWitness', async t => {
           root: root2,
           rootIndex: 0,
           transactions: txs2,
-          indexes: {output: 0},
+          inputOutputIndex: 0,
           transactionIndex: 0,
           token: producer,
         });

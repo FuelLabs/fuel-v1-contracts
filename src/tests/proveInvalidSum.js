@@ -133,7 +133,7 @@ module.exports = test('proveInvalidSum', async t => { try {
       block: header,
       root,
       transactions: txs,
-      indexes: { output: 0 },
+      inputOutputIndex: 0,
       transactionIndex: 0,
       token,
     });
