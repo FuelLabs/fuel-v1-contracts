@@ -19,12 +19,5 @@ object "Metadata" {
       // Ethereum block number deposit was made
       blockNumber: uint32
     )
-
-    /// @notice Get metadata object from memory starting at an offset.
-    /// @return Metadata object as bytes32
-    // TODO this is never used
-    function metadataFromMemory(startOffset) -> metadata {
-      metadata := mslice(startOffset, METADATA_SIZE)
-    }
   }
 }

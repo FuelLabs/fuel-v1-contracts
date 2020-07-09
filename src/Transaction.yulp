@@ -27,7 +27,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       // Rollup block height
       blockHeight: uint256,
       // Ethereum block number
-      ethereumBlockNumber: uint256,
+      blockNumber: uint256,
       // Maximum registered token ID used through this rollup block
       numTokens: uint256,
       // Maximum registered address used through this rollup block
@@ -251,7 +251,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     /// @return If the output has timed out as bool
     function outputExpired(input, proof) -> result {
       let output := selectOutput(input)
-      let blockNumber := TransactionProof.ethereumBlockNumber(proof)
+      let blockNumber := TransactionProof.blockNumber(proof)
       result := gt(blockNumber, OutputHTLC.expiry(output))
     }
 

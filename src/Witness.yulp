@@ -50,6 +50,14 @@ object "Witness" is "Storage" {
       require(eq(witnessAt(caller(), number()), 0), error"already-witnessed")
       // Store the transaction hash keyed by the caller and block number
       sstore(mappingKey2(Storage.Witness, caller(), number()), id)
+      // Build WitnessCommitted log and emit
+      mstore(0, number())
+      log3(0, 32, topic"event WitnessCommitted(
+        address indexed owner,
+        uint256 blockNumber,
+        bytes32 indexed transactionId)",
+        caller(),
+        id)
     }
 
     /// @notice Get size of witness object.

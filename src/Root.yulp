@@ -44,9 +44,9 @@ object "Root" is "Storage", "Tokens" {
 
       // Calldata size must be at least as big as the minimum transaction size (44 bytes)
       require(gte(length, 44), error"root-size-underflow")
-      // Calldata max size enforcement (4M gas / 68 gas per byte)
-      // TODO update this comment: either choose a higher parameter or lower proof cost
-      require(lte(calldatasize(), add(MAX_ROOT_SIZE, mul32(6))), error"root-size-overflow")
+      // Calldata max size enforcement (~2M gas / 16 gas per byte/64kb payload target)
+      require(lte(length, MAX_ROOT_SIZE), error"root-size-overflow")
+      require(lte(calldatasize(), add(MAX_ROOT_SIZE, mul32(6))), error"calldata-size-overflow")
 
       // Fee token must be already registered
       require(gte(token, 0), error"token-underflow")

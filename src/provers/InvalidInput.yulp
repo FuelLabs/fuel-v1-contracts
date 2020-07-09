@@ -53,14 +53,15 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
         TransactionProof.rootIndex(inputProof)), error"root-index-mismatch")
 
       // Special case: handle Root input
-      // TODO why does this not have to check anything?
+      // We stop here at the root, as we only need the block / root header for checking fraud
       if eq(Input.type(input), InputType.Root) {
         stop()
       }
 
       // If transaction of input proof is rightmost in its Merkle tree then:
       if eq(verifyMerkleProof(inputProof), false) {
-        // TODO what is this checking and why only for rightmost?
+        // Here we are checking is the transaction index lte the rightmost index
+        // if it is past the rightmost index its overflowing and is an invalid reference
         assertOrFraud(lte(Metadata.transactionIndex(metadata),
           TransactionProof.transactionIndex(inputProof)), error"input-transaction-index-overflow",
           transactionProof)
@@ -107,8 +108,8 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
           error"input-htlc-type", transactionProof)
 
         // If spending transaction is before timeout then:
-        // TODO this should be using Ethereum block number, not rollup block height
-        if lt(TransactionProof.blockHeight(transactionProof),
+        // Timeout is using Ethereum block number, not rollup block height
+        if lt(TransactionProof.blockNumber(transactionProof),
           OutputHTLC.expiry(output)) {
           // The hash of the preimage in the transaction proof must match the digest in the input proof
           assertOrFraud(eq(OutputHTLC.digest(output),
