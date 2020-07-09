@@ -25,8 +25,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
             error"metadata-deposit-height-underflow", transactionProof)
 
           // Transaction must spend deposit at least one block after it was made
-          // TODO should this be lt, since you can't spend a deposit in the same Ethereum block it was made
-          assertOrFraud(lte(MetadataDeposit.blockNumber(metadata),
+          assertOrFraud(lt(MetadataDeposit.blockNumber(metadata),
             TransactionProof.ethereumBlockNumber(transactionProof)),
             error"metadata-deposit-height-overflow", transactionProof)
 
@@ -144,7 +143,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       assertOrFraud(gt(Output.token.length(pos), 0),
         error"outputs-token-length-underflow", transactionProof)
 
-      assertOrFraud(lte(Output.token.length(pos), 20),
+      assertOrFraud(lte(Output.token.length(pos), 4),
         error"outputs-token-length-overflow", transactionProof)
 
       assertOrFraud(lt(Output.token.slice(pos), _numTokens),

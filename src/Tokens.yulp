@@ -5,6 +5,7 @@ import "./Storage.yulp"
 object "Tokens" is "Storage" {
   code {
     const ETHER_TOKEN_ADDRESS := 0
+    const MAX_TOKEN_ID := 0xFFFFFFFF
 
     /// @notice Get number of registered tokens.
     /// @return Number of tokens as uint256
@@ -35,6 +36,7 @@ object "Tokens" is "Storage" {
 
       if and(neq(addr, 0), iszero(id)) {
         id := numTokens()
+        require(lte(id, MAX_TOKEN_ID), error"token-id-max")
         indexToken(addr, id)
       }
     }

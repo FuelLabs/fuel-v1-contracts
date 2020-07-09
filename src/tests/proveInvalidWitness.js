@@ -228,14 +228,21 @@ module.exports = test('proveInvalidWitness', async t => {
           contract);
 
       if (opts.caller) {
+        const txBId = transactionB.transactionHashId();
         const callerTx =
-            await contract.commitWitness(transactionB.transactionHashId(), {
+            await contract.commitWitness(txBId, {
               ...overrides,
             });
+        const callerWait = await callerTx.wait();
+        const blockNum = (callerWait).blockNumber;
         transactionB.witnesses([tx.Caller({
           owner: producer,
-          blockNumber: (await callerTx.wait()).blockNumber,
+          blockNumber: blockNum,
         })]);
+        const callerEvent = callerWait.events[0];
+        t.equalHex(callerEvent.args.owner, producer, 'caller producer');
+        t.equalBig(callerEvent.args.blockNumber, blockNum, 'caller blockNumber');
+        t.equalHex(callerEvent.args.transactionId, txBId, 'caller tx Id');
 
         const otherContract = contract.connect(t.wallets[1]);
         const callerTx2 = await otherContract.commitWitness(

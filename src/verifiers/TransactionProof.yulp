@@ -17,8 +17,7 @@ object "TransactionProof" is "BlockHeader", "MerkleProof" {
       )
 
       // Verify the Merkle inclusion proof
-      // TODO remove unused leftish
-      let leftish := verifyMerkleProof(transactionProof)
+      pop(verifyMerkleProof(transactionProof))
 
       // Transaction must be at least one byte long
       require(gt(TransactionProof.transaction.length(transactionProof), 0),
