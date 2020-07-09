@@ -73,7 +73,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       // Implicit fee rate
       signatureFee: uint256,            // <--- transaction data ends here
 
-      // TODO what is this?
+      // Token address, used for invalid sum proofs
       token: address,
       // TODO what is this?
       selector: address
