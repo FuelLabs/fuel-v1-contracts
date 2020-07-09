@@ -74,7 +74,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       signatureFee: uint256,            // <--- transaction data ends here
 
       // Token address, used for invalid sum proofs
-      token: address,
+      tokenAddress: address,
       // TODO what is this?
       selector: address
     )
@@ -107,7 +107,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
         error"utxo-return")
 
       // we do this after to ensure hashing is okay
-      require(ownerEquates(output, TransactionProof.token(proof)),
+      require(ownerEquates(output, TransactionProof.tokenAddress(proof)),
         error"owner-equates")
 
       // we do this after as the funnel address calc uses memory
@@ -122,7 +122,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
         transactionId(proof),
         TransactionProof.output(proof),
         Output.type(output),
-        TransactionProof.token(proof),
+        TransactionProof.tokenAddress(proof),
         outputAmount(output),
         Output.token.slice(output),
         0, // digest

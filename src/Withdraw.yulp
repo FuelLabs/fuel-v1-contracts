@@ -31,15 +31,15 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
       // Select the output from the proof
       let output := selectOutput(transactionProof)
 
-      // Get token ID from the proof, and owner
-      let token := TransactionProof.token(transactionProof)
+      // Get token address from the proof, and owner
+      let tokenAddress := TransactionProof.tokenAddress(transactionProof)
       let owner := caller()
 
       // Owner must match
       require(ownerEquates(output, owner), error"output-owner")
 
       // Token ID must match
-      require(eq(Output.token.slice(output), tokenId(token)),
+      require(eq(Output.token.slice(output), tokenId(tokenAddress)),
         error"token-id")
 
       // Output type must be Withdraw
@@ -60,7 +60,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
         error"withdrawal-occured")
 
       // Transfer amount out
-      transfer(outputAmount(output), token, owner)
+      transfer(outputAmount(output), tokenAddress, owner)
 
       // Set withdrawal as processed
       sstore(mappingKey2(Storage.Withdrawals, blockHeight, withdrawalId), true)
@@ -68,7 +68,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
       // Construct log for withdrawal
       mstore(
         0,
-        token,
+        tokenAddress,
         outputAmount(output),
         TransactionProof.rootIndex(transactionProof),
         outputIndex,
@@ -79,7 +79,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
         mul32(5),
         topic"event WithdrawalMade(
           address indexed owner,
-          address token,
+          address tokenAddress,
           uint256 amount,
           uint32 indexed blockHeight,
           uint32 rootIndex,
