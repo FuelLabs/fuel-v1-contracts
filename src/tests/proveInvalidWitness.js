@@ -321,10 +321,10 @@ module.exports = test('proveInvalidWitness', async t => {
                                        outputOwner,
       });
 
-      let inputsOutputIndex = 0;
+      let inputOutputIndex = 0;
 
       if (opts.revert === 'output-id') {
-        inputsOutputIndex = 1;
+        inputOutputIndex = 1;
       }
 
       if (inputs === null) {
@@ -333,7 +333,7 @@ module.exports = test('proveInvalidWitness', async t => {
                      root,
                      rootIndex: 0,
                      transactions: txs,
-                     inputOutputIndex: inputsOutputIndex,
+                     inputOutputIndex: inputOutputIndex,
                      transactionIndex: 0,
                      token: opts.commitAddress ?
                          (opts.funnel ? outputOwner : producer) :
