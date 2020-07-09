@@ -13,20 +13,20 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
       rootIndex: uint256,
       // Hash of transaction leaf in tree rooted at rootIndex
       transactionLeafHash: bytes32,
-      // Index of output in list of outputs of transcation in the transaction leaf
+      // Index of output in list of outputs of transaction in the transaction leaf
       outputIndex: uint256
     )
 
     /// @notice Check if the withdrawal has already need processed.
     /// @return If the withdrawal has already been processed as bool
-    function isWithdrawalProcessed(blockNumber, withdrawalId) -> result {
-      result := sload(mappingKey2(Storage.Withdrawals, blockNumber, withdrawalId))
+    function isWithdrawalProcessed(blockHeight, withdrawalId) -> result {
+      result := sload(mappingKey2(Storage.Withdrawals, blockHeight, withdrawalId))
     }
 
     /// @notice Do a withdrawal.
     function withdraw(transactionProof) {
       // Verify transaction proof
-      verifyTransactionProof(transactionProof, 1)
+      verifyTransactionProof(transactionProof, AssertFinalized.Finalized)
 
       // Select the output from the proof
       let output := selectOutput(transactionProof)
@@ -101,7 +101,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
       let blockHeight := BlockHeader.height(blockHeader)
 
       // Verify block header is finalized
-      verifyHeader(blockHeader, 0, 0, 1)
+      verifyHeader(blockHeader, 0, 0, AssertFinalized.Finalized)
 
       // Caller must be block producer
       require(eq(BlockHeader.producer(blockHeader), caller()),

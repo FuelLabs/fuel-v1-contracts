@@ -2,95 +2,117 @@ import "./verifiers/TransactionProof.yulp"
 import "./Fraud.yulp"
 import "./Deposit.yulp"
 
+/// @title Invalid input prover
 object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
   code {
-    function proveInvalidInput(proof, transaction) {
-      verifyTransactionProof(transaction, 0)
-      let input := selectInput(transaction)
-      let metadata := selectMetadata(transaction, TransactionProof.input(transaction))
+    /// @notice Prove that an input is invalid.
+    /// @param inputProof Position in memory of input proof.
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveInvalidInput(inputProof, transactionProof) {
+      // Verify transaction inclusion proof
+      verifyTransactionProof(transactionProof, AssertFinalized.NotFinalized)
+      // Position in memory of input from transaction proof
+      let input := selectInput(transactionProof)
+      // Position in memory of metadata from transaction proof
+      let metadata := selectMetadata(transactionProof, TransactionProof.input(transactionProof))
 
-      // Handle Deposit Input
+      // Special case: handle Deposit input
       if eq(Input.type(input), InputType.Deposit) {
-        let depositAmount := depositAt(InputDeposit.owner(input),
+        // Retrieve amount for deposit ID in proof from storage
+        let depositAmount := depositAt(
+          InputDeposit.owner(input),
           MetadataDeposit.token(metadata),
-          MetadataDeposit.blockNumber(metadata))
+          MetadataDeposit.blockNumber(metadata)
+        )
 
+        // Amount in deposit must be positive and non-zero
         assertOrFraud(gt(depositAmount, 0), error"input-deposit-value-underflow",
-          transaction)
+          transactionProof)
 
         stop()
       }
 
-      // verify the proof
-      verifyHeader(TransactionProof.block(proof),
-          TransactionProof.root(proof),
-          TransactionProof.rootIndex(proof),
-          2)
+      // Verify the proof
+      verifyHeader(
+        TransactionProof.block(inputProof),
+        TransactionProof.root(inputProof),
+        TransactionProof.rootIndex(inputProof),
+        AssertFinalized.None
+      )
 
+      // Check that block height in input proof matches block height in transaction proof
       require(eq(Metadata.blockHeight(metadata),
-        TransactionProof.blockHeight(proof)), error"block-height-mismatch")
+        TransactionProof.blockHeight(inputProof)), error"block-height-mismatch")
 
+      // Root index in input proof must be bounded by number of roots in transaction proof
       assertOrFraud(lt(Metadata.rootIndex(metadata),
-        TransactionProof.roots.length(proof)), error"input-root-index-overflow", transaction)
+        TransactionProof.roots.length(inputProof)), error"input-root-index-overflow", transactionProof)
 
+      // Check that root index in input proof matches root index in transaction proof
       require(eq(Metadata.rootIndex(metadata),
-        TransactionProof.rootIndex(proof)), error"root-index-mismatch")
+        TransactionProof.rootIndex(inputProof)), error"root-index-mismatch")
 
-      // Handle Root Spend
+      // Special case: handle Root input
+      // TODO why does this not have to check anything?
       if eq(Input.type(input), InputType.Root) {
         stop()
       }
 
-
-      // Transaction index
-      if eq(verifyMerkleProof(proof), false) {
+      // If transaction of input proof is rightmost in its Merkle tree then:
+      if eq(verifyMerkleProof(inputProof), false) {
+        // TODO what is this checking and why only for rightmost?
         assertOrFraud(lte(Metadata.transactionIndex(metadata),
-          TransactionProof.transactionIndex(proof)), error"input-transaction-index-overflow",
-          transaction)
+          TransactionProof.transactionIndex(inputProof)), error"input-transaction-index-overflow",
+          transactionProof)
       }
 
+      // Check that transaction index in input proof matches transaction index in transaction proof
       require(eq(Metadata.transactionIndex(metadata),
-        TransactionProof.transactionIndex(proof)), error"transaction-index-mismatch")
+        TransactionProof.transactionIndex(inputProof)), error"transaction-index-mismatch")
 
-      assertOrFraud(gt(TransactionProof.transaction.length(proof), 0),
-        error"empty-transaction", transaction)
+      // The length of the transaction in the input proof must be positive and non-zero
+      assertOrFraud(gt(TransactionProof.transaction.length(inputProof), 0),
+        error"empty-transaction", transactionProof)
 
-      // Output
-      let output := selectOutput(proof)
+      // Get position of output from input proof
+      let output := selectOutput(inputProof)
 
-      // Output Index
+      // Output index in input proof must be bounded by number of outputs in transaction proof
       assertOrFraud(lt(Metadata.outputIndex(metadata),
-        TransactionProof.outputs.length(proof)), error"input-output-index-overflow",
-        transaction)
+        TransactionProof.outputs.length(inputProof)), error"input-output-index-overflow",
+        transactionProof)
 
+      // Check that output index in input proof matches with output index in transaction proof
       require(eq(Metadata.outputIndex(metadata),
-        TransactionProof.output(proof)), error"output-index-mismatch")
+        TransactionProof.output(inputProof)), error"output-index-mismatch")
 
-
-      // Output Types
+      // Output type must not be Withdraw of Return (those outputs can't be spent and are proven elsewhere)
       assertOrFraud(neq(Output.type(output), OutputType.Withdraw),
-        error"input-withdraw", transaction)
-
+        error"input-withdraw", transactionProof)
       assertOrFraud(neq(Output.type(output), OutputType.Return),
-        error"input-return", transaction)
+        error"input-return", transactionProof)
 
-
-      // Input Checks
+      // Do final checks based on input type
       switch Input.type(input)
 
+      // No restrictions on spending Transfer outputs, so automatic fraud
       case InputType.Transfer {
         assertOrFraud(eq(Output.type(output), OutputType.Transfer),
-          error"input-utxo-type", transaction)
+          error"input-utxo-type", transactionProof)
       }
 
+      // Spending HTLC outputs depends on timeout expiry
       case InputType.HTLC {
         assertOrFraud(eq(Output.type(output), OutputType.HTLC),
-          error"input-htlc-type", transaction)
+          error"input-htlc-type", transactionProof)
 
-        if lt(TransactionProof.blockHeight(transaction),
+        // If spending transaction is before timeout then:
+        // TODO this should be using Ethereum block number, not rollup block height
+        if lt(TransactionProof.blockHeight(transactionProof),
           OutputHTLC.expiry(output)) {
+          // The hash of the preimage in the transaction proof must match the digest in the input proof
           assertOrFraud(eq(OutputHTLC.digest(output),
-            InputHTLC.preImage.keccak256(input)), error"htlc-preimage", transaction)
+            InputHTLC.preImage.keccak256(input)), error"htlc-preimage", transactionProof)
         }
       }
     }

@@ -1,67 +1,83 @@
 import "./verifiers/TransactionProof.yulp"
 import "./Fraud.yulp"
 
+/// @title Invalid transaction prover
 object "InvalidTransaction" is "TransactionProof", "Fraud" {
   code {
-    function proveMetadata(leaf, proof) {
+    /// @notice Helper: prove metadata is invalid.
+    /// @param leaf Position in memory of leaf object (a transaction).
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveMetadata(leaf, transactionProof) {
+      // Position in memory to inputs in leaf
       let pos := TransactionLeaf.inputs.position(leaf)
       let end := TransactionLeaf.inputs.offset(leaf)
+      // Position in memory of metadata in leaf
       let metadata := TransactionLeaf.metadata.position(leaf)
 
+      // Loop over inputs in leaf
       for {} lt(pos, end) {} {
         switch Input.type(pos)
 
+        // For Deposit inputs
         case InputType.Deposit {
+          // Ethereum block number of deposit must be positive and non-zero
           assertOrFraud(gt(MetadataDeposit.blockNumber(metadata), 0),
-            error"metadata-deposit-height-underflow", proof)
+            error"metadata-deposit-height-underflow", transactionProof)
 
+          // Transaction must spend deposit at least one block after it was made
+          // TODO should this be lt, since you can't spend a deposit in the same Ethereum block it was made
           assertOrFraud(lte(MetadataDeposit.blockNumber(metadata),
-            TransactionProof.ethereumBlockNumber(proof)),
-            error"metadata-deposit-height-overflow", proof)
+            TransactionProof.ethereumBlockNumber(transactionProof)),
+            error"metadata-deposit-height-overflow", transactionProof)
 
+          // Token ID must be positive
           assertOrFraud(gte(MetadataDeposit.token(metadata), 0),
-            error"metadata-deposit-token-underflow", proof)
+            error"metadata-deposit-token-underflow", transactionProof)
 
+          // Token ID of deposit must be bounded by block's number of registered tokens
           assertOrFraud(lt(MetadataDeposit.token(metadata),
-            TransactionProof.numTokens(proof)),
-            error"metadata-deposit-token-overflow", proof)
+            TransactionProof.numTokens(transactionProof)),
+            error"metadata-deposit-token-overflow", transactionProof)
         }
 
+        // For all other input types
         default {
+          // Block height must be past genesis block
           assertOrFraud(gt(Metadata.blockHeight(metadata), 0),
-            error"metadata-height-underflow", proof)
+            error"metadata-height-underflow", transactionProof)
 
-          assertOrFraud(lte(Metadata.blockHeight(metadata), TransactionProof.blockHeight(proof)),
-            error"metadata-height-overflow", proof)
+          // Output must be created before it was spent (can be spent in the same block)
+          assertOrFraud(lte(Metadata.blockHeight(metadata), TransactionProof.blockHeight(transactionProof)),
+            error"metadata-height-overflow", transactionProof)
 
+          // Root index must be bounded
           assertOrFraud(gte(Metadata.rootIndex(metadata), 0),
-            error"metadata-root-underflow", proof)
+            error"metadata-root-underflow", transactionProof)
+          assertOrFraud(lt(Metadata.rootIndex(metadata), TRANSACTION_ROOTS_MAX),
+            error"metadata-root-overflow", transactionProof)
 
-          assertOrFraud(lt(Metadata.rootIndex(metadata), 256),
-            error"metadata-root-overflow", proof)
-
+          // Transaction index must be bounded
           assertOrFraud(gte(Metadata.transactionIndex(metadata), 0),
-            error"metadata-index-underflow", proof)
-
+            error"metadata-index-underflow", transactionProof)
           assertOrFraud(lt(Metadata.transactionIndex(metadata), MAX_TRANSACTIONS_IN_ROOT),
-            error"metadata-index-overflow", proof)
+            error"metadata-index-overflow", transactionProof)
 
+          // Output index must be bounded
           assertOrFraud(gte(Metadata.outputIndex(metadata), 0),
-            error"metadata-output-underflow", proof)
-
+            error"metadata-output-underflow", transactionProof)
           assertOrFraud(lt(Metadata.outputIndex(metadata), OUTPUTS_MAX),
-            error"metadata-output-overflow", proof)
+            error"metadata-output-overflow", transactionProof)
 
-          // Root must always select tx and output index 0, in a previous block
+          // Root input must always select tx and output index 0, in an older block
           if eq(Input.type(pos), InputType.Root) {
-            assertOrFraud(lt(Metadata.blockHeight(metadata), TransactionProof.blockHeight(proof)),
-              error"root-height-overflow", proof)
+            assertOrFraud(lt(Metadata.blockHeight(metadata), TransactionProof.blockHeight(transactionProof)),
+              error"root-height-overflow", transactionProof)
 
             assertOrFraud(eq(Metadata.transactionIndex(metadata), 0),
-              error"root-transaction-index", proof)
+              error"root-transaction-index", transactionProof)
 
             assertOrFraud(eq(Metadata.outputIndex(metadata), 0),
-              error"root-output-index", proof)
+              error"root-output-index", transactionProof)
           }
         }
 
@@ -69,114 +85,133 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         metadata := add(metadata, METADATA_SIZE)
       }
 
+      // Actual metadata length must match claimed length in leaf
       assertOrFraud(eq(metadata, TransactionLeaf.metadata.offset(leaf)),
-        error"metadata-size-overflow", proof)
+        error"metadata-size-overflow", transactionProof)
     }
 
-    function proveWitnesses(leaf, proof) {
+    /// @notice Helper: prove witnesses are invalid.
+    /// @param leaf Position in memory of leaf object (a transaction).
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveWitnesses(leaf, transactionProof) {
       let pos := TransactionLeaf.witnesses.position(leaf)
       let end := TransactionLeaf.witnesses.offset(leaf)
       let index := 0
 
       for {} lt(pos, end) {} {
-        assertOrFraud(lt(Signature.type(pos), 3), error"witness-type", proof)
+        assertOrFraud(lt(Signature.type(pos), 3), error"witness-type", transactionProof)
 
         switch Signature.type(pos)
 
-        case WitnessTypes.Signature {}
+        case WitnessType.Signature {}
 
-        case WitnessTypes.Caller {
+        case WitnessType.Caller {
           let stateWitness := witnessAt(Caller.owner(pos), Caller.blockNumber(pos))
-          assertOrFraud(gt(stateWitness, 0), error"witness-caller-empty", proof)
+          assertOrFraud(gt(stateWitness, 0), error"witness-caller-empty", transactionProof)
 
-          assertOrFraud(lt(Caller.blockNumber(pos), TransactionProof.ethereumBlockNumber(proof)),
-            error"witness-caller-overflow", proof)
+          assertOrFraud(lt(Caller.blockNumber(pos), TransactionProof.ethereumBlockNumber(transactionProof)),
+            error"witness-caller-overflow", transactionProof)
         }
 
-        case WitnessTypes.Producer {}
+        case WitnessType.Producer {}
 
         pos := add(pos, witnessSize(pos))
         index := add(index, 1)
 
-        assertOrFraud(lt(index, INPUTS_MAX), error"witnesses-index-overflow", proof)
+        assertOrFraud(lt(index, INPUTS_MAX), error"witnesses-index-overflow", transactionProof)
       }
 
-      assertOrFraud(eq(pos, end), error"witnesses-size-overflow", proof)
+      assertOrFraud(eq(pos, end), error"witnesses-size-overflow", transactionProof)
     }
 
-    function proveSizes(leaf, proof) {
+    /// @notice Helper: prove sizes are invalid.
+    /// @param leaf Position in memory of leaf object (a transaction).
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveSizes(leaf, transactionProof) {
       let metadataSize := TransactionLeaf.metadata.length(leaf)
       let inputsSize := inputsLength(leaf)
 
       assertOrFraud(eq(metadataSize, inputsSize),
-         error"metadata-inputs", proof)
+         error"metadata-inputs", transactionProof)
     }
 
-    function proveOutputValue(pos, proof) {
-      let _numTokens := TransactionProof.numTokens(proof)
+    /// @notice Helper: prove output value is invalid.
+    /// @param pos Position in memory of leaf outputs object.
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveOutputValue(pos, transactionProof) {
+      let _numTokens := TransactionProof.numTokens(transactionProof)
 
       assertOrFraud(gt(Output.token.length(pos), 0),
-        error"outputs-token-length-underflow", proof)
+        error"outputs-token-length-underflow", transactionProof)
 
       assertOrFraud(lte(Output.token.length(pos), 20),
-        error"outputs-token-length-overflow", proof)
+        error"outputs-token-length-overflow", transactionProof)
 
       assertOrFraud(lt(Output.token.slice(pos), _numTokens),
-        error"outputs-token-id-overflow", proof)
+        error"outputs-token-id-overflow", transactionProof)
 
       assertOrFraud(gte(Output.amount.shift(pos), 0),
-        error"outputs-amount-shift-underflow", proof)
+        error"outputs-amount-shift-underflow", transactionProof)
 
       assertOrFraud(lt(Output.amount.shift(pos), 256),
-        error"outputs-amount-shift-overflow", proof)
+        error"outputs-amount-shift-overflow", transactionProof)
 
       assertOrFraud(gt(Output.amount.length(pos), 0),
-        error"outputs-amount-underflow", proof)
+        error"outputs-amount-underflow", transactionProof)
 
       assertOrFraud(lte(Output.amount.length(pos), 32),
-        error"outputs-amount-overflow", proof)
+        error"outputs-amount-overflow", transactionProof)
 
       assertOrFraud(eq(mod(Output.amount.shift(pos), 8), 0),
-        error"output-shift-mod", proof)
+        error"output-shift-mod", transactionProof)
 
       let amountLen := add(Output.amount.shift(pos),
         mul(Output.amount.length(pos), 8))
 
       assertOrFraud(lte(amountLen, 256),
-        error"outputs-amount-overflow", proof)
+        error"outputs-amount-overflow", transactionProof)
     }
 
-    function proveOutputOwner(pos, proof) {
-      let _numAddresses := TransactionProof.numAddresses(proof)
+    /// @notice Helper: prove output owner is invalid.
+    /// @param pos Position in memory of leaf outputs object.
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveOutputOwner(pos, transactionProof) {
+      let _numAddresses := TransactionProof.numAddresses(transactionProof)
 
       assertOrFraud(gt(Output.owner.length(pos), 0),
-        error"outputs-owner-underflow", proof)
+        error"outputs-owner-underflow", transactionProof)
 
       assertOrFraud(lte(Output.owner.length(pos), 20),
-        error"outputs-owner-overflow", proof)
+        error"outputs-owner-overflow", transactionProof)
 
       if lt(Output.owner.length(pos), 20) {
         assertOrFraud(lt(Output.owner.slice(pos), _numAddresses),
-          error"outputs-owner-id-overflow", proof)
+          error"outputs-owner-id-overflow", transactionProof)
       }
     }
 
-    function proveOutputReturnOwner(pos, proof) {
-      let _numAddresses := TransactionProof.numAddresses(proof)
+    /// @notice Helper: prove HTLC output return owner is invalid.
+    /// @param pos Position in memory of leaf outputs object.
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveOutputReturnOwner(pos, transactionProof) {
+      let _numAddresses := TransactionProof.numAddresses(transactionProof)
 
       assertOrFraud(gt(OutputHTLC.returnOwner.length(pos), 0),
-        error"outputs-return-owner-underflow", proof)
+        error"outputs-return-owner-underflow", transactionProof)
 
       assertOrFraud(lte(OutputHTLC.returnOwner.length(pos), 20),
-        error"outputs-return-owner-overflow", proof)
+        error"outputs-return-owner-overflow", transactionProof)
 
       if lt(OutputHTLC.returnOwner.length(pos), 20) {
         assertOrFraud(lt(OutputHTLC.returnOwner.slice(pos), _numAddresses),
-          error"outputs-return-owner-id-overflow", proof)
+          error"outputs-return-owner-id-overflow", transactionProof)
       }
     }
 
-    function proveOutputs(leaf, proof) {
+    /// @notice Helper: prove outputs are invalid.
+    /// @param leaf Position in memory of leaf object (a transaction).
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveOutputs(leaf, transactionProof) {
       let witnessLength := witnessesLength(leaf)
       let pos := TransactionLeaf.outputs.position(leaf)
       let end := TransactionLeaf.outputs.offset(leaf)
@@ -186,43 +221,46 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         switch Output.type(pos)
 
         case OutputType.Transfer {
-          proveOutputValue(pos, proof)
-          proveOutputOwner(pos, proof)
+          proveOutputValue(pos, transactionProof)
+          proveOutputOwner(pos, transactionProof)
         }
 
         case OutputType.Withdraw {
-          proveOutputValue(pos, proof)
-          proveOutputOwner(pos, proof)
+          proveOutputValue(pos, transactionProof)
+          proveOutputOwner(pos, transactionProof)
         }
 
         case OutputType.HTLC {
-          proveOutputValue(pos, proof)
-          proveOutputOwner(pos, proof)
-          proveOutputReturnOwner(pos, proof)
+          proveOutputValue(pos, transactionProof)
+          proveOutputOwner(pos, transactionProof)
+          proveOutputReturnOwner(pos, transactionProof)
         }
 
         case OutputType.Return {
           assertOrFraud(gt(OutputReturn.data.length(pos), 0),
-            error"outputs-data-underflow", proof)
+            error"outputs-data-underflow", transactionProof)
 
           assertOrFraud(lte(OutputReturn.data.length(pos), 512),
-            error"outputs-data-overflow", proof)
+            error"outputs-data-overflow", transactionProof)
         }
 
         default {
-          assertOrFraud(0, error"outputs-type", proof)
+          assertOrFraud(0, error"outputs-type", transactionProof)
         }
 
         pos := add(pos, outputSize(pos))
         index := add(index, 1)
 
-        assertOrFraud(lt(index, OUTPUTS_MAX), error"outputs-index-overflow", proof)
+        assertOrFraud(lt(index, OUTPUTS_MAX), error"outputs-index-overflow", transactionProof)
       }
 
-      assertOrFraud(eq(pos, end), error"outputs-size", proof)
+      assertOrFraud(eq(pos, end), error"outputs-size", transactionProof)
     }
 
-    function proveInputs(leaf, proof) {
+    /// @notice Helper: prove inputs are invalid.
+    /// @param leaf Position in memory of leaf object (a transaction).
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveInputs(leaf, transactionProof) {
       let witnessLength := witnessesLength(leaf)
       let pos := TransactionLeaf.inputs.position(leaf)
       let end := TransactionLeaf.inputs.offset(leaf)
@@ -230,58 +268,60 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
 
       for {} lt(pos, end) {} {
         assertOrFraud(gte(Input.type(pos), 0),
-           error"inputs-type-underflow", proof)
+           error"inputs-type-underflow", transactionProof)
         assertOrFraud(lt(Input.type(pos), 4),
-           error"inputs-type-overflow", proof)
+           error"inputs-type-overflow", transactionProof)
 
         assertOrFraud(gte(Input.witnessReference(pos), 0),
-           error"inputs-witness-reference-underflow", proof)
+           error"inputs-witness-reference-underflow", transactionProof)
         assertOrFraud(lt(Input.witnessReference(pos), witnessLength),
-          error"inputs-witness-reference-overflow", proof)
+          error"inputs-witness-reference-overflow", transactionProof)
 
         pos := add(pos, inputSize(pos))
         index := add(index, 1)
       }
 
-      assertOrFraud(lt(index, INPUTS_MAX), error"inputs-index-overflow", proof)
-      assertOrFraud(eq(pos, end), error"inputs-size", proof)
+      assertOrFraud(lt(index, INPUTS_MAX), error"inputs-index-overflow", transactionProof)
+      assertOrFraud(eq(pos, end), error"inputs-size", transactionProof)
     }
 
-    function proveInvalidTransaction(proof) {
-      verifyTransactionProof(proof, false)
+    /// @notice Prove that a transaction was invalid.
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveInvalidTransaction(transactionProof) {
+      verifyTransactionProof(transactionProof, AssertFinalized.NotFinalized)
 
-      let leaf := TransactionProof.transaction.position(proof)
+      let leaf := TransactionProof.transaction.position(transactionProof)
       let size := TransactionLeaf.metadata.length(leaf)
 
-      assertOrFraud(gt(size, 0), error"metadata-size-underflow", proof)
-      assertOrFraud(lte(size, OUTPUTS_MAX), error"metadata-size-overflow", proof)
+      assertOrFraud(gt(size, 0), error"metadata-size-underflow", transactionProof)
+      assertOrFraud(lte(size, OUTPUTS_MAX), error"metadata-size-overflow", transactionProof)
 
       size := TransactionLeaf.witnesses.length(leaf)
 
-      assertOrFraud(gt(size, 0), error"witnesses-size-underflow", proof)
-      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"witnesses-size-overflow", proof)
+      assertOrFraud(gt(size, 0), error"witnesses-size-underflow", transactionProof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"witnesses-size-overflow", transactionProof)
 
       size := TransactionLeaf.inputs.length(leaf)
 
-      assertOrFraud(gte(size, 2), error"inputs-size-underflow", proof)
-      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"inputs-size-overflow", proof)
+      assertOrFraud(gte(size, 2), error"inputs-size-underflow", transactionProof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"inputs-size-overflow", transactionProof)
 
       size := TransactionLeaf.outputs.length(leaf)
 
-      assertOrFraud(gte(size, 3), error"outputs-size-underflow", proof)
-      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"outputs-size-overflow", proof)
+      assertOrFraud(gte(size, 3), error"outputs-size-underflow", transactionProof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"outputs-size-overflow", transactionProof)
 
       size := TransactionLeaf.size(leaf)
 
-      assertOrFraud(gt(size, TRANSACTION_SIZE_MIN), error"transaction-size-underflow", proof)
-      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"transaction-size-overflow", proof)
-      assertOrFraud(eq(size, add(TransactionLeaf.length(leaf), 2)), error"transaction-length", proof)
+      assertOrFraud(gt(size, TRANSACTION_SIZE_MIN), error"transaction-size-underflow", transactionProof)
+      assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"transaction-size-overflow", transactionProof)
+      assertOrFraud(eq(size, add(TransactionLeaf.length(leaf), 2)), error"transaction-length", transactionProof)
 
-      proveWitnesses(leaf, proof)
-      proveInputs(leaf, proof)
-      proveOutputs(leaf, proof)
-      proveSizes(leaf, proof)
-      proveMetadata(leaf, proof)
+      proveWitnesses(leaf, transactionProof)
+      proveInputs(leaf, transactionProof)
+      proveOutputs(leaf, transactionProof)
+      proveSizes(leaf, transactionProof)
+      proveMetadata(leaf, transactionProof)
     }
   }
 }

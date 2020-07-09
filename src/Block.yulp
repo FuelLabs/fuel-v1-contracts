@@ -63,9 +63,8 @@ object "Block" is "Constructor", "Root", "Address" {
       let previousBlockHash := blockCommitment(sub(height, 1))
 
       // To avoid Ethereum re-org attacks, commitment transactions include a minimum
-      require(gt(number(), minBlockNumber), error"minimum-block-number")
-
       //  Ethereum block number and block hash. Check will fail if transaction is > 256 block old.
+      require(gt(number(), minBlockNumber), error"minimum-block-number")
       require(eq(blockhash(minBlockNumber), minBlockHash), error"minimum-block-hash")
 
       // Check that new rollup blocks builds on top of the tip

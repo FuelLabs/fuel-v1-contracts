@@ -3,70 +3,80 @@ import "./Block.yulp"
 /// @title BlockHeader verifier
 object "BlockHeader" is "Block" {
   code {
-    function verifyHeader(blockHeader, root, rootIndex, assertFinalized) {
-      // Select BlockHeight from Memory
-      const blockHeight := BlockHeader.height(blockHeader)
+    enum AssertFinalized (
+      // Assert not finalized
+      NotFinalized,
+      // Assert finalized
+      Finalized,
+      // No assertion
+      None
+    )
 
-      // Transaction Roots Length
+    /// @notice Verifies a block header and root header.
+    /// @param blockHeader Position in memory of block header object.
+    /// @param root Position in memory of root header object. If `0`, only verify the block header, not the root header.
+    /// @param rootIndex Position in memory of root index.
+    /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
+    function verifyHeader(blockHeader, root, rootIndex, assertFinalized) {
+      // Extract rollup block height from block header
+      const blockHeight := BlockHeader.height(blockHeader)
+      // Extract transaction roots length from block header
       const rootsLength := BlockHeader.roots.length(blockHeader)
 
-      // Assert Block is not Genesis
+      // Block must not be genesis block
       require(gt(blockHeight, 0),
           error"block-height-underflow")
 
-      // Assert Block Height is Valid (i.e. before tip)
+      // Block height must be at most the tip height
       require(lte(blockHeight, blockTip()),
           error"block-height-overflow")
 
-      // Assert Previous Block Hash
+      // Previous block hash must match with known previous block hash at height
       require(eq(
           blockCommitment(safeSub(blockHeight, 1)),
           BlockHeader.previousBlockHash(blockHeader)),
           error"previous-block-hash")
 
-      // Transactions roots length underflow
+      // Check bounds on transaction roots length
       require(gt(rootsLength, 0),
           error"roots-length-underflow")
-
-      // Transactions roots length underflow
       require(lte(rootsLength, TRANSACTION_ROOTS_MAX),
           error"roots-length-overflow")
 
-      // Assert Block Commitment Exists
+      // Block must be known (already committed)
       require(eq(blockCommitment(blockHeight), BlockHeader.keccak256(blockHeader)),
           error"block-commitment")
 
-      // Copy Code to Memory
+      // Load finalization delay parameter from constructor
       Constructor.copy(0)
       let finalizationDelay := Constructor.finalizationDelay(0)
 
-      // If requested, Assert Block is Finalized
-      if eq(assertFinalized, 1) {
+      // If asserting finalized, block must be finalizable
+      if eq(assertFinalized, AssertFinalized.Finalized) {
         require(gte(
           number(),
           add(BlockHeader.ethereumBlockNumber(blockHeader), finalizationDelay)
         ), error"not-finalized")
       }
 
-      // If requested, Assert Block is Not Finalized
-      if lt(assertFinalized, 1) {
+      // If asserting not finalized, block must not be finalizable
+      if eq(assertFinalized, AssertFinalized.NotFinalized) {
         require(lt(
-          number(), // ethereumBlockNumber
+          number(),
           add(BlockHeader.ethereumBlockNumber(blockHeader), finalizationDelay)
         ), error"block-finalied")
       }
 
-      // if transaction root is present, validate it
+      // If root header is present, verify it
       if gt(root, 0) {
-        // Assert root index is not overflowing
+        // Check bounds on transaction root index
         require(lt(rootIndex, rootsLength),
             error"root-index-underflow")
-
-        // Assert root invalid overflow
+        // TODO this is redundant, remove (and maybe add check that rootIndex gte 0?)
         require(lt(rootsLength, TRANSACTION_ROOTS_MAX),
             error"root-index-overflow")
 
-        // Assert transaction root index is correct!
+        // Hash of root header must match root header hash from proof
         require(eq(
             RootHeader.keccak256(root),
             BlockHeader.roots(blockHeader, rootIndex)),

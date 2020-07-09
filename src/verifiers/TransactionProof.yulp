@@ -1,17 +1,27 @@
 import "./verifiers/BlockHeader.yulp"
 import "./verifiers/MerkleProof.yulp"
 
+/// @title Transaction proof verifier
 object "TransactionProof" is "BlockHeader", "MerkleProof" {
   code {
-    function verifyTransactionProof(transaction, assertFinalized) {
-      verifyHeader(TransactionProof.block(transaction),
-          TransactionProof.root(transaction),
-          TransactionProof.rootIndex(transaction),
-          assertFinalized)
+    /// @notice Verify a transaction proof.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
+    function verifyTransactionProof(transactionProof, assertFinalized) {
+      // Verify the block header
+      verifyHeader(
+        TransactionProof.block(transactionProof),
+        TransactionProof.root(transactionProof),
+        TransactionProof.rootIndex(transactionProof),
+        assertFinalized
+      )
 
-      let leftish := verifyMerkleProof(transaction)
+      // Verify the Merkle inclusion proof
+      // TODO remove unused leftish
+      let leftish := verifyMerkleProof(transactionProof)
 
-      require(gt(TransactionProof.transaction.length(transaction), 0),
+      // Transaction must be at least one byte long
+      require(gt(TransactionProof.transaction.length(transactionProof), 0),
         error"empty-transaction")
     }
   }

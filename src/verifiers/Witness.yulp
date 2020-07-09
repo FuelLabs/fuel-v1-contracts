@@ -1,49 +1,59 @@
 import "./Transaction.yulp"
 import "./Deposit.yulp"
 
+/// @title Witness verifier
 object "VerifyWitness" is "Deposit", "Transaction" {
   code {
-    function verifyWitness(transaction, inputs) {
-      let witness := TransactionProof.witness(transaction, 0)
-      let leaf := TransactionProof.transaction.position(transaction)
+    /// @notice Verify a witness proof.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @param inputProofs Position in memory of input proofs.
+    function verifyWitness(transactionProof, inputProofs) {
+      let witness := TransactionProof.witness(transactionProof, 0)
+      let leaf := TransactionProof.transaction.position(transactionProof)
       let input := TransactionLeaf.inputs.position(leaf)
 
       switch Signature.type(witness)
 
-      case WitnessTypes.Signature {
+      // Witness is a signature
+      case WitnessType.Signature {
         switch Input.type(input)
 
+        // Deposit: recovered address must match input owner
         case InputType.Deposit {
           require(eq(
-            ecrecover(transactionId(transaction), witness),
-            Deposit.owner(inputs)
+            ecrecover(transactionId(transactionProof), witness),
+            Deposit.owner(inputProofs)
           ), error"witness-signature")
         }
 
+        // Root: recovered address must match block producer of input
         case InputType.Root {
           require(eq(
-            ecrecover(transactionId(transaction), witness),
-            TransactionProof.blockProducer(inputs)
+            ecrecover(transactionId(transactionProof), witness),
+            TransactionProof.blockProducer(inputProofs)
           ), error"witness-signature")
         }
 
+        // Transfer: recovered address must match input owner
         default {
           require(eq(
-            ecrecover(transactionId(transaction), witness),
-            UTXO.owner(inputs)
+            ecrecover(transactionId(transactionProof), witness),
+            UTXO.owner(inputProofs)
           ), error"witness-signature")
         }
       }
 
-      case WitnessTypes.Caller {
+      // Witness is a caller (i.e. contract authorized a transaction)
+      case WitnessType.Caller {
         require(eq(
           witnessAt(Caller.owner(witness), Caller.blockNumber(witness)),
-          transactionId(transaction)
+          transactionId(transactionProof)
         ), error"witness-caller")
       }
 
-      case WitnessTypes.Producer {
-        require(eq(Producer.hash(witness), transactionId(transaction)),
+      // Witness is address of producer (implied by producer of block)
+      case WitnessType.Producer {
+        require(eq(Producer.hash(witness), transactionId(transactionProof)),
           error"witness-producer")
       }
 

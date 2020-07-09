@@ -45,7 +45,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       0
     )
 
-    // Commit genesis block
+    // Implicitly commit genesis block
     sstore(mappingKey(Storage.BlockCommitments, 0), genesis)
 
     // Add extra data for block producer
@@ -151,20 +151,21 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       }
 
       /// @notice Prove that a transaction was invalid.
-      /// @param proof Proof.
+      /// @param transactionProof Proof.
       /// @dev provers::InvalidTransaction::proveInvalidTransaction
-      case sig"proveInvalidTransaction(bytes proof) external" {
+      case sig"proveInvalidTransaction(bytes transactionProof) external" {
         proveInvalidTransaction(abi.offset(calldata.word(0)))
       }
 
       /// @notice Prove that an input was invalid.
-      /// @param proof Proof.
+      /// @param proofA First proof.
+      /// @param proofB Second proof.
       /// @dev provers::InvalidInput::proveInvalidInput
       case sig"proveInvalidInput(bytes proofA, bytes proofB) external" {
-        let transactionA := abi.offset(calldata.word(0))
-        let transactionB := abi.offset(calldata.word(1))
+        let transactionProofA := abi.offset(calldata.word(0))
+        let transactionProofB := abi.offset(calldata.word(1))
 
-        proveInvalidInput(transactionA, transactionB)
+        proveInvalidInput(transactionProofA, transactionProofB)
       }
 
       /// @notice Prove that a UTXO was double-spent.
@@ -172,25 +173,25 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param proofB Proof of UTXO being spent again.
       /// @dev provers::DoubleSpend::proveDoubleSpend
       case sig"proveDoubleSpend(bytes proofA, bytes proofB) external" {
-        let transactionA := abi.offset(calldata.word(0))
-        let transactionB := abi.offset(calldata.word(1))
+        let transactionProofA := abi.offset(calldata.word(0))
+        let transactionProofB := abi.offset(calldata.word(1))
 
-        proveDoubleSpend(transactionA, transactionB)
+        proveDoubleSpend(transactionProofA, transactionProofB)
       }
 
       /// @notice Prove that a witness was invalid.
-      /// @param proof Proof.
-      /// @param inputs Proof for inputs being spent.
+      /// @param transactionProof Memory offset to start of transaction proof.
+      /// @param inputProofs Memory offset of start of input proofs.
       /// @dev provers::InvalidWitness::proveInvalidWitness
-      case sig"proveInvalidWitness(bytes proof, bytes inputs) external" {
+      case sig"proveInvalidWitness(bytes transactionProof, bytes inputProofs) external" {
         proveInvalidWitness(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
       }
 
       /// @notice Prove that a transation produced more than it consumed.
-      /// @param proof Proof.
-      /// @param inputs Proof for inputs being spent.
+      /// @param transactionProof Memory offset to start of transaction proof.
+      /// @param inputProofs Memory offset of start of input proofs.
       /// @dev provers::InvalidSum::proveInvalidSum
-      case sig"proveInvalidSum(bytes proof, bytes inputs) external" {
+      case sig"proveInvalidSum(bytes transactionProof, bytes inputProofs) external" {
         proveInvalidSum(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
       }
 
@@ -234,10 +235,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param blockHeader Block header.
       /// @param root Root to verify.
       /// @param rootIndex Index of root in block header.
-      /// @param finalization Boolean flag. If set, assert that the block must be finalized.
+      /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
       /// @return If block header passes verification.
       /// @dev verifiers::BlockHeader::verifyHeader
-      case sig"verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 finalization) external view returns (bool)" {
+      case sig"verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 assertFinalized) external view returns (bool)" {
         verifyHeader(
           abi.offset(calldata.word(0)),
           abi.offset(calldata.word(1)),
@@ -249,10 +250,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
 
       /// @notice Verify a transaction.
       /// @param proof Transcation proof.
-      /// @param finalization Boolean flag. If set, assert that the block must be finalized.
+      /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
       /// @return If transaction passes verification.
       /// @dev verifiers::TransactionProof::verifyTransactionProof
-      case sig"verifyTransaction(bytes proof, uint8 finalization) external view returns (bool)" {
+      case sig"verifyTransaction(bytes proof, uint8 assertFinalized) external view returns (bool)" {
         verifyTransactionProof(
           abi.offset(calldata.word(0)),
           calldata.word(1)

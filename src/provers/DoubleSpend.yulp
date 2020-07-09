@@ -1,35 +1,47 @@
 import "./verifiers/TransactionProof.yulp"
 import "./Fraud.yulp"
 
+/// @title Double spend prover
 object "DoubleSpend" is "TransactionProof", "Fraud" {
   code {
-    function inputOwner(transaction) -> addr {
-      let input := selectInput(transaction)
+    /// @notice Helper function: extract owner of input.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @return Address of owner of input.
+    function inputOwner(transactionProof) -> addr {
+      // Get offset of input specified in the proof.
+      let input := selectInput(transactionProof)
 
+      // Only for deposits, return the owner of the deposit. Otherwise, return 0.
       if eq(Input.type(input), InputType.Deposit) {
         addr := InputDeposit.owner(input)
       }
     }
 
-    function proveDoubleSpend(transactionA, transactionB) {
-      // Check for Invalid Transaction Double Spend (Same Input Twice)
-      verifyTransactionProof(transactionA, 2)
-      verifyTransactionProof(transactionB, 0)
+    /// @notice Prove a double spend happened.
+    /// @param transactionProofA Position in memory of proof of UTXO being spent once.
+    /// @param transactionProofB Position in memory of proof of UTXO being spent again.
+    function proveDoubleSpend(transactionProofA, transactionProofB) {
+      // Verify both transaction proofs
+      verifyTransactionProof(transactionProofA, AssertFinalized.None)
+      verifyTransactionProof(transactionProofB, AssertFinalized.NotFinalized)
 
-       // Require the inputs are different
-      require(neq(inputMetadata(transactionA), inputMetadata(transactionB)),
+       // Inputs must be different in the ledger
+      require(neq(inputMetadata(transactionProofA), inputMetadata(transactionProofB)),
         error"input-id")
 
-      // Metadata reference and input owner
-      mstore(0, inputReferencedMetadata(transactionA), inputOwner(transactionA))
+      // Note: here we need to also get the owner, which is missing from deposit metadata,
+      //  to uniquely index deposits. See: Metadata::MetadataDeposit.
+
+      // Get hash of referenced metadata and input owner (only for deposits) for A
+      mstore(0, inputReferencedMetadata(transactionProofA), inputOwner(transactionProofA))
       let hashA := keccak256(0, 64)
 
-      // Metadata reference and input owner
-      mstore(0, inputReferencedMetadata(transactionB), inputOwner(transactionB))
+      // Get hash of referenced metadata and input owner (only for deposits) for B
+      mstore(0, inputReferencedMetadata(transactionProofB), inputOwner(transactionProofB))
       let hashB := keccak256(0, 64)
 
-      // Assert Inputs are Different OR FRAUD Double Spend!
-      assertOrFraud(neq(hashA, hashB), error"double-spend", transactionB)
+      // Hashes must be different, otherwise a double spend happened
+      assertOrFraud(neq(hashA, hashB), error"double-spend", transactionProofB)
     }
   }
 }
