@@ -16,7 +16,7 @@ object "Block" is "Constructor", "Root", "Address" {
       // Rollup block height
       height: uint256,
       // Ethereum block number when this rollup block is committed
-      ethereumBlockNumber: uint256,
+      blockNumber: uint256,
       // Maximum token ID used in this rollup block
       numTokens: uint256,
       // Maximum address ID used in this rollup block

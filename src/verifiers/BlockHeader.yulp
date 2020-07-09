@@ -12,7 +12,7 @@ object "BlockHeader" is "Block" {
       None
     )
 
-    /// @notice Verifies a block header and root header.
+    /// @notice Verifies a block and root header.
     /// @param blockHeader Position in memory of block header object.
     /// @param root Position in memory of root header object. If `0`, only verify the block header, not the root header.
     /// @param rootIndex Position in memory of root index.
@@ -30,7 +30,7 @@ object "BlockHeader" is "Block" {
       if eq(assertFinalized, AssertFinalized.Finalized) {
         require(gte(
           number(),
-          add(BlockHeader.ethereumBlockNumber(blockHeader), finalizationDelay)
+          add(BlockHeader.blockNumber(blockHeader), finalizationDelay)
         ), error"not-finalized")
       }
 
@@ -38,7 +38,7 @@ object "BlockHeader" is "Block" {
       if eq(assertFinalized, AssertFinalized.NotFinalized) {
         require(lt(
           number(),
-          add(BlockHeader.ethereumBlockNumber(blockHeader), finalizationDelay)
+          add(BlockHeader.blockNumber(blockHeader), finalizationDelay)
         ), error"block-finalied")
       }
 

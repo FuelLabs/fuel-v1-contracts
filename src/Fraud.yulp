@@ -21,7 +21,7 @@ object "Fraud" is "Utils", "Block" {
         let penaltyDelay := Constructor.penaltyDelay(0)
 
         // Fraud block must not be finalizable yet
-        require(lt(number(), add(BlockHeader.ethereumBlockNumber(block), Constructor.finalizationDelay(0))),
+        require(lt(number(), add(BlockHeader.blockNumber(block), Constructor.finalizationDelay(0))),
           error"block-finalized")
 
         // Log block tips (old / new)

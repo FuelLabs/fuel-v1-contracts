@@ -26,7 +26,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
 
           // Transaction must spend deposit at least one block after it was made
           assertOrFraud(lt(MetadataDeposit.blockNumber(metadata),
-            TransactionProof.ethereumBlockNumber(transactionProof)),
+            TransactionProof.blockNumber(transactionProof)),
             error"metadata-deposit-height-overflow", transactionProof)
 
           // Token ID must be positive
@@ -108,7 +108,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
           let stateWitness := witnessAt(Caller.owner(pos), Caller.blockNumber(pos))
           assertOrFraud(gt(stateWitness, 0), error"witness-caller-empty", transactionProof)
 
-          assertOrFraud(lt(Caller.blockNumber(pos), TransactionProof.ethereumBlockNumber(transactionProof)),
+          assertOrFraud(lt(Caller.blockNumber(pos), TransactionProof.blockNumber(transactionProof)),
             error"witness-caller-overflow", transactionProof)
         }
 

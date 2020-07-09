@@ -109,7 +109,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
 
         // If spending transaction is before timeout then:
         // Timeout is using Ethereum block number, not rollup block height
-        if lt(TransactionProof.ethereumBlockNumber(transactionProof),
+        if lt(TransactionProof.blockNumber(transactionProof),
           OutputHTLC.expiry(output)) {
           // The hash of the preimage in the transaction proof must match the digest in the input proof
           assertOrFraud(eq(OutputHTLC.digest(output),
