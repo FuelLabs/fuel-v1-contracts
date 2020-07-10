@@ -1,0 +1,186 @@
+import "./Storage.yulp"
+
+/// @title HTLC, a simplisitic generic multi-use hash-time-lock-contract for ERC20's and Ether
+object "HTLC" {
+  code {
+    // Register constructor with compiler
+    let _constructor := sig"constructor(address operator)"
+
+    // To Runtime (32 additional for the constructor argument operator)
+    datacopy(0, dataoffset("Runtime"), add(datasize("Runtime"), 32))
+    return(0, add(datasize("Runtime"), 32))
+  }
+  object "Runtime" is "Storage" {
+    code {
+      // We use the zero value to represent the Ether token
+      const ETHER_TOKEN_ADDRESS := 0
+
+      // Get the operator from constructor
+      codecopy(0, sub(codesize(), 32), 32)
+      let operator := mload(0)
+
+      // State Indexes
+      enum State (
+        // The total locked balance for a particular token
+        // Solidity: mapping(address token => uint256 lockedBalance)
+        locked,
+
+        // Hashes recorded
+        // Solidity: mapping(bytes32 hash => bool (not released))
+        hashes
+      )
+
+      // Calldata Signature
+      calldatacopy(0, 0, 4)
+      switch mslice(0, 4)
+
+      /// @notice Operator can register a hash time lock from existing ether / ERC20 balance in contract
+      /// @param owner the account that will receive funds upon successful preimage presentation
+      /// @param token the ERC20 token address, or zero / null address for Ether
+      /// @param digest the hash digest (digest === keccak256(preImage))
+      /// @param expiry the HTLC expiry block number in ethereum block numbers
+      /// @param amount the amount to lock for the HTLC
+      case sig"register(address owner,
+        address token,
+        bytes32 digest,
+        uint256 expiry,
+        uint256 amount)" {
+        // Copy calldata arguments to memory from the signature onward
+        calldatacopy(0, 4, 160)
+
+        // Build the release hash from calldata
+        let hash := keccak256(0, 160)
+
+        // Token address to stack
+        let token := mload(32)
+        let amount := mload(128)
+
+        // Log Registered event
+        log2(0, 0, topic"event Registered(bytes32 indexed hash)", hash)
+
+        // Total new locked balance to stack
+        let totalBalanceLocked := add(sload(mappingKey(State.locked, token)), amount)
+
+        // Ensure the caller is the operator
+        require(eq(operator, caller()), error"caller-operator")
+
+        // Handle token cases
+        switch token
+
+        // Token is Ether
+        case ETHER_TOKEN_ADDRESS {
+          // Ensure Ether balance >= new total
+          require(gte(balance(address()), totalBalanceLocked),
+            error"ether-balance-underflow")
+        }
+
+        // Token is an ERC20
+        default {
+          // get ERC20 balance of from toen
+          mstore(0, sig"balanceOf(address)", address())
+          require(call(gas(), token, 0, 28, 36, 0, 32), error"balance-call")
+          let tokenBalance := mload(0)
+
+          // Ensure balance >= new total
+          require(gte(tokenBalance, totalBalanceLocked),
+            error"balance-underflow")
+        }
+
+        // Notate new hash in storage and remap total locked for toen
+        sstore(mappingKey(State.hashes, hash), true)
+        sstore(mappingKey(State.locked, token), totalBalanceLocked)
+      }
+
+      /// @notice Release a hash timelock
+      /// @param owner the account that will receive funds upon successful preimage presentation
+      /// @param token the ERC20 token address, or zero / null address for Ether
+      /// @param digest the hash digest (digest === keccak256(preImage))
+      /// @param expiry the HTLC expiry block number in ethereum block numbers
+      /// @param amount the amount to send for the contract
+      /// @param preimage the HTLC pre-image of the digest
+      case sig"release(address owner,
+        address token,
+        bytes32 digest,
+        uint256 expiry,
+        uint256 amount,
+        bytes32 preimage)" {
+        // Copy calldata to memory from signature onward
+        calldatacopy(0, 4, 160)
+
+        // Build release hash from calldata
+        let hash := keccak256(0, 160)
+
+        // Log Registered event
+        log2(0, 0, topic"event Released(bytes32 indexed hash)", hash)
+
+        // Build cases of is HTLC expired or preimage provded correct
+        let expired := gt(number(), mload(128))
+        let correct := eq(keccak256(160, 32), mload(64))
+
+        // Move aspects of calldata to stack
+        let owner := mload(0)
+        let amount := mload(128)
+        let token := mload(32)
+
+        // Calculate new token lock totals from state
+        let totalBalanceLocked := sub(sload(mappingKey(State.locked, token)), amount)
+
+        // Ensure hash is registered
+        require(sload(mappingKey(State.hashes, hash)), error"invalid-hash")
+
+        // Ensure contract is expired or pre-image is correct
+        require(or(expired, correct), "expired-or-preimage")
+
+        // If the HTLC is not expired, than pre-image must be correct, do release sequence
+        if iszero(expired) {
+          switch token
+
+          // If the token is Ether
+          case ETHER_TOKEN_ADDRESS {
+            require(call(gas(), owner, amount, 0, 0, 0, 0), error"ether-transfer")
+          }
+
+          // If the token is an ERC20
+          default {
+            mstore(0, sig"transfer(address, uint256)", owner, amount)
+            require(call(gas(), token, 0, 28, 68, 0, 0), error"transfer-call")
+          }
+        }
+
+        // Store new totals for this token
+        sstore(mappingKey(State.locked, token), totalBalanceLocked)
+
+        // Clear hash from memory
+        sstore(mappingKey(State.hashes, hash), false)
+      }
+
+      /// @notice Registered getter
+      /// @param owner the account that will receive funds upon successful preimage presentation
+      /// @returns notReleased a bool is this hash released or not
+      case sig"registered(bytes32 hash) view returns (bool notReleased)" {
+        calldatacopy(0, 4, 32)
+        mstore(0, sload(mappingKey(State.hashes, mload(0))))
+        return(0, 32)
+      }
+
+      /// @notice locked balance getter
+      /// @param token the token to specify locked balance
+      /// @returns balanceLocked the total balance locked for the specified token
+      case sig"locked(address token) view returns (uint256 balanceLocked)" {
+        calldatacopy(0, 4, 32)
+        mstore(0, sload(mappingKey(State.locked, mload(0))))
+        return(0, 32)
+      }
+
+      /// @notice locked balance getter
+      /// @return returns the liquidity provider oprerator address
+      case sig"operator() view returns (address operator)" {
+        mstore(0, operator)
+        return(0, 32)
+      }
+
+      // Stop execution
+      stop()
+    }
+  }
+}

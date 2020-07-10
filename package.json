@@ -16,6 +16,7 @@
     "build-funnel": "mkdir -p src/builds && compile=Funnel node ./config/compile",
     "build-revert": "mkdir -p src/builds && compile=Revert node ./config/compile",
     "build-proxy": "mkdir -p src/builds && compile=Proxy node ./config/compile",
+    "build-htlc": "mkdir -p src/builds && compile=HTLC node ./config/compile",
     "test-erc20": "npm run build-erc20 && node src/tests/ERC20.test",
     "test-fuel": "npm run build-fuel && node src/tests/",
     "benchmark": "node src/benchmarks/"

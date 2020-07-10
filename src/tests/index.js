@@ -1,5 +1,6 @@
 (async () => {
 
+  /*
   await require('./constructor');
   await require('./deposit');
   await require('./withdraw');
@@ -14,5 +15,8 @@
   await require('./proveInvalidTransaction');
   await require('./proveMalformedBlock');
   await require('./proveInvalidInput');
+  */
+  
+  await require('./htlc');
 
 })();
