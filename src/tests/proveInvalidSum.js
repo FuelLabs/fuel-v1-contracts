@@ -22,10 +22,12 @@ module.exports = test('proveInvalidSum', async t => { try {
     let token = utils.emptyAddress;
     let tokenId = '0x00';
     let numTokens = 1;
+    const approxTxSize = 207; // root fee
+    const fee = 1; // root fee
 
     // try an ether deposit
     const funnela = await contract.funnel(producer);
-    const valuea = utils.bigNumberify(1000);
+    const valuea = utils.bigNumberify(1000 + approxTxSize);
 
     if (useErc20 === true) {
       await t.wait(erc20.transfer(funnela, valuea, overrides), 'erc20 transfer');
@@ -107,8 +109,10 @@ module.exports = test('proveInvalidSum', async t => { try {
       merkleTreeRoot: merkleTreeRoot(txs),
       commitmentHash: utils.keccak256(combine(txs)),
       rootLength: utils.hexDataLength(combine(txs)),
+      feeToken: tokenId,
+      fee,
     }));
-    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot.get(), 0, 0,
+    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot.get(), tokenId, fee,
       combine(txs), overrides),
       'valid submit', errors);
     const header = new BlockHeader({

@@ -13,11 +13,14 @@ object "OwnedProxy" {
     sstore(0, mload(0))
 
     // To Runtime (32 additional for the constructor argument operator)
-    datacopy(0, dataoffset("Runtime"), add(datasize("Runtime"), 32))
-    return(0, add(datasize("Runtime"), 32))
+    datacopy(0, dataoffset("Runtime"), add(datasize("Runtime"), 64))
+    return(0, add(datasize("Runtime"), 64))
   }
   object "Runtime" {
     code {
+      // if no calldata stop
+      if iszero(calldatasize()) { stop() }
+
       // Storage indexes
       enum Storage (hot)
 
@@ -38,12 +41,12 @@ object "OwnedProxy" {
       /// @param data the bytes data of the transaction
       case sig"transact(address destination, uint256 value, bytes data)" {
         // Check calldataize underflow
-        require(gte(calldatasize(), 100), error"calldata-size-underflow")
+        require(gte(calldatasize(), 68), error"calldata-size-underflow")
         require(or(eq(caller(), hot), eq(caller(), cold)), error"caller")
 
         // Copy transaction data to memory except the 4 byte sig, make call
-        calldatacopy(0, 4, sub(calldatasize(), 4))
-        require(call(gas(), mload(0), mload(32), mload(64), mload(96), 0, 0),
+        calldatacopy(0, 4, calldatasize())
+        require(call(gas(), mload(0), mload(32), add(mload(64), 32), mload(96), 0, 0),
           error"call")
       }
 
@@ -59,10 +62,7 @@ object "OwnedProxy" {
         sstore(Storage.hot, mload(0))
       }
 
-      // Invalid signature
-      default { require(0, error"invalid-signature") }
-
-      // Stop execution
+      // Stop all execution
       stop()
     }
   }

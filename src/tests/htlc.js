@@ -17,7 +17,7 @@ module.exports = test('htlc', async t => {
   const etherToken = utils.emptyAddress;
   const preImage = utils.emptyBytes32;
   const digest = utils.keccak256(preImage);
-  const expiry = 50;
+  const expiry = (await t.provider.getBlockNumber()) + 50000;
 
   // tx send liquidity
 

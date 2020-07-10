@@ -168,7 +168,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     /// @return Fee for root as uint256
     function rootFee(proof, token) -> sum {
       if eq(TransactionProof.feeToken(proof), token) {
-        sum := mul(TransactionProof.rootLength(proof), TransactionProof.fee(proof))
+        sum := mul(TransactionProof.transaction.length(proof), TransactionProof.fee(proof))
       }
     }
 
