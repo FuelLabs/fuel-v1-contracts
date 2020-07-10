@@ -1,54 +1,5 @@
 import "./Storage.yulp"
 
-/*
-pragma solidity ^0.5.1;
-
-contract ERC20 {
-    function transfer(address,uint256) public returns (bool);
-    function balanceOf(address) public view returns (uint256);
-}
-
-/// @title HTLC Liquidity Provider which supports ERC20/Ether transfers
-/// @dev this design allows for HTLC's to be created / released without assets being moved each time (in the expiry cases)
-contract HTLCLiquidityProvider {
-    address public operator = msg.sender;
-    mapping(address => uint256) public locked; // tokens => locked balance
-    mapping(bytes32 => bool) public hashes; // release hash => bool(not released)
-
-    function () payable external {}
-
-    function register(address owner, address token, bytes32 digest, uint256 expiry, uint256 amount) external {
-        // Begin new register
-        bytes32 hash = keccak256(abi.encode(owner, token, digest, expiry, amount));
-        uint256 total = locked[token] + amount; // sload 800
-        require(operator == msg.sender); // only owner can register
-        require((token != address(0) && ERC20(token).balanceOf(address(this)) >= total) // sload 800
-            || (token == address(0) && address(this).balance >= total));
-        hashes[hash] = true; // sstore to be released 20k fresh write
-        locked[token] = total; // sstore mod 5k
-    }
-
-    function release(address payable owner, address token, bytes32 digest, uint256 expiry, uint256 amount, bytes32 preimage) external {
-        bytes32 hash = keccak256(abi.encode(owner, token, digest, expiry, amount));
-        bool expired = block.number > expiry;
-        bool correct = keccak256(abi.encode(preimage)) == digest;
-        require(hashes[hash]); // sload 800
-        require(expired || correct);
-
-        if (!expired) {
-            if (token != address(0)) {
-                require(ERC20(token).transfer(owner, amount)); // sload 800 + 5k mod + fresh write or mod 20k or 5k
-            } else {
-                owner.transfer(amount);
-            }
-        }
-
-        locked[token] -= amount; // sstore mod 5k / sload 800
-        hashes[hash] = false; // sstore release -10k
-    }
-}
-*/
-
 /// @title HTLC, a simplisitic generic multi-use hash-time-lock-contract for ERC20's and Ether
 object "HTLC" {
   code {
@@ -233,3 +184,52 @@ object "HTLC" {
     }
   }
 }
+
+/*
+pragma solidity ^0.5.1;
+
+contract ERC20 {
+    function transfer(address,uint256) public returns (bool);
+    function balanceOf(address) public view returns (uint256);
+}
+
+/// @title HTLC Liquidity Provider which supports ERC20/Ether transfers
+/// @dev this design allows for HTLC's to be created / released without assets being moved each time (in the expiry cases)
+contract HTLC {
+    address public operator = msg.sender;
+    mapping(address => uint256) public locked; // tokens => locked balance
+    mapping(bytes32 => bool) public hashes; // release hash => bool(not released)
+
+    function () payable external {}
+
+    function register(address owner, address token, bytes32 digest, uint256 expiry, uint256 amount) external {
+        // Begin new register
+        bytes32 hash = keccak256(abi.encode(owner, token, digest, expiry, amount));
+        uint256 total = locked[token] + amount; // sload 800
+        require(operator == msg.sender); // only owner can register
+        require((token != address(0) && ERC20(token).balanceOf(address(this)) >= total) // sload 800
+            || (token == address(0) && address(this).balance >= total));
+        hashes[hash] = true; // sstore to be released 20k fresh write
+        locked[token] = total; // sstore mod 5k
+    }
+
+    function release(address payable owner, address token, bytes32 digest, uint256 expiry, uint256 amount, bytes32 preimage) external {
+        bytes32 hash = keccak256(abi.encode(owner, token, digest, expiry, amount));
+        bool expired = block.number > expiry;
+        bool correct = keccak256(abi.encode(preimage)) == digest;
+        require(hashes[hash]); // sload 800
+        require(expired || correct);
+
+        if (!expired) {
+            if (token != address(0)) {
+                require(ERC20(token).transfer(owner, amount)); // sload 800 + 5k mod + fresh write or mod 20k or 5k
+            } else {
+                owner.transfer(amount);
+            }
+        }
+
+        locked[token] -= amount; // sstore mod 5k / sload 800
+        hashes[hash] = false; // sstore release -10k
+    }
+}
+*/
