@@ -28,7 +28,7 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
             error"transaction-length-underflow", fraudBlock)
 
         // Transaction length must be below maximum
-        assertOrFraud(lt(len, TRANSACTION_SIZE_MAX),
+        assertOrFraud(lte(len, TRANSACTION_SIZE_MAX),
             error"transaction-length-overflow", fraudBlock)
 
         // Computed length must not be greater than provided payload
