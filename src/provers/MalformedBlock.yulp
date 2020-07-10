@@ -24,7 +24,7 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
         let len := add(mslice(memoryPosition, 2), 2)
 
         // Transaction length must be above minimum
-        assertOrFraud(gt(len, TRANSACTION_SIZE_MIN),
+        assertOrFraud(gte(len, TRANSACTION_SIZE_MIN),
             error"transaction-length-underflow", fraudBlock)
 
         // Transaction length must be below maximum
