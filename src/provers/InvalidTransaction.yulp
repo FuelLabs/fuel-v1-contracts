@@ -312,7 +312,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
 
       size := TransactionLeaf.size(leaf)
 
-      assertOrFraud(gt(size, TRANSACTION_SIZE_MIN), error"transaction-size-underflow", transactionProof)
+      assertOrFraud(gte(size, TRANSACTION_SIZE_MIN), error"transaction-size-underflow", transactionProof)
       assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"transaction-size-overflow", transactionProof)
       assertOrFraud(eq(size, add(TransactionLeaf.length(leaf), 2)), error"transaction-length", transactionProof)
 
