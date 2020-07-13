@@ -1,4 +1,4 @@
-const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { test, utils, overrides } = require('@fuel-js/environment');
 const { chunk, pack, combine } = require('@fuel-js/common/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
@@ -64,12 +64,12 @@ module.exports = test('withdraw', async t => { try {
       data: [deposit],
       metadata: [tx.MetadataDeposit(deposit)],
       witnesses: [t.wallets[0]],
-      outputs: [tx.OutputUTXO({
+      outputs: [tx.OutputTransfer({
         amount: 100,
         token: tokenId,
         owner: producer,
       }), opts.invalidOutputType ?
-        tx.OutputUTXO({
+        tx.OutputTransfer({
           amount: 100,
           token: tokenId,
           owner: producer,
@@ -81,7 +81,8 @@ module.exports = test('withdraw', async t => { try {
           ? utils.emptyAddress
           : (opts.registeredAddress ? '0x01' : producer),
       })],
-    }, contract);
+      contract,
+    });
 
 
     // produce it in a block
@@ -118,7 +119,7 @@ module.exports = test('withdraw', async t => { try {
     const proof = tx.TransactionProof({
       block: header,
       root,
-      indexes: { output: 1 },
+      inputOutputIndex: 1,
       transactions: txs,
       transactionIndex: 0,
       token,

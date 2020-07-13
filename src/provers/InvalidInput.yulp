@@ -14,7 +14,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
       // Position in memory of input from transaction proof
       let input := selectInput(transactionProof)
       // Position in memory of metadata from transaction proof
-      let metadata := selectMetadata(transactionProof, TransactionProof.input(transactionProof))
+      let metadata := selectMetadata(transactionProof, TransactionProof.inputOutputIndex(transactionProof))
 
       // Special case: handle Deposit input
       if eq(Input.type(input), InputType.Deposit) {
@@ -85,7 +85,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
 
       // Check that output index in input proof matches with output index in transaction proof
       require(eq(Metadata.outputIndex(metadata),
-        TransactionProof.output(inputProof)), error"output-index-mismatch")
+        TransactionProof.inputOutputIndex(inputProof)), error"output-index-mismatch")
 
       // Output type must not be Withdraw of Return (those outputs can't be spent and are proven elsewhere)
       assertOrFraud(neq(Output.type(output), OutputType.Withdraw),

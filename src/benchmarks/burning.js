@@ -1,6 +1,6 @@
 // 75,000 one-off points burning
 
-const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { test, utils, overrides } = require('@fuel-js/environment');
 const { chunk, pack, combine } = require('@fuel-js/common/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');

@@ -1,4 +1,4 @@
-const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { test, utils, overrides } = require('@fuel-js/environment');
 const { chunk, pack, combine, chunkJoin } = require('@fuel-js/common/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
@@ -22,10 +22,12 @@ module.exports = test('proveInvalidSum', async t => { try {
     let token = utils.emptyAddress;
     let tokenId = '0x00';
     let numTokens = 1;
+    const approxTxSize = 207; // root fee
+    const fee = 1; // root fee
 
     // try an ether deposit
     const funnela = await contract.funnel(producer);
-    const valuea = utils.bigNumberify(1000);
+    const valuea = utils.bigNumberify(1000 + approxTxSize);
 
     if (useErc20 === true) {
       await t.wait(erc20.transfer(funnela, valuea, overrides), 'erc20 transfer');
@@ -82,14 +84,14 @@ module.exports = test('proveInvalidSum', async t => { try {
         tx.InputDeposit({
           owner: producer,
         }),
-        tx.InputUTXO({}),
-        tx.InputUTXO({}),
+        tx.InputTransfer({}),
+        tx.InputTransfer({}),
       ],
-      outputs: [tx.OutputUTXO({
+      outputs: [tx.OutputTransfer({
         amount: 100,
         token: tokenId,
         owner: producer,
-      }), tx.OutputUTXO({
+      }), tx.OutputTransfer({
         amount: attemptSpendOverflow ? 101 : 100,
         token: tokenId,
         owner: producer,
@@ -98,7 +100,8 @@ module.exports = test('proveInvalidSum', async t => { try {
         token: tokenId,
         owner: producer,
       })],
-    }, contract);
+      contract,
+    });
 
     // produce it in a block
     const txs = [transaction];
@@ -107,8 +110,10 @@ module.exports = test('proveInvalidSum', async t => { try {
       merkleTreeRoot: merkleTreeRoot(txs),
       commitmentHash: utils.keccak256(combine(txs)),
       rootLength: utils.hexDataLength(combine(txs)),
+      feeToken: tokenId,
+      fee,
     }));
-    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot.get(), 0, 0,
+    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot.get(), tokenId, fee,
       combine(txs), overrides),
       'valid submit', errors);
     const header = new BlockHeader({
@@ -133,7 +138,7 @@ module.exports = test('proveInvalidSum', async t => { try {
       block: header,
       root,
       transactions: txs,
-      indexes: { output: 0 },
+      inputOutputIndex: 0,
       transactionIndex: 0,
       token,
     });

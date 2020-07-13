@@ -1,4 +1,4 @@
-const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { test, utils, overrides } = require('@fuel-js/environment');
 const { chunk, pack, combine } = require('@fuel-js/common/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
@@ -61,7 +61,7 @@ module.exports = test('proveInvalidInput', async t => { try {
       metadata: [ tx.MetadataDeposit( deposit.object() ) ],
       witnesses: [ t.wallets[0] ],
       data: [ deposit ],
-      outputs: [ tx.OutputUTXO({
+      outputs: [ tx.OutputTransfer({
         amount: 100,
         token: tokenId,
         owner: producer,
@@ -79,9 +79,10 @@ module.exports = test('proveInvalidInput', async t => { try {
         digest: utils.keccak256(utils.emptyBytes32),
         returnOwner: producer,
       }) ],
-    }, contract);
+      contract,
+    });
 
-    let inputs = [ tx.InputUTXO({
+    let inputs = [ tx.InputTransfer({
       witnessReference: 0,
     }) ];
     let metadata = [ tx.Metadata({
@@ -244,7 +245,7 @@ module.exports = test('proveInvalidInput', async t => { try {
       metadata,
       witnesses: [ t.wallets[0] ],
       data,
-      outputs: [tx.OutputUTXO({
+      outputs: [tx.OutputTransfer({
         amount: 100,
         token: tokenId,
         owner: producer,
@@ -253,7 +254,8 @@ module.exports = test('proveInvalidInput', async t => { try {
         token: tokenId,
         owner: producer,
       })],
-    }, contract);
+      contract,
+    });
 
 
     // produce it in a block
@@ -350,9 +352,7 @@ module.exports = test('proveInvalidInput', async t => { try {
         root,
         rootIndex: 0,
         transactions: txs,
-        indexes: {
-          output: outputIndex
-        },
+        inputOutputIndex: outputIndex,
         transactionIndex: 0,
         token,
       }).encodePacked();
@@ -363,7 +363,7 @@ module.exports = test('proveInvalidInput', async t => { try {
       root,
       rootIndex: 0,
       transactions: txs,
-      indexes: { input: 0 },
+      inputOutputIndex: 0,
       transactionIndex: opts.fraud === 'empty-transaction' ? 0 : 1,
       token,
     });

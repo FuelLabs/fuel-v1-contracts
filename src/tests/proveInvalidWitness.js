@@ -1,4 +1,4 @@
-const {test, utils, overrides} = require('@fuel-js/common/environment');
+const {test, utils, overrides} = require('@fuel-js/environment');
 const {chunk, pack, combine} = require('@fuel-js/common/struct');
 const {bytecode, abi, errors} = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
@@ -69,7 +69,7 @@ module.exports = test('proveInvalidWitness', async t => {
       }
 
       let specifiedOutputs = [
-        tx.OutputUTXO({
+        tx.OutputTransfer({
           amount: 100,
           token: tokenId,
           owner,
@@ -107,8 +107,8 @@ module.exports = test('proveInvalidWitness', async t => {
             metadata: [tx.MetadataDeposit(deposit)],
             data: [deposit.keccak256()],
             outputs: specifiedOutputs,
-          },
-          contract);
+            contract,
+          });
 
       let utxo = new tx.UTXO({
         transactionHashId: transaction.transactionHashId(),
@@ -127,7 +127,7 @@ module.exports = test('proveInvalidWitness', async t => {
             utils.emptyAddress,
       });
 
-      let txInputs = [tx.InputUTXO({
+      let txInputs = [tx.InputTransfer({
         witnessReference: 0,
       })];
 
@@ -219,13 +219,13 @@ module.exports = test('proveInvalidWitness', async t => {
             witnesses: txWitnesses,
             metadata: txMetadata,
             data,
-            outputs: [tx.OutputUTXO({
+            outputs: [tx.OutputTransfer({
               amount: 100,
               token: tokenId,
               owner: producer,
             })],
-          },
-          contract);
+            contract,
+          });
 
       if (opts.caller) {
         const txBId = transactionB.transactionHashId();
@@ -304,16 +304,13 @@ module.exports = test('proveInvalidWitness', async t => {
       header.properties.ethereumBlockNumber.set(block.events[0].blockNumber);
       t.equalBig(await contract.blockTip(), 1, 'tip');
 
-      const rootA = await RootHeader.fromLogsByHash(
-          root.keccak256Packed(), contract, true);
-
       // submit a withdrawal proof
       let proof = tx.TransactionProof({
         block: header,
         root,
         rootIndex: 0,
         transactions: txs,
-        indexes: {output: 0},
+        inputOutputIndex: 0,
         transactionIndex: 1,
         token: opts.commitAddress ? (opts.funnel ? outputOwner : producer) :
                                     outputOwner,
@@ -321,10 +318,10 @@ module.exports = test('proveInvalidWitness', async t => {
                                        outputOwner,
       });
 
-      let inputsOutputIndex = 0;
+      let inputOutputIndex = 0;
 
       if (opts.revert === 'output-id') {
-        inputsOutputIndex = 1;
+        inputOutputIndex = 1;
       }
 
       if (inputs === null) {
@@ -333,7 +330,7 @@ module.exports = test('proveInvalidWitness', async t => {
                      root,
                      rootIndex: 0,
                      transactions: txs,
-                     indexes: {output: inputsOutputIndex},
+                     inputOutputIndex,
                      transactionIndex: 0,
                      token: opts.commitAddress ?
                          (opts.funnel ? outputOwner : producer) :
@@ -370,13 +367,13 @@ module.exports = test('proveInvalidWitness', async t => {
               witnesses: txWitnesses,
               metadata: txMetadata,
               data,
-              outputs: [tx.OutputUTXO({
+              outputs: [tx.OutputTransfer({
                 amount: 100,
                 token: tokenId,
                 owner: producer,
               })],
-            },
-            contract);
+              contract,
+            });
 
         if (opts.caller) {
           const callerTx3 =
@@ -436,7 +433,7 @@ module.exports = test('proveInvalidWitness', async t => {
           root: root2,
           rootIndex: 0,
           transactions: txs2,
-          indexes: {output: 0},
+          inputOutputIndex: 0,
           transactionIndex: 0,
           token: producer,
         });

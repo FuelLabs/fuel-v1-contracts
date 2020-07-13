@@ -1,4 +1,4 @@
-const { test, utils, overrides, provider } = require('@fuel-js/common/environment');
+const { test, utils, overrides, provider } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const ERC20 = require('../builds/ERC20.json');
 const Revert = require('../builds/Revert.json');

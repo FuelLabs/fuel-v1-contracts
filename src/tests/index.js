@@ -2,6 +2,7 @@
 
   await require('./constructor');
   await require('./deposit');
+  await require('./htlc');
   await require('./withdraw');
   await require('./bondWithdraw');
   await require('./verifyHeader');
@@ -14,5 +15,6 @@
   await require('./proveInvalidTransaction');
   await require('./proveMalformedBlock');
   await require('./proveInvalidInput');
+  await require('./ownedProxy');
 
 })();
