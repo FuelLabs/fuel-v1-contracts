@@ -293,7 +293,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       let size := TransactionLeaf.metadata.length(leaf)
 
       assertOrFraud(gt(size, 0), error"metadata-size-underflow", transactionProof)
-      assertOrFraud(lte(size, OUTPUTS_MAX), error"metadata-size-overflow", transactionProof)
+      assertOrFraud(lte(size, INPUTS_MAX), error"metadata-size-overflow", transactionProof)
 
       size := TransactionLeaf.witnesses.length(leaf)
 
