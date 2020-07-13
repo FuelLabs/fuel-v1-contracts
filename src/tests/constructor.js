@@ -1,4 +1,4 @@
-const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { test, utils, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const block = require('@fuel-js/protocol/src/block');
 const { defaults } = require('./harness.js');

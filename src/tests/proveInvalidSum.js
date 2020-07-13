@@ -1,4 +1,4 @@
-const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { test, utils, overrides } = require('@fuel-js/environment');
 const { chunk, pack, combine, chunkJoin } = require('@fuel-js/common/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
@@ -84,14 +84,14 @@ module.exports = test('proveInvalidSum', async t => { try {
         tx.InputDeposit({
           owner: producer,
         }),
-        tx.InputUTXO({}),
-        tx.InputUTXO({}),
+        tx.InputTransfer({}),
+        tx.InputTransfer({}),
       ],
-      outputs: [tx.OutputUTXO({
+      outputs: [tx.OutputTransfer({
         amount: 100,
         token: tokenId,
         owner: producer,
-      }), tx.OutputUTXO({
+      }), tx.OutputTransfer({
         amount: attemptSpendOverflow ? 101 : 100,
         token: tokenId,
         owner: producer,
@@ -100,7 +100,8 @@ module.exports = test('proveInvalidSum', async t => { try {
         token: tokenId,
         owner: producer,
       })],
-    }, contract);
+      contract,
+    });
 
     // produce it in a block
     const txs = [transaction];
@@ -137,7 +138,7 @@ module.exports = test('proveInvalidSum', async t => { try {
       block: header,
       root,
       transactions: txs,
-      indexes: { output: 0 },
+      inputOutputIndex: 0,
       transactionIndex: 0,
       token,
     });

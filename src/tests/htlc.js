@@ -1,4 +1,4 @@
-const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { test, utils, overrides } = require('@fuel-js/environment');
 const ERC20 = require('../builds/ERC20.json');
 const HTLC = require('../builds/HTLC.json');
 const { defaults } = require('./harness');

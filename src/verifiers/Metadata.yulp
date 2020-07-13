@@ -78,7 +78,7 @@ object "MetadataVerifier" is "TransactionProof", "Transaction" {
       // Output index in input metadata must match output index in transaction proof
       if eq(verified, true) {
         require(
-          eq(Metadata.outputIndex(inputMetadata), TransactionProof.output(transactionProof)),
+          eq(Metadata.outputIndex(inputMetadata), TransactionProof.inputOutputIndex(transactionProof)),
           error"output-index-mismatch"
         )
       }

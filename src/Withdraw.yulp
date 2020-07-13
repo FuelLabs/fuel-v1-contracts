@@ -48,7 +48,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
 
       // Get transaction details
       let transactionLeafHash := TransactionProof.transaction.keccak256(transactionProof)
-      let outputIndex := TransactionProof.output(transactionProof)
+      let outputIndex := TransactionProof.inputOutputIndex(transactionProof)
       let blockHeight := TransactionProof.blockHeight(transactionProof)
 
       // Construct withdrawal ID

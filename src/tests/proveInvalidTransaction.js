@@ -1,4 +1,4 @@
-const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { test, utils, overrides } = require('@fuel-js/environment');
 const { chunk, pack, combine } = require('@fuel-js/common/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
@@ -191,7 +191,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
 
-    let outputs = [tx.OutputUTXO({
+    let outputs = [tx.OutputTransfer({
       amount: 100,
       token: tokenId,
       owner: producer,
@@ -210,7 +210,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-token-length-underflow') {
-      const invalidOutput = tx.OutputUTXO({
+      const invalidOutput = tx.OutputTransfer({
         token: [],
         amount: 45,
         owner: producer,
@@ -219,7 +219,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-token-length-overflow') {
-      const invalidOutput = tx.OutputUTXO({
+      const invalidOutput = tx.OutputTransfer({
         token: utils.emptyBytes32 + '00',
         amount: 45,
         owner: producer,
@@ -228,7 +228,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-token-id-overflow') {
-      const invalidOutput = tx.OutputUTXO({
+      const invalidOutput = tx.OutputTransfer({
         token: '0x02',
         amount: 45,
         owner: producer,
@@ -237,7 +237,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-amount-underflow') {
-      const invalidOutput = tx.OutputUTXO({
+      const invalidOutput = tx.OutputTransfer({
         token: '0x01',
         amount: 0,
         owner: producer,
@@ -248,7 +248,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-amount-mod') {
-      const invalidOutput = tx.OutputUTXO({
+      const invalidOutput = tx.OutputTransfer({
         token: '0x01',
         amount: 0,
         owner: producer,
@@ -259,7 +259,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-amount-overflow') {
-      const invalidOutput = tx.OutputUTXO({
+      const invalidOutput = tx.OutputTransfer({
         token: '0x01',
         amount: 0,
         owner: producer,
@@ -270,7 +270,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-amount-overflow') {
-      const invalidOutput = tx.OutputUTXO({
+      const invalidOutput = tx.OutputTransfer({
         token: '0x01',
         amount: 45,
         owner: producer,
@@ -281,7 +281,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-owner-underflow') {
-      const invalidOutput = tx.OutputUTXO({
+      const invalidOutput = tx.OutputTransfer({
         token: '0x01',
         amount: 45,
         owner: [],
@@ -290,7 +290,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-owner-overflow') {
-      const invalidOutput = tx.OutputUTXO({
+      const invalidOutput = tx.OutputTransfer({
         token: '0x01',
         amount: 45,
         owner: utils.hexZeroPad('0xaa', 21),
@@ -299,7 +299,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-owner-id-overflow') {
-      const invalidOutput = tx.OutputUTXO({
+      const invalidOutput = tx.OutputTransfer({
         token: '0x01',
         amount: 45,
         owner: '0x01',
@@ -355,7 +355,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     if (opts.fraud === 'outputs-type') {
-      const invalidOutput = tx.OutputUTXO({});
+      const invalidOutput = tx.OutputTransfer({});
       invalidOutput.properties.type.set('0x05');
       outputs = [invalidOutput];
     }
@@ -368,7 +368,8 @@ module.exports = test('proveInvalidTransaction', async t => { try {
       data: [deposit],
       inputs,
       outputs,
-    }, contract);
+      contract,
+    });
 
     if (opts.fraud === 'transaction-length') {
       transaction.properties.length.set(45);
@@ -408,7 +409,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
       block: header,
       root,
       transactions: txs,
-      indexes: { output: 1 },
+      inputOutputIndex: 1,
       transactionIndex: 0,
       token,
     });

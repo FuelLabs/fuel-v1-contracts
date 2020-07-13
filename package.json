@@ -40,7 +40,8 @@
   "homepage": "https://github.com/fuellabs/fuel#readme",
   "devDependencies": {
     "ethers": "^4.0.47",
-    "@fuel-js/common": "^0.0.4",
-    "@fuel-js/protocol": "^0.0.2"
+    "@fuel-js/common": "^0.0.6",
+    "@fuel-js/environment": "^0.0.6",
+    "@fuel-js/protocol": "^0.0.9"
   }
 }

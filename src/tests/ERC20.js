@@ -1,4 +1,4 @@
-const { test, utils, deploy, wallets, overrides } = require('@fuel-js/common/environment');
+const { test, utils, deploy, wallets, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../builds/ERC20.json');
 
 module.exports = test('ERC20', async t => {

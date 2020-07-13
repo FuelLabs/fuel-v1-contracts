@@ -1,4 +1,4 @@
-const { test, utils, overrides } = require('@fuel-js/common/environment');
+const { test, utils, overrides } = require('@fuel-js/environment');
 const { chunk, pack, combine } = require('@fuel-js/common/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
@@ -58,7 +58,7 @@ module.exports = test('proveDoubleSpend', async t => { try {
       witnesses: [ t.wallets[0] ],
       metadata: [ tx.MetadataDeposit(deposit) ],
       data: [ deposit ],
-      outputs: [ tx.OutputUTXO({
+      outputs: [ tx.OutputTransfer({
         amount: 100,
         token: tokenId,
         owner: producer,
@@ -67,7 +67,8 @@ module.exports = test('proveDoubleSpend', async t => { try {
         token: tokenId,
         owner: producer,
       }) ],
-    }, contract);
+      contract,
+    });
     const transactionB = await tx.Transaction({
       inputs: [tx.InputDeposit({
         witnessReference: 0,
@@ -76,7 +77,7 @@ module.exports = test('proveDoubleSpend', async t => { try {
       witnesses: [ t.wallets[0] ],
       metadata: [ tx.MetadataDeposit(deposit) ],
       data: [ deposit ],
-      outputs: [tx.OutputUTXO({
+      outputs: [tx.OutputTransfer({
         amount: 100,
         token: tokenId,
         owner: producer,
@@ -85,7 +86,8 @@ module.exports = test('proveDoubleSpend', async t => { try {
         token: tokenId,
         owner: producer,
       })],
-    }, contract);
+      contract,
+    });
 
 
     // produce it in a block
@@ -115,15 +117,13 @@ module.exports = test('proveDoubleSpend', async t => { try {
     header.properties.ethereumBlockNumber.set(block.events[0].blockNumber);
     t.equalBig(await contract.blockTip(), 1, 'tip');
 
-    const rootA = await RootHeader.fromLogsByHash(root.keccak256Packed(), contract, true);
-
     // submit a withdrawal proof
     const proof = tx.TransactionProof({
       block: header,
       root,
       rootIndex: 0,
       transactions: txs,
-      indexes: { output: 1 },
+      inputOutputIndex: 0,
       transactionIndex: 0,
       token,
     });
@@ -132,11 +132,10 @@ module.exports = test('proveDoubleSpend', async t => { try {
       root,
       rootIndex: 0,
       transactions: txs,
-      indexes: { output: 1 },
+      inputOutputIndex: 0,
       transactionIndex: 1,
       token,
     });
-
 
     const fraud = await t.wait(contract.proveDoubleSpend(proof.encodePacked(), proofB.encodePacked(), {
       ...overrides,
