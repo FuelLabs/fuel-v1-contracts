@@ -77,8 +77,8 @@ module.exports = test('proveMalformedBlock', async t => { try {
         t.equalBig(await contract.blockTip(), 1, 'tip');
       }
 
-      t.ok(txr.gasUsed.lt(2000000), 'gas used');
-      t.ok(txr.cumulativeGasUsed.lt(2000000), 'cumu. gas used');
+      t.ok(txr.gasUsed.lt(2300000), 'gas used');
+      t.ok(txr.cumulativeGasUsed.lt(2300000), 'cumu. gas used');
     }
 
     // one leaf
