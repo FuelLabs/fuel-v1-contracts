@@ -103,6 +103,26 @@ module.exports = test('proveInvalidTransaction', async t => { try {
       inputs = [tx.Input({})];
     }
 
+    if (opts.fraud === 'metadata-root-overflow' && opts.sameBlock) {
+      metadata = [tx.Metadata({
+        blockHeight: 1,
+        rootIndex: 1,
+        transactionIndex: 0,
+        outputIndex: 0,
+      })];
+      inputs = [tx.Input({})];
+    }
+
+    if (opts.fraud === 'metadata-index-overflow' && opts.sameRoot) {
+      metadata = [tx.Metadata({
+        blockHeight: 1,
+        rootIndex: 0,
+        transactionIndex: 1,
+        outputIndex: 0,
+      })];
+      inputs = [tx.Input({})];
+    }
+
     if (opts.fraud === 'metadata-index-overflow') {
       metadata = [tx.Metadata({
         blockHeight: 1,
@@ -479,7 +499,13 @@ module.exports = test('proveInvalidTransaction', async t => { try {
   await state ({ useErc20: true, fraud: 'metadata-deposit-token-overflow' });
   await state ({ useErc20: true, fraud: 'metadata-height-underflow' });
   await state ({ useErc20: true, fraud: 'metadata-height-overflow' });
+
+  await state ({ useErc20: true, fraud: 'metadata-height-overflow', sameBlock: true });
+
   await state ({ useErc20: true, fraud: 'metadata-index-overflow' });
+
+  await state ({ useErc20: true, fraud: 'metadata-index-overflow', sameRoot: true });
+
   await state ({ useErc20: true, fraud: 'metadata-output-overflow' });
 
 
