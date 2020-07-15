@@ -4,6 +4,31 @@ import "./Fraud.yulp"
 /// @title Invalid transaction prover
 object "InvalidTransaction" is "TransactionProof", "Fraud" {
   code {
+    /// @notice Helper: prove transaction proof index is not fraudulant
+    /// @param metadata Position in memory of metadata object (a metadata).
+    /// @param transactionProof Position in memory of transaction proof.
+    function proveTransactionIndex(metadata, transactionProof) {
+      // Transaction index must be bounded
+      assertOrFraud(gte(Metadata.transactionIndex(metadata), 0),
+        error"metadata-index-underflow", transactionProof)
+
+      // If the block height and root index is the current
+      switch and(
+        eq(Metadata.blockHeight(metadata), TransactionProof.blockHeight(transactionProof)),
+        eq(Metadata.rootIndex(metadata), TransactionProof.rootIndex(transactionProof))
+      )
+      case 1 {
+        // Root index overflow max now set to current Transaction index
+        assertOrFraud(lte(Metadata.transactionIndex(metadata), TransactionProof.transactionIndex(transactionProof)),
+          error"metadata-index-overflow", transactionProof)
+      }
+      case 0 {
+        // Overflow is the max transaction index (further overflow enforced in invalidInput)
+        assertOrFraud(lt(Metadata.transactionIndex(metadata), MAX_TRANSACTIONS_IN_ROOT),
+          error"metadata-index-overflow", transactionProof)
+      }
+    }
+
     /// @notice Helper: prove metadata is invalid.
     /// @param leaf Position in memory of leaf object (a transaction).
     /// @param transactionProof Position in memory of transaction proof.
@@ -52,14 +77,23 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
           // Root index must be bounded
           assertOrFraud(gte(Metadata.rootIndex(metadata), 0),
             error"metadata-root-underflow", transactionProof)
-          assertOrFraud(lt(Metadata.rootIndex(metadata), TRANSACTION_ROOTS_MAX),
-            error"metadata-root-overflow", transactionProof)
 
-          // Transaction index must be bounded
-          assertOrFraud(gte(Metadata.transactionIndex(metadata), 0),
-            error"metadata-index-underflow", transactionProof)
-          assertOrFraud(lt(Metadata.transactionIndex(metadata), MAX_TRANSACTIONS_IN_ROOT),
-            error"metadata-index-overflow", transactionProof)
+          // If metadata is referencing current block
+          switch eq(Metadata.blockHeight(metadata),
+            TransactionProof.blockHeight(transactionProof))
+          case 1 {
+            // Overflow is now the current root index
+            assertOrFraud(lte(Metadata.rootIndex(metadata), TransactionProof.rootIndex(transactionProof)),
+              error"metadata-root-overflow", transactionProof)
+          }
+          case 0 {
+            // Overflow is the max root index (further overflow enforced in invalidInput)
+            assertOrFraud(lt(Metadata.rootIndex(metadata), TRANSACTION_ROOTS_MAX),
+              error"metadata-root-overflow", transactionProof)
+          }
+
+          // Prove correctness of transaction proof index
+          proveTransactionIndex(metadata, transactionProof)
 
           // Output index must be bounded
           assertOrFraud(gte(Metadata.outputIndex(metadata), 0),
