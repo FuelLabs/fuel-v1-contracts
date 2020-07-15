@@ -12,7 +12,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     /// @return Sum of inputs in token.
     function ins(transactionProof, inputProofs) -> sum {
       let pos := TransactionLeaf.inputs.position(TransactionProof.transaction.position(transactionProof))
-      let token := tokenId(TransactionProof.token(transactionProof))
+      let token := tokenId(TransactionProof.tokenAddress(transactionProof))
 
       for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(transactionProof))) {} {
         switch Input.type(pos)
@@ -80,7 +80,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     /// @param transactionProof Position in memory of transaction proof.
     /// @param inputProofs Position in memory of inputs proofs.
     function proveSum(transactionProof, inputProofs) {
-      let token := tokenId(TransactionProof.token(transactionProof))
+      let token := tokenId(TransactionProof.tokenAddress(transactionProof))
       let outsum := add(rootFee(transactionProof, token), outs(token, transactionProof))
       let insum := ins(transactionProof, inputProofs)
 
