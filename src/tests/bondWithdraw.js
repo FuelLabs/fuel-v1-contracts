@@ -70,7 +70,7 @@ module.exports = test('bondWithdraw', async t => { try {
     t.equalBig(await contract.blockTip(), 1, 'tip');
     t.equal(bwtx.logs.length, 1, 'length');
     t.equalBig(bwtx.events[0].args.owner, producer, 'owner');
-    t.equalBig(bwtx.events[0].args.token, 0, 'token');
+    t.equalBig(bwtx.events[0].args.tokenAddress, 0, 'tokenAddress');
     t.equalBig(bwtx.events[0].args.amount, await contract.BOND_SIZE(), 'amount');
     t.equalBig(bwtx.events[0].args.blockHeight, header.properties.height.get(),
       'blockHeight');
