@@ -49,9 +49,9 @@ module.exports = test('deposit', async t => { try {
     await t.balanceEqual(contract.address, valuea, 'value');
     t.equal(etx.events.length, 1, 'len events');
     t.equal(etx.events[0].event, 'DepositMade', 'event');
-    t.equal(etx.events[0].args.account, producer, 'account');
-    t.equal(etx.events[0].args.token, utils.emptyAddress, 'token');
-    t.equalBig(etx.events[0].args.amount, valuea, 'amount');
+    t.equal(etx.events[0].args.owner, producer, 'account');
+    t.equalBig(etx.events[0].args.token, 0, 'token');
+    t.equalBig(etx.events[0].args.value, valuea, 'value');
 
 
 
@@ -79,9 +79,9 @@ module.exports = test('deposit', async t => { try {
     t.equal(ttx.events[0].args.token, token.address, 'token');
 
     t.equal(ttx.events[2].event, 'DepositMade', 'event');
-    t.equal(ttx.events[2].args.account, producer, 'account');
-    t.equal(ttx.events[2].args.token, token.address, 'token');
-    t.equalBig(ttx.events[2].args.amount, tokenValue, 'amount');
+    t.equal(ttx.events[2].args.owner, producer, 'account');
+    t.equalBig(ttx.events[2].args.token, 1, 'token');
+    t.equalBig(ttx.events[2].args.value, tokenValue, 'amount');
 
     await t.revert(contract.deposit(producer, utils.emptyAddress, overrides),
       errors['value-underflow'], 'value underflow', errors);
