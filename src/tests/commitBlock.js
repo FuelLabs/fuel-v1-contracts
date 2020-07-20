@@ -31,7 +31,6 @@ module.exports = test('commitBlock', async t => { try {
     t.equalBig(atx.events[0].args.merkleTreeRoot, merkleRootA, 'merkleRootA');
     t.equalBig(atx.events[0].args.commitmentHash, utils.keccak256(emptyTxs), 'commitmentHash');
 
-
     // commit block
     t.equalBig(await contract.blockTip(), 0, 'tip');
     const header = (new BlockHeader({
