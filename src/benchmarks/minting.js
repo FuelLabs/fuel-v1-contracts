@@ -1,7 +1,7 @@
 // 100k Points Claims One-off points burning
 
 const { test, utils, overrides } = require('@fuel-js/environment');
-const { chunk, pack, combine } = require('@fuel-js/common/struct');
+const { chunk, pack, combine } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
@@ -97,7 +97,7 @@ module.exports = test('100k Points Claims', async t => { try {
       feeToken: tokenId,
     }));
     rootHashes.push(root.keccak256Packed());
-    let rootTx = await contract.commitRoot(root.properties.merkleTreeRoot.get(), tokenId, chunk, combine(txs), overrides);
+    let rootTx = await contract.commitRoot(root.properties.merkleTreeRoot().get(), tokenId, chunk, combine(txs), overrides);
     rootTx = await rootTx.wait();
     rootsCommitted += 1;
     cumulativeGasUsed = cumulativeGasUsed.add(rootTx.cumulativeGasUsed);

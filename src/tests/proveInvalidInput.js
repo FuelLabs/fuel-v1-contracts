@@ -1,5 +1,5 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
-const { chunk, pack, combine } = require('@fuel-js/common/struct');
+const { chunk, pack, combine } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
@@ -271,7 +271,7 @@ module.exports = test('proveInvalidInput', async t => { try {
       commitmentHash: utils.keccak256(combine(txs)),
       rootLength: utils.hexDataLength(combine(txs)),
     }));
-    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot.get(), 0, 0, combine(txs), overrides),
+    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), 0, 0, combine(txs), overrides),
       'valid submit', errors);
 
     const root2 = (new RootHeader({
@@ -281,7 +281,7 @@ module.exports = test('proveInvalidInput', async t => { try {
       rootLength: utils.hexDataLength(combine(txs)),
       fee: 500,
     }));
-    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot.get(), 0, 500, combine(txs), overrides),
+    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), 0, 500, combine(txs), overrides),
       'valid submit', errors);
 
     const header = (new BlockHeader({
@@ -298,7 +298,7 @@ module.exports = test('proveInvalidInput', async t => { try {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), 'commit block', errors);
-    header.properties.ethereumBlockNumber.set(block.events[0].blockNumber);
+    header.properties.blockNumber().set(block.events[0].blockNumber);
     t.equalBig(await contract.blockTip(), 1, 'tip');
 
     if (opts.fraud === 'input-transaction-index-overflow') {

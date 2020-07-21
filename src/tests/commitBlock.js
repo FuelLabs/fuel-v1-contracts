@@ -47,7 +47,7 @@ module.exports = test('commitBlock', async t => { try {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), 'commit block', errors);
-    header.properties.ethereumBlockNumber.set(ctx.events[0].blockNumber);
+    header.properties.blockNumber().set(ctx.events[0].blockNumber);
     t.equalBig(await contract.blockTip(), 1, 'tip');
 
     t.equal(ctx.logs.length, 1, 'length');
@@ -171,7 +171,7 @@ module.exports = test('commitBlock', async t => { try {
 
 
 
-    header.properties.ethereumBlockNumber.set(ctx.events[0].blockNumber);
+    header.properties.blockNumber().set(ctx.events[0].blockNumber);
     const header2 = (new BlockHeader({
       producer,
       height: 2,
@@ -218,7 +218,7 @@ module.exports = test('commitBlock', async t => { try {
 
     // valid commit block from other non producer user
     await t.increaseBlock(await other.SUBMISSION_DELAY());
-    header2.properties.ethereumBlockNumber.set(cvtx.events[0].blockNumber);
+    header2.properties.blockNumber().set(cvtx.events[0].blockNumber);
     const header3 = (new BlockHeader({
       producer: producerB,
       height: 3,

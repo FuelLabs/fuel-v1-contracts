@@ -1,7 +1,7 @@
 // 25,000 subscription transactions
 
 const { test, utils, overrides } = require('@fuel-js/environment');
-const { chunk, pack, combine } = require('@fuel-js/common/struct');
+const { chunk, pack, combine } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
@@ -72,7 +72,7 @@ module.exports = test('25k Subscription Transactions', async t => { try {
       feeToken: tokenId,
     }));
     rootHashes.push(root.keccak256Packed());
-    let rootTx = await contract.commitRoot(root.properties.merkleTreeRoot.get(), tokenId, chunk, combine(txs), overrides);
+    let rootTx = await contract.commitRoot(root.properties.merkleTreeRoot().get(), tokenId, chunk, combine(txs), overrides);
     rootTx = await rootTx.wait();
     rootsCommitted += 1;
     cumulativeGasUsed = cumulativeGasUsed.add(rootTx.cumulativeGasUsed);

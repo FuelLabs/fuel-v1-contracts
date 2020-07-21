@@ -1,5 +1,5 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
-const { chunk, pack, combine } = require('@fuel-js/common/struct');
+const { chunk, pack, combine } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
@@ -165,7 +165,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
         owner: producer,
         blockNumber: '0x00',
       });
-      invalidWitness.properties.type.set('0x03');
+      invalidWitness.properties.type().set('0x03');
       witnesses = [invalidWitness];
     }
 
@@ -174,7 +174,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
         owner: producer,
         blockNumber: '0x00',
       })];
-      witnesses[0].properties.type.set('0x00');
+      witnesses[0].properties.type().set('0x00');
     }
 
     if (opts.fraud === 'witnesses-index-overflow') {
@@ -191,7 +191,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
 
     if (opts.fraud === 'inputs-type-overflow') {
       const invalidInput = tx.Input({});
-      invalidInput.properties.type.set('0x05');
+      invalidInput.properties.type().set('0x05');
       inputs = [invalidInput];
     }
 
@@ -206,7 +206,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
 
     if (opts.fraud === 'inputs-size') {
       const invalidInput = tx.Input({});
-      invalidInput.properties.type.set('0x01');
+      invalidInput.properties.type().set('0x01');
       inputs = [invalidInput];
     }
 
@@ -262,8 +262,8 @@ module.exports = test('proveInvalidTransaction', async t => { try {
         amount: 0,
         owner: producer,
       });
-      invalidOutput.properties.shift.set(1);
-      invalidOutput.properties.amount.set([]);
+      invalidOutput.properties.shift().set(1);
+      invalidOutput.properties.amount().set([]);
       outputs = [invalidOutput];
     }
 
@@ -273,8 +273,8 @@ module.exports = test('proveInvalidTransaction', async t => { try {
         amount: 0,
         owner: producer,
       });
-      invalidOutput.properties.shift.set(1);
-      invalidOutput.properties.amount.set(utils.emptyBytes32);
+      invalidOutput.properties.shift().set(1);
+      invalidOutput.properties.amount().set(utils.emptyBytes32);
       outputs = [invalidOutput];
     }
 
@@ -284,8 +284,8 @@ module.exports = test('proveInvalidTransaction', async t => { try {
         amount: 0,
         owner: producer,
       });
-      invalidOutput.properties.shift.set(8);
-      invalidOutput.properties.amount.set(utils.emptyBytes32 + '00');
+      invalidOutput.properties.shift().set(8);
+      invalidOutput.properties.amount().set(utils.emptyBytes32 + '00');
       outputs = [invalidOutput];
     }
 
@@ -295,8 +295,8 @@ module.exports = test('proveInvalidTransaction', async t => { try {
         amount: 45,
         owner: producer,
       });
-      invalidOutput.properties.shift.set(8);
-      invalidOutput.properties.amount.set(utils.emptyBytes32);
+      invalidOutput.properties.shift().set(8);
+      invalidOutput.properties.amount().set(utils.emptyBytes32);
       outputs = [invalidOutput];
     }
 
@@ -376,7 +376,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
 
     if (opts.fraud === 'outputs-type') {
       const invalidOutput = tx.OutputTransfer({});
-      invalidOutput.properties.type.set('0x05');
+      invalidOutput.properties.type().set('0x05');
       outputs = [invalidOutput];
     }
 
@@ -392,7 +392,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     });
 
     if (opts.fraud === 'transaction-length') {
-      transaction.properties.length.set(45);
+      transaction.properties.length().set(45);
     }
 
     // produce it in a block
@@ -403,7 +403,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
       commitmentHash: utils.keccak256(combine(txs)),
       rootLength: utils.hexDataLength(combine(txs)),
     }));
-    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot.get(), 0, 0, combine(txs), overrides),
+    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), 0, 0, combine(txs), overrides),
       'valid submit', errors);
     const header = (new BlockHeader({
       producer,
@@ -419,7 +419,7 @@ module.exports = test('proveInvalidTransaction', async t => { try {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), 'commit block', errors);
-    header.properties.ethereumBlockNumber.set(block.events[0].blockNumber);
+    header.properties.blockNumber().set(block.events[0].blockNumber);
     t.equalBig(await contract.blockTip(), 1, 'tip');
 
 
