@@ -1,5 +1,5 @@
 const {test, utils, overrides} = require('@fuel-js/environment');
-const {chunk, pack, combine} = require('@fuel-js/common/struct');
+const {chunk, pack, combine} = require('@fuel-js/struct');
 const {bytecode, abi, errors} = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
@@ -156,7 +156,7 @@ module.exports = test('proveInvalidWitness', async t => {
         })];
         txMetadata = [tx.MetadataDeposit({
           token: tokenId,
-          blockNumber: deposit.properties.blockNumber.get(),
+          blockNumber: deposit.properties.blockNumber().get(),
         })];
         data = [deposit.keccak256()];
         inputs = deposit.encode();
@@ -169,7 +169,7 @@ module.exports = test('proveInvalidWitness', async t => {
         })];
         txMetadata = [tx.MetadataDeposit({
           token: '0x02',
-          blockNumber: deposit.properties.blockNumber.get(),
+          blockNumber: deposit.properties.blockNumber().get(),
         })];
         data = [deposit.keccak256()];
         inputs = deposit.encode();
@@ -196,7 +196,7 @@ module.exports = test('proveInvalidWitness', async t => {
         })];
         txMetadata = [tx.MetadataDeposit({
           token: tokenId,
-          blockNumber: deposit.properties.blockNumber.get(),
+          blockNumber: deposit.properties.blockNumber().get(),
         })];
         data = [utils.emptyBytes32];
         inputs = deposit.encode();
@@ -282,7 +282,7 @@ module.exports = test('proveInvalidWitness', async t => {
       }));
       await t.wait(
           contract.commitRoot(
-              root.properties.merkleTreeRoot.get(), 0, 0, combine(txs),
+              root.properties.merkleTreeRoot().get(), 0, 0, combine(txs),
               overrides),
           'valid submit', errors);
       const header = (new BlockHeader({
@@ -301,7 +301,7 @@ module.exports = test('proveInvalidWitness', async t => {
             value: await contract.BOND_SIZE(),
           }),
           'commit block', errors);
-      header.properties.ethereumBlockNumber.set(block.events[0].blockNumber);
+      header.properties.blockNumber().set(block.events[0].blockNumber);
       t.equalBig(await contract.blockTip(), 1, 'tip');
 
       // submit a withdrawal proof
@@ -416,7 +416,7 @@ module.exports = test('proveInvalidWitness', async t => {
         }));
         await t.wait(
             contract.commitRoot(
-                root2.properties.merkleTreeRoot.get(), 0, 0, combine(txs2),
+                root2.properties.merkleTreeRoot().get(), 0, 0, combine(txs2),
                 overrides),
             'valid submit', errors);
 

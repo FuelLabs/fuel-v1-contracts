@@ -1,5 +1,5 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
-const { struct, chunk, combine } = require('@fuel-js/common/struct');
+const { struct, chunk, combine } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const { BlockHeader, RootHeader, Leaf,
@@ -53,7 +53,7 @@ module.exports = test('proveMalformedBlock', async t => { try {
         ...overrides,
         value: await contract.BOND_SIZE(),
       }), 'commit block', errors);
-      header.properties.ethereumBlockNumber.set(ctx.events[0].blockNumber);
+      header.properties.blockNumber().set(ctx.events[0].blockNumber);
       t.equalBig(await contract.blockTip(), 1, 'tip');
 
       // submit proof, but block is valid
@@ -150,7 +150,7 @@ module.exports = test('proveMalformedBlock', async t => { try {
       const maxLen = 57000;
       let randomSelectedLeaves = [];
       for (const leaf of randomLeaves) {
-        const len = leaf.properties.data.get().length
+        const len = leaf.properties.data().get().length
         if ((totalLen + len) <= maxLen) {
           randomSelectedLeaves.push(leaf);
           totalLen += len;

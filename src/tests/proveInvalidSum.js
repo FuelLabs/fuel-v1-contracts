@@ -1,5 +1,5 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
-const { chunk, pack, combine, chunkJoin } = require('@fuel-js/common/struct');
+const { chunk, pack, combine, chunkJoin } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
@@ -113,7 +113,7 @@ module.exports = test('proveInvalidSum', async t => { try {
       feeToken: tokenId,
       fee,
     }));
-    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot.get(), tokenId, fee,
+    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), tokenId, fee,
       combine(txs), overrides),
       'valid submit', errors);
     const header = new BlockHeader({
@@ -130,7 +130,7 @@ module.exports = test('proveInvalidSum', async t => { try {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), 'commit block', errors);
-    header.properties.ethereumBlockNumber.set(block.events[0].blockNumber);
+    header.properties.blockNumber().set(block.events[0].blockNumber);
     t.equalBig(await contract.blockTip(), 1, 'tip');
 
     // submit a withdrawal proof

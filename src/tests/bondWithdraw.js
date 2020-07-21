@@ -43,7 +43,7 @@ module.exports = test('bondWithdraw', async t => { try {
       ...overrides,
       value: await contract.BOND_SIZE(),
     }), 'commit block', errors);
-    header.properties.ethereumBlockNumber.set(ctx.events[0].blockNumber);
+    header.properties.blockNumber().set(ctx.events[0].blockNumber);
     t.equalBig(await contract.blockTip(), 1, 'tip');
 
 
@@ -72,7 +72,7 @@ module.exports = test('bondWithdraw', async t => { try {
     t.equalBig(bwtx.events[0].args.owner, producer, 'owner');
     t.equalBig(bwtx.events[0].args.tokenAddress, 0, 'tokenAddress');
     t.equalBig(bwtx.events[0].args.amount, await contract.BOND_SIZE(), 'amount');
-    t.equalBig(bwtx.events[0].args.blockHeight, header.properties.height.get(),
+    t.equalBig(bwtx.events[0].args.blockHeight, header.properties.height().get(),
       'blockHeight');
     t.equalBig(bwtx.events[0].args.rootIndex, 0, 'rootIndex');
     t.equalBig(bwtx.events[0].args.transactionLeafHash, 0, 'transactionLeafHash');

@@ -80,6 +80,6 @@ module.exports = test('owned proxy', async t => {
   const ctx = await t.wait(proxy.transact(contract.address, await contract.BOND_SIZE(), abiCode, overrides),
     'transact commitBlock', OwnedProxy.errors);
 
-  header.properties.ethereumBlockNumber.set(ctx.events[0].blockNumber);
+  header.properties.blockNumber().set(ctx.events[0].blockNumber);
   t.equalBig(await contract.blockTip(), 1, 'tip');
 });
