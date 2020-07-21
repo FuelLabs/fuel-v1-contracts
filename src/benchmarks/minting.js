@@ -38,40 +38,41 @@ module.exports = test('100k Points Claims', async t => { try {
     metadata: [ tx.Metadata() ],
     data: [ tx.UTXO() ],
     inputs: [ tx.Input() ],
-    outputs: [tx.OutputUTXO({
+    outputs: [tx.OutputTransfer({
       amount: utils.parseEther('5.0'),
       token: tokenId,
       owner: [producer],
-    }), tx.OutputUTXO({
+    }), tx.OutputTransfer({
       amount: utils.parseEther('5.0'),
       token: tokenId,
       owner: [producer],
-    }), tx.OutputUTXO({
+    }), tx.OutputTransfer({
       amount: utils.parseEther('5.0'),
       token: tokenId,
       owner: [producer],
-    }), tx.OutputUTXO({
+    }), tx.OutputTransfer({
       amount: utils.parseEther('5.0'),
       token: tokenId,
       owner: [producer],
-    }), tx.OutputUTXO({
+    }), tx.OutputTransfer({
       amount: utils.parseEther('5.0'),
       token: tokenId,
       owner: [producer],
-    }), tx.OutputUTXO({
+    }), tx.OutputTransfer({
       amount: utils.parseEther('5.0'),
       token: tokenId,
       owner: [producer],
-    }), tx.OutputUTXO({
+    }), tx.OutputTransfer({
       amount: utils.parseEther('5.0'),
       token: tokenId,
       owner: [producer],
-    }), tx.OutputUTXO({
+    }), tx.OutputTransfer({
       amount: utils.parseEther('5.0'),
       token: tokenId,
       owner: [producer],
     })],
-  }, contract);
+    contract,
+  });
 
   const transactions = (new Array(transactionsToSimulate))
     .fill(0)
@@ -102,7 +103,9 @@ module.exports = test('100k Points Claims', async t => { try {
     cumulativeGasUsed = cumulativeGasUsed.add(rootTx.cumulativeGasUsed);
   }
 
-  let block = await contract.commitBlock(0, 1, rootHashes.slice(0, 128), {
+  const currentBlock = await t.provider.getBlockNumber();
+  const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
+  let block = await contract.commitBlock(currentBlock, currentBlockHash, 1, rootHashes.slice(0, 128), {
     ...overrides,
     value: await contract.BOND_SIZE(),
   });

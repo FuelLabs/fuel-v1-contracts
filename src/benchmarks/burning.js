@@ -38,18 +38,19 @@ module.exports = test('75k Burn Transactions', async t => { try {
     metadata: [ tx.Metadata() ],
     data: [ tx.UTXO() ],
     inputs: [ tx.Input() ],
-    outputs: [tx.OutputUTXO({
+    outputs: [tx.OutputTransfer({
       amount: utils.parseEther('1.0'),
       token: tokenId,
       owner: ['0x00'], // the null address
     }), tx.OutputReturn({
       data: ['0xaa'], // special burn flag for consistancy
-    }), tx.OutputUTXO({
+    }), tx.OutputTransfer({
       amount: utils.parseEther('5.0'),
       token: tokenId,
       owner: [ownerId],
     })],
-  }, contract);
+    contract,
+  });
 
   const transactions = (new Array(transactionsToSimulate))
     .fill(0)
@@ -79,12 +80,14 @@ module.exports = test('75k Burn Transactions', async t => { try {
     cumulativeGasUsed = cumulativeGasUsed.add(rootTx.cumulativeGasUsed);
   }
 
-  let block = await contract.commitBlock(0, 1, rootHashes.slice(0, 128), {
+  // add in block hashes here!!
+  const currentBlockHash = (await t.provider.getBlock(0)).hash;
+  let block = await contract.commitBlock(0, currentBlockHash, 1, rootHashes.slice(0, 128), {
     ...overrides,
     value: await contract.BOND_SIZE(),
   });
   block = await block.wait();
-  let block2 = await contract.commitBlock(0, 2, rootHashes.slice(128), {
+  let block2 = await contract.commitBlock(0, currentBlockHash, 2, rootHashes.slice(128), {
     ...overrides,
     value: await contract.BOND_SIZE(),
   });
