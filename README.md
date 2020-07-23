@@ -3,13 +3,14 @@
 Fuel
 ===
 
-> Fuel is high-performance optimistic rollup optimized for ERC-20 transfers and swaps, designed for interoperable performance, scale, and efficiency.
+Fuel is high-performance optimistic rollup optimized for ERC-20 transfers and swaps, designed for interoperable performance, scalability, and efficiency.
 
 ![Node.js CI](https://github.com/FuelLabs/fuel/workflows/Node.js%20CI/badge.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/fuellabs_/community)
+[![Community](https://img.shields.io/badge/chat%20on-discord-orange?&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/DDWxYY6)
 
-# Features
+Features
+---
 
 - A complete layer-2 optimistic rollup implementation
 - Efficient (~1536 gas per transaction)
@@ -22,7 +23,8 @@ Fuel
 - Interoperable, any contract or address can use, verify, and control assets on Fuel
 - Fast, ~5 minute entry and exits using HTLCs
 
-# Abstract
+Abstract
+---
 
 Fuel is the most efficient optimistic rollup in the world, featuring stateless transactional throughput that can be validated in parallel on consumer hardware whilst delivering an instantaneous meta-transactional experience for end-users.
 
@@ -32,9 +34,10 @@ Fuel's unique mempool priority aggregator model allows for a fast yet truly cens
 
 See the detailed [specification](https://docs.fuel.sh) for a more intimate overview of the design decisions behind Fuel.
 
-# Building From Source
+Building From Source
+---
 
-## Install Dependencies
+### Install Dependencies
 
 Install [Node.js](https://nodejs.org/en/) `>= v10.16.0`.
 
@@ -44,13 +47,13 @@ Then run:
 npm install
 ```
 
-## Build
+### Build
 
 ```sh
 npm run build
 ```
 
-## Run Tests
+### Run Tests
 
 Run all tests using:
 
@@ -58,7 +61,7 @@ Run all tests using:
 npm test
 ```
 
-## Run Benchmarks
+### Run Benchmarks
 
 Run all benchmarks using:
 
