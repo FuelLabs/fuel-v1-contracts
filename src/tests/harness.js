@@ -7,12 +7,12 @@ const block = require('@fuel-js/protocol/src/block');
 const tx = require('@fuel-js/protocol/src/transaction');
 const { Deposit } = require('@fuel-js/protocol/src/deposit');
 
-const defaults = producer => [
+const defaults = (producer, bondSize = utils.parseEther('1.0')) => [
   producer,
   20,
   20,
   20,
-  utils.parseEther('1.0'),
+  bondSize,
   "Fuel",
   "1.0.0",
   1,
