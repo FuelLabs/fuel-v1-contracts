@@ -1,4 +1,4 @@
-// 100k Points Claims One-off points burning
+// 100k Token Minting
 
 const { test, utils, overrides } = require('@fuel-js/environment');
 const { chunk, pack, combine } = require('@fuel-js/struct');
@@ -11,7 +11,7 @@ const tx = require('@fuel-js/protocol/src/transaction');
 const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('../tests/harness');
 
-module.exports = test('100k Points Claims', async t => { try {
+module.exports = test('100k Token Minting', async t => { try {
 
   const outputsPerDispersalTx = 8;
   const transactionsToSimulate = 100000 / outputsPerDispersalTx;
