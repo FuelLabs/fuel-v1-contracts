@@ -73,8 +73,8 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
 
       // Token address, used for invalid sum proofs
       tokenAddress: address,
-      // TODO what is this?
-      selector: address
+      // Return owner, used for HTLCs
+      returnOwner: address
     )
 
     /// @notice Leaf of transaction Merkle tree.
@@ -110,7 +110,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
 
       // we do this after as the funnel address calc uses memory
       if eq(Output.type(output), OutputType.HTLC) {
-        require(ownerReturnEquates(output, TransactionProof.selector(proof)),
+        require(ownerReturnEquates(output, TransactionProof.returnOwner(proof)),
           error"owner-return-equates")
       }
 
@@ -132,7 +132,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       if eq(Output.type(output), OutputType.HTLC) {
         mstore(add(pos, 192), OutputHTLC.digest(output))
         mstore(add(pos, 224), OutputHTLC.expiry(output))
-        mstore(add(pos, 256), TransactionProof.selector(proof))
+        mstore(add(pos, 256), TransactionProof.returnOwner(proof))
       }
     }
 

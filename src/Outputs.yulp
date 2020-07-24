@@ -146,7 +146,7 @@ object "Outputs" {
       }
     }
 
-    /// @notice Checks Return output owner.
+    /// @notice Checks HTLC's return owner.
     /// @return If output owner matches as bool
     function ownerReturnEquates(output, owner) -> result {
       let len := OutputHTLC.returnOwner.length(output)
