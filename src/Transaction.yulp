@@ -73,7 +73,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
 
       // Token address, used for invalid sum proofs
       tokenAddress: address,
-      // Return owner, used for HTLCs
+      // Return owner, used for HTLCs with expired timelock
       returnOwner: address
     )
 
@@ -110,7 +110,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
 
       // we do this after as the funnel address calc uses memory
       if eq(Output.type(output), OutputType.HTLC) {
-        require(ownerReturnEquates(output, TransactionProof.returnOwner(proof)),
+        require(returnOwnerEquals(output, TransactionProof.returnOwner(proof)),
           error"owner-return-equates")
       }
 

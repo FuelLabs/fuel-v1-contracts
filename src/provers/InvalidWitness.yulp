@@ -51,7 +51,7 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
             switch outputExpired(inputProofs, transactionProof)
 
             case 1 {
-              assertOrFraud(ownerReturnEquates(selectOutput(inputProofs),
+              assertOrFraud(returnOwnerEquals(selectOutput(inputProofs),
                 TransactionProof.input.recoverWitness(transactionProof)),
                 error"htlc-owner-return", transactionProof)
             }
