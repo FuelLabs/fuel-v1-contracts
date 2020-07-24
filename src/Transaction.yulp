@@ -99,16 +99,15 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     function TransactionProof.UTXO.assign(proof, pos) {
       let output := selectOutput(proof)
 
-      // TODO explain these three comments
-      // we do this after to ensure hashing is okay
+      // Return-type outputs are unspendable
       require(neq(Output.type(output), OutputType.Return),
         error"utxo-return")
 
-      // we do this after to ensure hashing is okay
+      // Owner must match
       require(ownerEquates(output, TransactionProof.tokenAddress(proof)),
         error"owner-equates")
 
-      // we do this after as the funnel address calc uses memory
+      // For HTLC UTXOs, return owner must match
       if eq(Output.type(output), OutputType.HTLC) {
         require(returnOwnerEquals(output, TransactionProof.returnOwner(proof)),
           error"owner-return-equates")
