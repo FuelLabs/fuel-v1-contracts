@@ -95,7 +95,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       outputs: [bytes1]
     )
 
-    /// @notice Helper function to save transaction proof in memory for later use.
+    /// @notice Helper function to load a UTXO into memory for later use.
     function TransactionProof.UTXO.assign(proof, pos) {
       let output := selectOutput(proof)
 
@@ -114,7 +114,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
           error"owner-return-equates")
       }
 
-      // Save the proof to memory
+      // Save the UTXO to memory
       mstore(
         pos,
         transactionId(proof),
@@ -128,7 +128,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
         0  // return witness
       )
 
-      // If the output is an HTLC type, make sure to save the extra required fields
+      // If the UTXO is an HTLC type, make sure to save the extra required fields
       if eq(Output.type(output), OutputType.HTLC) {
         mstore(add(pos, 192), OutputHTLC.digest(output))
         mstore(add(pos, 224), OutputHTLC.expiry(output))
