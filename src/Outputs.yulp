@@ -146,9 +146,9 @@ object "Outputs" {
       }
     }
 
-    /// @notice Checks Return output owner.
+    /// @notice Checks HTLC's return owner.
     /// @return If output owner matches as bool
-    function ownerReturnEquates(output, owner) -> result {
+    function returnOwnerEquals(output, owner) -> result {
       let len := OutputHTLC.returnOwner.length(output)
 
       require(gt(len, 0), error"owner-length-underflow")
