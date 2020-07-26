@@ -51,6 +51,7 @@
   "devDependencies": {
     "@fuel-js/common": "^0.0.6",
     "@fuel-js/environment": "^0.1.3",
+    "@fuel-js/refill": "^0.1.0",
     "@fuel-js/gasprice": "^0.1.1",
     "@fuel-js/protocol": "^0.1.7",
     "@fuel-js/struct": "^0.1.1",
