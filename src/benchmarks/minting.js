@@ -11,6 +11,7 @@ const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('../tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
+const rootDeployment = require('./root_deployment');
 
 module.exports = test('100k Points Claims', async t => { try {
   // set tx overrides object
@@ -87,9 +88,19 @@ module.exports = test('100k Points Claims', async t => { try {
     .fill(0)
     .map(() => transaction);
 
-  let rootsCommitted = 0;
-  let rootHashes = [];
+  // let rootsCommitted = 0;
+  // let rootHashes = [];
+  const { rootHashes, gasUsed } = await rootDeployment(transactions, {
+    provider: t.getProvider(),
+    wallet: t.getWallets()[0],
+    tokenId,
+    operators: process.env['fuel_v1_default_seed']
+      || ethers.Wallet.createRandom().signingKey.mnemonic,
+    contract,
+  });
+  cumulativeGasUsed = cumulativeGasUsed.add(gasUsed);
 
+  /*
   t.ok(1, `committing roots, this might take up to 10 minutes..`);
 
   // produce it in a block
@@ -111,6 +122,7 @@ module.exports = test('100k Points Claims', async t => { try {
     rootsCommitted += 1;
     cumulativeGasUsed = cumulativeGasUsed.add(rootTx.cumulativeGasUsed);
   }
+  */
 
   const currentBlock = await t.getProvider().getBlockNumber();
   const currentBlockHash = (await t.getProvider().getBlock(currentBlock)).hash;
