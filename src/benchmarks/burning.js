@@ -89,8 +89,17 @@ module.exports = test('75k Burn Transactions', async t => { try {
   cumulativeGasUsed = cumulativeGasUsed.add(gasUsed);
 
   let blocksCommitted = 0;
-  const currentBlock = await t.getProvider().getBlockNumber();
-  const currentBlockHash = (await t.getProvider().getBlock(currentBlock)).hash;
+
+
+  const _testReduction = (await t.getProvider().getNetwork()).name === 'unknown'
+    ? 0
+    : 7; // 7 blocks back
+  const currentBlock = utils.bigNumberify(await t.getProvider().getBlockNumber()).sub(_testReduction);
+  const currentBlockHash = (await t.getProvider().getBlock(currentBlock.toNumber())).hash;
+
+  console.log('submitting at current block', currentBlock, currentBlockHash, _testReduction);
+
+
   let block = await contract.commitBlock(currentBlock, currentBlockHash, 1, rootHashes.slice(0, 128), {
     ...t.getOverrides(),
     value: await contract.BOND_SIZE(),

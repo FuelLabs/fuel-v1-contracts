@@ -11,9 +11,18 @@ const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('../tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
-const rootDeployment = require('./root_deployment');
+const rootDeployment = require('./root_deployment2');
 
 module.exports = test('25k Subscription Transactions', async t => { try {
+  // attempt actual deployment
+  if (process.env['fuel_v1_network']) {
+    console.error('Benchmarking on network: ' + process.env['fuel_v1_network']);
+    t.setProvider(ethers.getDefaultProvider(process.env['fuel_v1_network'], {
+      infrua: process.env['fuel_v1_default_infura'],
+    }));
+    t.setPrivateKey(process.env['fuel_v1_default_operators'].split(',')[0]);
+  }
+
   // set tx overrides object
   t.setOverrides({
     gasLimit: 6000000,
@@ -21,7 +30,7 @@ module.exports = test('25k Subscription Transactions', async t => { try {
   });
 
   // simulate 25k tx's
-  const transactionsToSimulate = 25000;
+  const transactionsToSimulate = 2500; // 25000;
   const ethereumBlockSize = 8000000;
   let cumulativeGasUsed = utils.bigNumberify(0);
 
@@ -101,11 +110,18 @@ module.exports = test('25k Subscription Transactions', async t => { try {
   }
   */
 
-  const currentBlock = await t.provider.getBlockNumber();
-  const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
-  let block = await contract.commitBlock(currentBlock, currentBlockHash, 1, rootHashes.slice(0, 128), {
+  const _testReduction = (await t.getProvider().getNetwork()).name === 'unknown'
+    ? 0
+    : 7; // 7 blocks back
+  const currentBlock = utils.bigNumberify(await t.getProvider().getBlockNumber()).sub(_testReduction);
+  const currentBlockHash = (await t.getProvider().getBlock(currentBlock.toNumber())).hash;
+
+  console.log('submitting at current block', currentBlock, currentBlockHash, _testReduction);
+
+  const _contract = contract.connect(t.getWallets()[0]);
+  let block = await _contract.commitBlock(currentBlock, currentBlockHash, 1, rootHashes.slice(0, 128), {
     ...t.getOverrides(),
-    value: await contract.BOND_SIZE(),
+    value: await _contract.BOND_SIZE(),
   });
   block = await block.wait();
 

@@ -11,9 +11,18 @@ const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('../tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
-const rootDeployment = require('./root_deployment');
+const rootDeployment = require('./root_deployment2');
 
 module.exports = test('100k transactions', async t => { try {
+  // attempt actual deployment
+  if (process.env['fuel_v1_network']) {
+    console.error('Benchmarking on network: ' + process.env['fuel_v1_network']);
+    t.setProvider(ethers.getDefaultProvider(process.env['fuel_v1_network'], {
+      infrua: process.env['fuel_v1_default_infura'],
+    }));
+    t.setPrivateKey(process.env['fuel_v1_default_operators'].split(',')[0]);
+  }
+
   // set tx overrides object
   t.setOverrides({
     gasLimit: 6000000,
@@ -100,8 +109,14 @@ module.exports = test('100k transactions', async t => { try {
   }
   */
 
-  const currentBlock = await t.provider.getBlockNumber();
-  const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
+  const _testReduction = (await t.getProvider().getNetwork()).name === 'unknown'
+    ? 0
+    : 7; // 7 blocks back
+  const currentBlock = utils.bigNumberify(await t.getProvider().getBlockNumber()).sub(_testReduction);
+  const currentBlockHash = (await t.getProvider().getBlock(currentBlock.toNumber())).hash;
+
+  console.log('submitting at current block', currentBlock, currentBlockHash, _testReduction);
+
   let block = await contract.commitBlock(currentBlock, currentBlockHash, 1, rootHashes.slice(0, 128), {
     ...t.getOverrides(),
     value: await contract.BOND_SIZE(),
