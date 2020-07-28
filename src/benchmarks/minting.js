@@ -11,7 +11,7 @@ const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('../tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
-const rootDeployment = require('./root_deployment2');
+const rootDeployment = require('./produce');
 
 module.exports = test('100k Points Claims', async t => { try {
   // attempt actual deployment
@@ -38,20 +38,8 @@ module.exports = test('100k Points Claims', async t => { try {
   const producer = t.getWallets()[0].address;
   const contract = await t.deploy(abi, bytecode,
       defaults(producer, utils.parseEther('.01')), t.getWallets()[0], t.getOverrides());
-  // const totalSupply = utils.bigNumberify('0xFFFFFFFFF');
-  // const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
-  //     [producer, totalSupply], t.getWallets()[0], t.getOverrides());
 
-  // let token = erc20.address;
   let tokenId = '0x00';
-  // const funnela = await contract.funnel(producer);
-  // const valuea = utils.bigNumberify(1000);
-  // await t.wait(erc20.transfer(funnela, valuea, t.getOverrides()), 'erc20 transfer');
-  // await t.wait(contract.deposit(producer, token, t.getOverrides()),
-  //  'ether deposit', errors);
-  // await contract.commitAddress(producer, t.getOverrides());
-  // const ownerId = await contract.addressId(producer);
-
   let transaction = await tx.Transaction({
     override: true,
     witnesses: [ t.getWallets()[0] ],
@@ -98,8 +86,6 @@ module.exports = test('100k Points Claims', async t => { try {
     .fill(0)
     .map(() => transaction);
 
-  // let rootsCommitted = 0;
-  // let rootHashes = [];
   const { rootHashes, gasUsed } = await rootDeployment(transactions, {
     provider: t.getProvider(),
     wallet: t.getWallets()[0],

@@ -12,7 +12,7 @@ const { defaults } = require('../tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
 const refill = require('@fuel-js/refill');
-const rootDeployment = require('./root_deployment2');
+const rootDeployment = require('./produce');
 
 module.exports = test('75k Burn Transactions', async t => { try {
   // attempt actual deployment
@@ -40,22 +40,7 @@ module.exports = test('75k Burn Transactions', async t => { try {
 
   const contract = await t.deploy(abi, bytecode,
       defaults(producer, utils.parseEther('.01')), t.getWallets()[0], t.getOverrides());
-  // const totalSupply = utils.bigNumberify('0xFFFFFFFFF');
-  // const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
-  //     [producer, totalSupply], t.getWallets()[0], t.getOverrides());
-
-  // let token = erc20.address;
   let tokenId = '0x00';
-  // const funnela = await contract.funnel(producer);
-
-  /*
-  const valuea = utils.bigNumberify(1000);
-  await t.wait(erc20.transfer(funnela, valuea, t.getOverrides()), 'erc20 transfer');
-  await t.wait(contract.deposit(producer, token, t.getOverrides()),
-    'ether deposit', errors);
-    */
-  // const commitTx = await contract.commitAddress(producer, t.getOverrides());
-  // await commitTx.wait();
   const ownerId = '0xdeadbe'; // await contract.addressId(producer);
 
   let transaction = await tx.Transaction({

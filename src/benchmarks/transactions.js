@@ -11,7 +11,7 @@ const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('../tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
-const rootDeployment = require('./root_deployment2');
+const rootDeployment = require('./produce');
 
 module.exports = test('100k transactions', async t => { try {
   // attempt actual deployment
