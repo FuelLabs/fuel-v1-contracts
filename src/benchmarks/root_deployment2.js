@@ -13,7 +13,7 @@ const gwei = 100000000;
 const targetRootSize = 32000; // 39000; // 32000;
 
 // Max Root Producers
-const maxProducers = 8;
+const maxProducers = 24;
 
 // Calldata per byte gas cost
 const calldataPerByte = 16;
@@ -76,7 +76,7 @@ async function rootDeployment(transactions = [], config = {}) {
     const rootsPerProducer = Math.ceil(numRoots / maxRootProducers);
 
     // Allocation Per Producer
-    const allocationPerProducer = utils.parseEther('.13').mul(rootsPerProducer); // gasPerRoot.mul(rootsPerProducer);
+    const allocationPerProducer = utils.parseEther('.03').mul(rootsPerProducer); // gasPerRoot.mul(rootsPerProducer);
 
     // Allocation Message
     console.log(

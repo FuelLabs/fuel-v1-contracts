@@ -11,7 +11,7 @@ const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('../tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
-const rootDeployment = require('./root_deployment');
+const rootDeployment = require('./root_deployment2');
 
 module.exports = test('100k Points Claims', async t => { try {
   // attempt actual deployment
@@ -30,26 +30,27 @@ module.exports = test('100k Points Claims', async t => { try {
   });
 
   const outputsPerDispersalTx = 8;
-  const transactionsToSimulate = 100000 / outputsPerDispersalTx;
+  const numberOfUsers = 100000;
+  const transactionsToSimulate = numberOfUsers / outputsPerDispersalTx;
   const ethereumBlockSize = 8000000;
   let cumulativeGasUsed = utils.bigNumberify(0);
 
   const producer = t.getWallets()[0].address;
   const contract = await t.deploy(abi, bytecode,
       defaults(producer, utils.parseEther('.01')), t.getWallets()[0], t.getOverrides());
-  const totalSupply = utils.bigNumberify('0xFFFFFFFFF');
-  const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
-      [producer, totalSupply], t.getWallets()[0], t.getOverrides());
+  // const totalSupply = utils.bigNumberify('0xFFFFFFFFF');
+  // const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
+  //     [producer, totalSupply], t.getWallets()[0], t.getOverrides());
 
-  let token = erc20.address;
-  let tokenId = '0x01';
-  const funnela = await contract.funnel(producer);
-  const valuea = utils.bigNumberify(1000);
-  await t.wait(erc20.transfer(funnela, valuea, t.getOverrides()), 'erc20 transfer');
-  await t.wait(contract.deposit(producer, token, t.getOverrides()),
-    'ether deposit', errors);
-  await contract.commitAddress(producer, t.getOverrides());
-  const ownerId = await contract.addressId(producer);
+  // let token = erc20.address;
+  let tokenId = '0x00';
+  // const funnela = await contract.funnel(producer);
+  // const valuea = utils.bigNumberify(1000);
+  // await t.wait(erc20.transfer(funnela, valuea, t.getOverrides()), 'erc20 transfer');
+  // await t.wait(contract.deposit(producer, token, t.getOverrides()),
+  //  'ether deposit', errors);
+  // await contract.commitAddress(producer, t.getOverrides());
+  // const ownerId = await contract.addressId(producer);
 
   let transaction = await tx.Transaction({
     override: true,
@@ -109,30 +110,6 @@ module.exports = test('100k Points Claims', async t => { try {
   });
   cumulativeGasUsed = cumulativeGasUsed.add(gasUsed);
 
-  /*
-  t.ok(1, `committing roots, this might take up to 10 minutes..`);
-
-  // produce it in a block
-  const chunkSize = Math.round((await contract.MAX_ROOT_SIZE()).div(2) / (transaction.encodePacked().length / 2));
-  for (var chunk = 0; chunk < transactionsToSimulate; chunk += chunkSize) {
-    const txs = transactions.slice(chunk, chunk + chunkSize);
-    if (!txs.length) break;
-    const root = (new RootHeader({
-      rootProducer: producer,
-      merkleTreeRoot: merkleTreeRoot(txs),
-      commitmentHash: utils.keccak256(combine(txs)),
-      rootLength: utils.hexDataLength(combine(txs)),
-      fee: chunk,
-      feeToken: tokenId,
-    }));
-    rootHashes.push(root.keccak256Packed());
-    let rootTx = await contract.commitRoot(root.properties.merkleTreeRoot().get(), tokenId, chunk, combine(txs), t.getOverrides());
-    rootTx = await rootTx.wait();
-    rootsCommitted += 1;
-    cumulativeGasUsed = cumulativeGasUsed.add(rootTx.cumulativeGasUsed);
-  }
-  */
-  
   const _testReduction = (await t.getProvider().getNetwork()).name === 'unknown'
     ? 0
     : 7; // 7 blocks back
@@ -141,19 +118,28 @@ module.exports = test('100k Points Claims', async t => { try {
 
   console.log('submitting at current block', currentBlock, currentBlockHash, _testReduction);
 
-
+  // Block 1
   let block = await contract.commitBlock(currentBlock, currentBlockHash, 1, rootHashes.slice(0, 128), {
     ...t.getOverrides(),
     value: await contract.BOND_SIZE(),
   });
   block = await block.wait();
 
+  // Block 2
+  if (rootHashes.slice(128, 128 + 128).length) {
+    block = await contract.commitBlock(currentBlock, currentBlockHash, 2, rootHashes.slice(128, 128 + 128), {
+      ...t.getOverrides(),
+      value: await contract.BOND_SIZE(),
+    });
+    block = await block.wait();
+  }
+
   cumulativeGasUsed = cumulativeGasUsed.add(block.cumulativeGasUsed);
 
   t.ok(1, `Claims Processed: ${transactionsToSimulate * outputsPerDispersalTx}`);
   t.ok(1, `Transactions Submitted: ${transactionsToSimulate}`);
   t.ok(1, `Roots committed: ${rootHashes.length}`);
-  t.ok(1, `Blocks committed: 1`);
+  t.ok(1, `Blocks committed: 2`);
   t.ok(1, `Cumulative gas used: ${cumulativeGasUsed.toString(rootHashes)}`);
   t.ok(1, `Ethereum blocks used: ${cumulativeGasUsed.div(ethereumBlockSize)}`);
   t.ok(1, `@$100 USD per Block: $${cumulativeGasUsed.div(ethereumBlockSize).mul(100)} USD`);
