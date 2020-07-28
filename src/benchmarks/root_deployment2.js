@@ -10,7 +10,7 @@ const refill = require('@fuel-js/refill');
 const gwei = 100000000;
 
 // Target Root Size
-const targetRootSize = 32000;
+const targetRootSize = 32000; // 39000; // 32000;
 
 // Max Root Producers
 const maxProducers = 8;
@@ -76,7 +76,7 @@ async function rootDeployment(transactions = [], config = {}) {
     const rootsPerProducer = Math.ceil(numRoots / maxRootProducers);
 
     // Allocation Per Producer
-    const allocationPerProducer = utils.parseEther('.1'); // gasPerRoot.mul(rootsPerProducer);
+    const allocationPerProducer = utils.parseEther('.13').mul(rootsPerProducer); // gasPerRoot.mul(rootsPerProducer);
 
     // Allocation Message
     console.log(
@@ -203,7 +203,8 @@ async function rootDeployment(transactions = [], config = {}) {
                 console.log('Worker ',
                   _walletIndex,
                   ' error: ',
-                  error,
+                  error.message,
+                  error.responseText,
                   ' new gas price: ', utils.formatUnits(_gasPrice, 'gwei'), ' gwei');
 
                 // Wait on Failure

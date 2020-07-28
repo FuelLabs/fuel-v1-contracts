@@ -1,5 +1,6 @@
 (async () => {
   try {
+    // await require('./get');
     await require('./subscriptions');
     // await require('./transactions');
     // await require('./minting');

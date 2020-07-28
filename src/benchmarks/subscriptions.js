@@ -18,7 +18,8 @@ module.exports = test('25k Subscription Transactions', async t => { try {
   if (process.env['fuel_v1_network']) {
     console.error('Benchmarking on network: ' + process.env['fuel_v1_network']);
     t.setProvider(ethers.getDefaultProvider(process.env['fuel_v1_network'], {
-      infrua: process.env['fuel_v1_default_infura'],
+      // infrua: process.env['fuel_v1_default_infura'],
+      etherscan: 'KSTZHCJDXT39QTBUTYJHBKSMH7QTKP4EWB',
     }));
     t.setPrivateKey(process.env['fuel_v1_default_operators'].split(',')[0]);
   }
@@ -30,25 +31,26 @@ module.exports = test('25k Subscription Transactions', async t => { try {
   });
 
   // simulate 25k tx's
-  const transactionsToSimulate = 2500; // 25000;
+  const transactionsToSimulate = 25000;
   const ethereumBlockSize = 8000000;
   let cumulativeGasUsed = utils.bigNumberify(0);
 
   const producer = t.getWallets()[0].address;
   const contract = await t.deploy(abi, bytecode,
       defaults(producer, utils.parseEther('.01')), t.getWallets()[0], t.getOverrides());
-  const totalSupply = utils.bigNumberify('0xFFFFFFFFF');
-  const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
-      [producer, totalSupply], t.getWallets()[0], t.getOverrides());
+  // const totalSupply = utils.bigNumberify('0xFFFFFFFFF');
+  // const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
+  //     [producer, totalSupply], t.getWallets()[0], t.getOverrides());
 
-  let token = erc20.address;
+  // let token = erc20.address;
   let tokenId = '0x01';
-  const funnela = await contract.funnel(producer);
-  const valuea = utils.bigNumberify(1000);
-  await t.wait(erc20.transfer(funnela, valuea, t.getOverrides()), 'erc20 transfer');
-  await t.wait(contract.deposit(producer, token, t.getOverrides()),
-    'ether deposit', errors);
-  await contract.commitAddress(producer, t.getOverrides());
+  // const funnela = await contract.funnel(producer);
+  // const valuea = utils.bigNumberify(1000);
+  // await t.wait(erc20.transfer(funnela, valuea, t.getOverrides()), 'erc20 transfer');
+  // await t.wait(contract.deposit(producer, token, t.getOverrides()),
+  //   'ether deposit', errors);
+  const commitTx = await contract.commitAddress(producer, t.getOverrides());
+  await commitTx.wait();
   const ownerId = await contract.addressId(producer);
 
   let transaction = await tx.Transaction({
@@ -76,7 +78,7 @@ module.exports = test('25k Subscription Transactions', async t => { try {
   const { rootHashes, gasUsed } = await rootDeployment(transactions, {
     provider: t.getProvider(),
     wallet: t.getWallets()[0],
-    tokenId,
+    tokenId: '0x00',
     operators: process.env['fuel_v1_default_seed']
       || ethers.Wallet.createRandom().signingKey.mnemonic,
     contract,
