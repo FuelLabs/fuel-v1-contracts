@@ -5,6 +5,7 @@ const { defaults } = require('../src/tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
 const write = require('write');
+const readFile = require('fs-readfile-promise');
 
 // Network Specification
 const network_name = process.env['fuel_v1_network'];

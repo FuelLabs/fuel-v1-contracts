@@ -1,5 +1,6 @@
 {
   "v1": {
-    "ropsten": "0x017012C3ae12015c0c176f17A383D0B0929f1cB2"
+    "ropsten": "0x017012C3ae12015c0c176f17A383D0B0929f1cB2",
+    "rinkeby": "0x8eF8090E7c8f111dEb648dd7a13262335a909b0D"
   }
 }
