@@ -9,6 +9,18 @@ const write = require('write');
 // Network Specification
 const network_name = process.env['fuel_v1_network'];
 
+// One week in seconds
+const oneWeek = 604800;
+
+// One day in seconds
+const oneDay = 86400;
+
+// One week in eth block times
+const oneWeekInBlocks = Math.round(oneWeek / 13);
+
+// One day in eth block times
+const oneDayInBlock = Math.round(oneDay / 13);
+
 // Deploy Fuel to Network
 module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => { try {
   // Check Network Specification
@@ -50,16 +62,16 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     operator,
 
     // finalizationDelay: uint256 | 2 weeks | Seconds: (14 * 24 * 60 * 60) / 13 = 93046
-    93046,
+    oneWeekInBlocks,
 
     // submissionDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    6646,
+    oneDayInBlock,
 
     // penaltyDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    6646,
+    oneDayInBlock,
 
     // Bond Size
-    utils.parseEther(process.env['bond_size'] || '1.0'),
+    utils.parseEther(process.env['bond_size'] || '.1'),
 
     // Contract name
     "Fuel",
