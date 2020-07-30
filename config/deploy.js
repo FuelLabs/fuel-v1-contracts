@@ -5,9 +5,36 @@ const { defaults } = require('../src/tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
 const write = require('write');
+const readFile = require('fs-readfile-promise');
 
 // Network Specification
 const network_name = process.env['fuel_v1_network'];
+
+// One week in seconds
+const oneWeek = 604800;
+
+// One day in seconds
+const oneDay = 86400;
+
+// One week in eth block times
+const oneWeekInBlocks = Math.round(oneWeek / 13);
+
+// One day in eth block times
+const oneDayInBlock = Math.round(oneDay / 13);
+
+// Convert Seed / Operators to Wallets
+function operatorsToWallets(operators = '') {
+  let wallets = [];
+
+  for (var i = 0; i < 8; i++) {
+    wallets.push(new ethers.Wallet.fromMnemonic(
+      operators,
+      "m/44'/60'/0'/1/" + i,
+    ));
+  }
+
+  return wallets;
+}
 
 // Deploy Fuel to Network
 module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => { try {
@@ -29,16 +56,24 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
   const wallet = t.getWallets()[0];
 
   // Setup
-  const operator = wallet.address;
+  const operator = process.env['fuel_v1_default_seed']
+    ? operatorsToWallets(process.env['fuel_v1_default_seed'])[0].address
+    : wallet.address;
   const gasPrices = (await gasPrice(t.getProvider()));
 
   // Faucet Address
-  const faucet = process.env['fuel_v1_default_faucet'] || operator;
+  const faucet = process.env['fuel_v1_default_faucet']
+    ? (new ethers.Wallet(process.env['fuel_v1_default_faucet'])).address
+    : operator;
+
+  // Faucet log
+  console.log('operator address @ ', operator);
+  console.log('faucet address @ ', faucet);
 
   // set tx overrides object
   t.setOverrides({
     gasLimit: 6000000,
-    gasPrice: gasPrices.safe,
+    gasPrice: gasPrices.fast,
   });
 
   // Genesis Block Hash
@@ -50,16 +85,16 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     operator,
 
     // finalizationDelay: uint256 | 2 weeks | Seconds: (14 * 24 * 60 * 60) / 13 = 93046
-    93046,
+    oneWeekInBlocks,
 
     // submissionDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    6646,
+    oneDayInBlock,
 
     // penaltyDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    6646,
+    oneDayInBlock,
 
     // Bond Size
-    utils.parseEther(process.env['bond_size'] || '1.0'),
+    utils.parseEther(process.env['bond_size'] || '.1'),
 
     // Contract name
     "Fuel",
@@ -79,9 +114,9 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
       deploymentParameters, wallet, t.getOverrides());
 
   // Setup Fake Token for Deployment send to Faucet
-  const totalSupply = utils.bigNumberify('0xFFFFFFFFFFFFFFFFF');
+  const totalSupply = utils.bigNumberify('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
   const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
-      [faucet, totalSupply], wallet, t.getOverrides());
+      [wallet.address, totalSupply], wallet, t.getOverrides());
 
   // Determine Contract Funnel
   const funnela = await contract.funnel(faucet);

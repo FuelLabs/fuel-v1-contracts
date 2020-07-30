@@ -36,6 +36,7 @@ function operatorsToWallets(config = {}) {
       config.operators,
       "m/44'/60'/0'/1/" + i,
     );
+
     wallets.push(_wallet.connect(config.provider));
   }
 
