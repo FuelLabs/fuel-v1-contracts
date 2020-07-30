@@ -3,38 +3,32 @@
 Fuel
 ===
 
-> Fuel is high-performance optimistic rollup optimized for ERC-20 transfers and swaps, designed for interoperable performance, scale, and efficiency.
+Fuel is a high-performance optimistic rollup optimized for ERC-20 transfers and swaps, designed for interoperable performance, scalability, and efficiency.
 
 ![Node.js CI](https://github.com/FuelLabs/fuel/workflows/Node.js%20CI/badge.svg)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Community](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/fuellabs_/community)
+[![Community](https://img.shields.io/badge/chat%20on-discord-orange?&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/DDWxYY6)
 
-# Features
+Features
+---
 
-- A complete layer-2 optimistic rollup implementation
-- Efficient (~1536 gas per transaction)
-- Supports all ERC-20 standard tokens
-- Supports HTLCs for fast cross-chain atomic swaps
-- Meta-transactional, pay fees in tokens of your choice
-- Deposit tokens from anywhere using simple transfers (no `approve`/`transferFrom` required)
-- High on-chain throughput capacity (~480tps @ 10m Block)
-- Censorship-resistant (users can always transfer and withdraw)
+- Completely decentralized: non-custodial, censorship resistant, and permissionless
+- The most scalable optimistic rollup in the world, with unique UTXO-based design
+- Up to 10,000 TPS surge intake capacity
+- Send and receive using any Ethereum address, no registration required
+- ETH and all ERC-20 tokens are supported
+- Non-custodial token swaps between any tokens
+- Fees can be paid in any token, not just ETH
+- HTLCs for cross-chain atomic swaps and additional usecases
+- Withdrawals in under 10 minutes using atomic swaps
 - Interoperable, any contract or address can use, verify, and control assets on Fuel
-- Fast, ~5 minute entry and exits using HTLCs
-
-# Abstract
-
-Fuel is the most efficient optimistic rollup in the world, featuring stateless transactional throughput that can be validated in parallel on consumer hardware whilst delivering an instantaneous meta-transactional experience for end-users.
-
-It's unique UTXO-based design allows for non-custodial exchange of Ethereum ERC20s both within and outside of the Fuel layer-2 network.
-
-Fuel's unique mempool priority aggregator model allows for a fast yet truly censorship resistant experience whilst still having reliable zero-confirmation guarantees of a service provider.
 
 See the detailed [specification](https://docs.fuel.sh) for a more intimate overview of the design decisions behind Fuel.
 
-# Building From Source
+Building From Source
+---
 
-## Install Dependencies
+### Install Dependencies
 
 Install [Node.js](https://nodejs.org/en/) `>= v10.16.0`.
 
@@ -44,13 +38,13 @@ Then run:
 npm install
 ```
 
-## Build
+### Build
 
 ```sh
 npm run build
 ```
 
-## Run Tests
+### Run Tests
 
 Run all tests using:
 
@@ -58,7 +52,7 @@ Run all tests using:
 npm test
 ```
 
-## Run Benchmarks
+### Run Benchmarks
 
 Run all benchmarks using:
 

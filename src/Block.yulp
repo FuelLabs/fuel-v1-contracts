@@ -94,7 +94,8 @@ object "Block" is "Constructor", "Root", "Address" {
         // Check whether block producer has the right to commit rollup block
         // In penalty mode (second condition is true), anyone can commit a block with roots without delay
         // In normal mode (second condition is false), only the operator can commit a block before waiting the root delay
-        if and(lt(number(), add(rootBlockNumber, Constructor.submissionDelay(0))), gt(number(), getPenalty())) {
+        if and(lt(number(), add(rootBlockNumber, Constructor.submissionDelay(0))),
+          gt(number(), getPenalty())) {
           require(eq(caller(), producer), error"caller-producer")
         }
 

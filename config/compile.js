@@ -1,5 +1,4 @@
 const { compile } = require('@fuel-js/environment');
-const fs = require('fs');
 
 if (process.env.compile) {
   // Compile Fuel
