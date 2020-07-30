@@ -1,4 +1,4 @@
-// 100k Points Claims One-off points burning
+// 100k Token Minting
 const { test, utils } = require('@fuel-js/environment');
 const { chunk, pack, combine } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
@@ -13,7 +13,7 @@ const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
 const rootDeployment = require('./produce');
 
-module.exports = test('100k Points Claims', async t => { try {
+module.exports = test('100k Token Minting', async t => { try {
   // attempt actual deployment
   if (process.env['fuel_v1_network']) {
     console.error('Benchmarking on network: ' + process.env['fuel_v1_network']);
