@@ -91,7 +91,7 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     oneDayInBlock,
 
     // penaltyDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    oneDayInBlock,
+    0, // oneDayInBlock, no pentatly delay for testnet
 
     // Bond Size
     utils.parseEther(process.env['bond_size'] || '.1'),
