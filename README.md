@@ -1,4 +1,4 @@
-![Fuel](public/banner.png)
+![Fuel](public/banner.jpeg)
 
 Fuel
 ===
