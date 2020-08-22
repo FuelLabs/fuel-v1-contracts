@@ -70,7 +70,6 @@ object "Address" is "Storage" {
     }
 
     // commit add
-
     function commitAddress(addr, pub1, pub2, pub3, pub4) -> id {
       id := addressId(addr)
 

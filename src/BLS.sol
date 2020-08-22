@@ -568,7 +568,7 @@ contract BLS is BLSLibrary, FuelPackedStructures {
     uint256 chunkIndex,
     bytes memory transactions,
     uint256[2][] memory signatures,
-    uint256[4][32] memory publicKeys) public {
+    uint256[4][] memory publicKeys) public {
 
     // id the header verified
     require(IFuel(fuelContract).verifyHeader(blockHeader, rootHeader, rootIndex, NOT_FINALIZED));
@@ -604,18 +604,37 @@ contract BLS is BLSLibrary, FuelPackedStructures {
       blockHash,
       'transaction-length-not-tx-size');
 
-    // Gather signature from root based on chunk index
-    // uint256[2] memory signature = signatures[chunkIndex];
+    uint256 transactionIndex = chunkIndex * chunkSize;
+    uint256 limit = (chunkIndex * chunkSize) + chunkSize;
 
-    /*
-    uint256[2][32] memory messages = new new uint256[](2);
+    // start a new messages array
+    uint256[2][] memory messages = new uint256[2][](32);
 
-    verifyMultiple(
-      signature,
-      pubkeys,
-      uint256[2][] memory messages
-    )
-    */
+    // iterate over transactions
+    for (;transactionIndex < limit; transactionIndex += 1) {
+      uint256 message0;
+      uint256 message1;
+
+      assembly {
+        // message0 := mload()
+      }
+
+      messages[transactionIndex][0] = message0;
+      messages[transactionIndex][1] = message1;
+    }
+
+    // verify
+    bool chunkVerified = verifyMultiple(
+      signatures[chunkIndex],
+      publicKeys,
+      messages
+    );
+
+    // chunk verified
+    assertOrFraud(!chunkVerified,
+      fuelContract,
+      blockHash,
+      'block-invalid-chunk');
   }
 
   // is a specific block at a specific fuel contract fraudulent
