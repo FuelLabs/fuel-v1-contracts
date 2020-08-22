@@ -501,7 +501,7 @@ abstract contract IFuel {
   ) external virtual view returns (bytes32 hash);
 
   function publicKeyHash(
-    address owner,
+    address owner
   ) external virtual view returns (bytes32 hash);
 }
 
@@ -564,8 +564,8 @@ contract BLS is BLSLibrary, FuelPackedStructures {
   }
 
   // public key hash
-  function publicKeyHash(uint256[4] publicKey) public view returns (bytes32 hash) {
-    bytes32 keyHash = keccak256(abi.encodePacked(publicKey))
+  function publicKeyHash(uint256[4] memory publicKey) public pure returns (bytes32 hash) {
+    bytes32 keyHash = keccak256(abi.encodePacked(publicKey));
 
     // trim off the last 4 bytes and return it
     assembly {
@@ -574,6 +574,20 @@ contract BLS is BLSLibrary, FuelPackedStructures {
 
       // 28 byte hash, 4 * 8 = 32
       hash := shl(32, shr(32, keyHash))
+    }
+  }
+
+  function message1FromRoot(RootHeader memory _root) internal pure returns (uint256 message1) {
+    // get token and fee from the root for use in packing during assembly
+    uint256 token = _root.feeToken;
+    uint256 fee = _root.fee;
+
+    // assemble the second message for the transaction
+    assembly {
+      let free := mload(0x40)
+      mstore(free, token)
+      mstore(add(free, 32), fee)
+      message1 := mload(add(free, 28))
     }
   }
 
@@ -625,28 +639,14 @@ contract BLS is BLSLibrary, FuelPackedStructures {
       blockHash,
       'transaction-length-not-tx-size');
 
-    // transaciton index and limit
-    uint256 transactionIndex = chunkIndex * chunkSize;
-    uint256 limit = (chunkIndex * chunkSize) + chunkSize;
-
     // start a new messages array
     uint256[2][] memory messages = new uint256[2][](32);
-    uint256 message1;
-
-    // get token and fee from the root for use in packing during assembly
-    uint256 token = _root.feeToken;
-    uint256 fee = _root.fee;
-
-    // assemble the second message for the transaction
-    assembly {
-      let free := mload(0x40)
-      mstore(free, token)
-      mstore(add(free, 32), fee)
-      message1 := mload(add(free, 28))
-    }
+    uint256 message1 = message1FromRoot(_root);
 
     // iterate over transactions
-    for (;transactionIndex < limit; transactionIndex += 1) {
+    for (uint256 transactionIndex = chunkIndex * chunkSize;
+      transactionIndex < (chunkIndex * chunkSize) + chunkSize;
+      transactionIndex += 1) {
       // setup the first message, i.e. 24 byte transaction payload
       uint256 message0;
 
@@ -654,7 +654,7 @@ contract BLS is BLSLibrary, FuelPackedStructures {
       assembly {
         // 32 - 24 = 8
         // 8 * 8 = 64
-        // greab the 24 byte transaction from transactions memory
+        // grab the 24 byte transaction from transactions memory
         message0 := shr(64, shl(64, mload(add(mload(transactions), mul(transactionIndex, transactionSize)))))
       }
 
