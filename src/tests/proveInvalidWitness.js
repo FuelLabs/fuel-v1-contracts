@@ -415,6 +415,7 @@ module.exports = test('proveInvalidWitness', async t => {
           merkleTreeRoot: merkleTreeRoot(txs2),
           commitmentHash: utils.keccak256(combine(txs2)),
           rootLength: utils.hexDataLength(combine(txs2)),
+          signatureHash: EMPTY_SIGNATURE_HASH,
         }));
         await t.wait(
             contract.commitRoot(

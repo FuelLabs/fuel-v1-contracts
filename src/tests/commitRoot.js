@@ -40,9 +40,6 @@ module.exports = test('commitRoot', async t => { try {
     t.equalBig(_root.rootProducer, producer, 'producer');
     t.equalBig(_root.merkleTreeRoot, merkleRootA, 'merkleRootA');
     t.equalBig(_root.commitmentHash, utils.keccak256(emptyTxs), 'commitmentHash');
-
-    console.log(rootFromBlock.object(), aroot.object());
-
     t.equalBig(rootFromBlock.keccak256Packed(), aroot.keccak256Packed(), 'root');
 
 
