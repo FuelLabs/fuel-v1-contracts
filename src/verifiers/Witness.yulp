@@ -57,6 +57,12 @@ object "VerifyWitness" is "Deposit", "Transaction" {
           error"witness-producer")
       }
 
+      // Aggregate Signature type (specified in the root header)
+      case WitnessType.AggregateSignature {
+        // require(eq(Producer.hash(witness), transactionId(transactionProof)),
+        //   error"witness-producer")
+      }
+
       default { require(0, error"witness-type") }
     }
   }

@@ -1,7 +1,7 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
-const { BlockHeader, RootHeader } = require('@fuel-js/protocol/src/block');
+const { BlockHeader, RootHeader, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
 const { defaults } = require('./harness');
 
 module.exports = test('bondWithdraw', async t => { try {
@@ -22,8 +22,9 @@ module.exports = test('bondWithdraw', async t => { try {
       merkleTreeRoot: merkleRootA,
       commitmentHash: utils.keccak256(emptyTxs),
       rootLength: emptyTxs.length,
+      signatureHash: EMPTY_SIGNATURE_HASH,
     })).keccak256Packed();
-    const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, overrides),
+    const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, 0, [], overrides),
       'valid submit', errors);
     t.equal(atx.logs.length, 1, 'length');
 

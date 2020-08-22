@@ -132,7 +132,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       let index := 0
 
       for {} lt(pos, end) {} {
-        assertOrFraud(lt(Signature.type(pos), 3), error"witness-type", transactionProof)
+        assertOrFraud(lt(Signature.type(pos), 4), error"witness-type", transactionProof)
 
         switch Signature.type(pos)
 
@@ -147,6 +147,8 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         }
 
         case WitnessType.Producer {}
+
+        case WitnessType.AggregateSignature {}
 
         pos := add(pos, witnessSize(pos))
         index := add(index, 1)

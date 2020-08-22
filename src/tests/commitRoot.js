@@ -1,7 +1,7 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
-const { RootHeader } = require('@fuel-js/protocol/src/block');
+const { RootHeader, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
 const { defaults } = require('./harness');
 
 module.exports = test('commitRoot', async t => { try {
@@ -21,22 +21,28 @@ module.exports = test('commitRoot', async t => { try {
       merkleTreeRoot: merkleRootA,
       commitmentHash: utils.keccak256(emptyTxs),
       rootLength: utils.hexDataLength(utils.hexlify(emptyTxs)),
+      signatureHash: EMPTY_SIGNATURE_HASH,
     });
 
-    const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, overrides),
+    const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, 0, [], overrides),
       'valid submit', errors);
+
     t.equal(atx.logs.length, 1, 'length');
     t.equalBig(await contract.rootBlockNumberAt(aroot.keccak256Packed()), blocka, 'block');
     t.equalBig(atx.events[0].args.root, aroot.keccak256Packed(), 'root');
     t.equalBig(atx.events[0].args.rootProducer, producer, 'producer');
     t.equalBig(atx.events[0].args.merkleTreeRoot, merkleRootA, 'merkleRootA');
     t.equalBig(atx.events[0].args.commitmentHash, utils.keccak256(emptyTxs), 'commitmentHash');
+    t.equalBig(atx.events[0].args.signatureHash, EMPTY_SIGNATURE_HASH, 'signatureHash');
 
     const rootFromBlock = await RootHeader.fromLogs(aroot.keccak256Packed(), null, contract);
     const _root = rootFromBlock.object();
     t.equalBig(_root.rootProducer, producer, 'producer');
     t.equalBig(_root.merkleTreeRoot, merkleRootA, 'merkleRootA');
     t.equalBig(_root.commitmentHash, utils.keccak256(emptyTxs), 'commitmentHash');
+
+    console.log(rootFromBlock.object(), aroot.object());
+
     t.equalBig(rootFromBlock.keccak256Packed(), aroot.keccak256Packed(), 'root');
 
 
@@ -54,13 +60,13 @@ module.exports = test('commitRoot', async t => { try {
 
     // check large root overflow
     const overflowBytes = utils.randomBytes((await contract.MAX_ROOT_SIZE()).add(256).toNumber());
-    await t.revert(contract.commitRoot(merkleRootA, 0, 0, overflowBytes, overrides),
+    await t.revert(contract.commitRoot(merkleRootA, 0, 0, overflowBytes, 0, [], overrides),
       errors['root-size-overflow'], 'root-size-overflow');
 
 
 
     // root already exists
-    await t.revert(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, overrides),
+    await t.revert(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, 0, [], overrides),
       errors['root-already-exists'], 'root-already-exists');
 
 
@@ -74,9 +80,10 @@ module.exports = test('commitRoot', async t => { try {
       rootProducer: producer,
       merkleTreeRoot: merkleRootB,
       commitmentHash: utils.keccak256(emptyTxsB),
-      rootLength: utils.hexDataLength(utils.hexlify(emptyTxsB))
+      rootLength: utils.hexDataLength(utils.hexlify(emptyTxsB)),
+      signatureHash: EMPTY_SIGNATURE_HASH,
     })).keccak256Packed();
-    const btx = await t.wait(contract.commitRoot(merkleRootB, 0, 0, emptyTxsB, overrides),
+    const btx = await t.wait(contract.commitRoot(merkleRootB, 0, 0, emptyTxsB, 0, [], overrides),
       'valid submit', errors);
     t.equal(btx.logs.length, 1, 'length');
     t.equalBig(await contract.rootBlockNumberAt(broot), blockb, 'block');
@@ -84,6 +91,7 @@ module.exports = test('commitRoot', async t => { try {
     t.equalBig(btx.events[0].args.rootProducer, producer, 'producer');
     t.equalBig(btx.events[0].args.merkleTreeRoot, merkleRootB, 'merkleRootA');
     t.equalBig(btx.events[0].args.commitmentHash, utils.keccak256(emptyTxsB), 'commitmentHash');
+    t.equalBig(btx.events[0].args.signatureHash, EMPTY_SIGNATURE_HASH, 'signatureHash');
 
 
 } catch (error) { t.error(error, errors); } });

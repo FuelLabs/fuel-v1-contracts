@@ -3,9 +3,9 @@ const { struct, chunk, combine } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/src/block');
+    merkleTreeRoot, transactions, hashes, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
 const { defaults } = require('./harness');
-const { _Transaction } = require('@fuel-js/protocol/src/transaction');
+const { _Transaction } = require('../protocol/src/transaction');
 
 module.exports = test('proveMalformedBlock', async t => { try {
 
@@ -26,9 +26,10 @@ module.exports = test('proveMalformedBlock', async t => { try {
         merkleTreeRoot: merkleRootA,
         commitmentHash,
         rootLength: utils.hexDataLength(combine(txs)),
+        signatureHash: EMPTY_SIGNATURE_HASH,
       }));
 
-      const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, combine(txs), overrides),
+      const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, combine(txs), 0, [], overrides),
         'valid submit', errors);
       t.equal(atx.logs.length, 1, 'length');
       t.equalBig(await contract.rootBlockNumberAt(aroot.keccak256Packed()), blocka, 'block');

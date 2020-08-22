@@ -12,20 +12,71 @@ object "Address" is "Storage" {
       num := sload(Storage.NumAddresses)
     }
 
+    // calculate address id
+    function calculateAddressId(addr) -> id {
+      mstore(0, addr)
+      id := mslice(28, 4)
+    }
+
     /// @notice Get ID of registered address.
     /// @return ID of address as uint256
     function addressId(addr) -> id {
-      id := sload(mappingKey(Storage.Address, addr))
+      id := calculateAddressId(sload(mappingKey(Storage.Address, addr)))
+    }
+
+    // get the 28 byte public key hash for a specific addresss
+    function publicKeyHash(addr) -> pubKeyHash {
+      let hashAndId := sload(mappingKey(Storage.Address, addr))
+      mstore(0, hashAndId)
+      pubKeyHash := mslice(0, 28)
+    }
+
+    // the hash of the aggregate signature public key
+    function calculatePublicKeyHash(pub1, pub2, pub3, pub4) -> keyHash {
+      mstore(0, pub1)
+      mstore(32, pub2)
+      mstore(64, pub3)
+      mstore(96, pub4)
+      keyHash := keccak256(0, 128)
+    }
+
+    // this will combine the public key hash and id into a single 32 byte payload
+    // hashAndId = [28 bytes of pubKeyHash] + [4 id identifier]
+    function calculateHashAndAddress(id, pub1, pub2, pub3, pub4) -> hashAndId {
+      let pubKeyHash := calculatePublicKeyHash(pub1, pub2, pub3, pub4)
+      mstore(4, id)
+      mstore(0, pubKeyHash)
+      hashAndId := mload(4)
     }
 
     /// @notice Register a new address with a sequentially assigned ID.
-    function indexAddress(addr, id) {
-      sstore(mappingKey(Storage.Address, addr), id)
+    function indexAddress(addr, id, pub1, pub2, pub3, pub4) {
+      let hashAndId := calculateHashAndAddress(id, pub1, pub2, pub3, pub4)
+      sstore(mappingKey(Storage.Address, addr), hashAndId)
       sstore(Storage.NumAddresses, add(id, 1))
-      log3(0, 0,
-          topic"event AddressIndexed(address indexed owner, uint256 indexed id)",
+
+      // store public key in memory
+      mstore(0, pub1)
+      mstore(32, pub2)
+      mstore(64, pub3)
+      mstore(96, pub4)
+      mstore(128, hashAndId)
+
+      // log public key and owner and id together for record
+      log3(0, 160,
+          topic"event AddressIndexed(address indexed owner, uint256 indexed id, uint256 publicKeyA, uint256 publicKeyB, uint256 publicKeyC, uint256 publicKeyD, bytes32 hashAndId)",
           addr,
           id)
+    }
+
+    // commit add
+    function commitAddress2(addr, pub1, pub2, pub3, pub4) -> id {
+      id := addressId(addr)
+
+      if and(neq(addr, 0), iszero(id)) {
+        id := numAddresses()
+        indexAddress(addr, id, pub1, pub2, pub3, pub4)
+      }
     }
 
     /// @notice Return ID of address, assigning a new one if necessary.
@@ -35,7 +86,7 @@ object "Address" is "Storage" {
 
       if and(neq(addr, 0), iszero(id)) {
         id := numAddresses()
-        indexAddress(addr, id)
+        indexAddress(addr, id, 0, 0, 0, 0)
       }
     }
   }

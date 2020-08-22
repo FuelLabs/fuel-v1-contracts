@@ -26,7 +26,7 @@ object "MerkleProof" is "Transaction" {
 
       // If the transaction (leaf) has a length, then hash it to get leaf node value
       if gt(TransactionProof.transaction.length(transactionProof), 0) {
-        computedHash := TransactionProof.transaction.keccak256(transactionProof)
+        computedHash := calculateTransactionLeafHash(transactionProof)
       }
 
       // Reset rightmost detection variable (clear any previous use of this stack position).

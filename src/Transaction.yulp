@@ -47,7 +47,12 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       // Token ID of fees
       feeToken: uint256,
       // Claimed feerate for all transactions in root
-      fee: uint256,                     // <--- root header ends here
+      fee: uint256,
+      // Transaction Type
+      transactionType: uint256,
+      // Signature Hash
+      signatureHash: bytes32, // <--- root header ends here
+
       // Index of root in list of roots
       rootIndex: uint16,
 
@@ -178,6 +183,11 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       let start := TransactionLeaf.inputs.length.position(leaf)
       let end := TransactionProof.signatureFee.offset(proof)
       hash := eip712(keccak256(start, sub(end, start)))
+    }
+
+    // @notice Detects if normal leaf or compressed leaf, calculates hash accoridingly
+    function calculateTransactionLeafHash(proof) -> hash {
+      hash := TransactionProof.transaction.keccak256(proof)
     }
 
     /// @notice Find the position of the witness at a given index.
@@ -328,6 +338,18 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       require(lt(pos, TransactionLeaf.metadata.offset(leaf)), error"input-position-overflow")
     }
 
+    // number of transactions per aggregate chunk
+    const aggregateChunkSize := 32
+
+    // check if an aggregate signture root is valid, if not agg sig root, throw
+    function isAggregateSignatureRootValid(proof) -> isValid {
+      let blockHash := BlockHeader.keccak256(TransactionProof.blockProducer.position(proof))
+      let rootIndex := TransactionProof.rootIndex(proof)
+      let transactionIndex := TransactionProof.transactionIndex(proof)
+      let chunkIndex := mod(transactionIndex, 32)
+      isValid := true
+    }
+
     /// @notice Recover witness address from proof.
     /// @return Recovered address as address. 0 on fail.
     function recoverFromWitness(witness, proof) -> addr {
@@ -349,6 +371,21 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
         addr := TransactionProof.blockProducer(proof)
 
         if neq(Producer.hash(witness), transactionId(proof)) {
+          addr := 0
+        }
+      }
+
+      case WitnessType.AggregateSignature {
+        addr := AggregateSignature.owner(witness)
+
+        // this must call the fraudProver contract with the tx id,
+        let id := addressId(addr) // sload(mappingKey(Storage.Address, addr))
+
+        // revert if id and provided address dont match
+        require(eq(id, AggregateSignature.addressIndex(witness)), error"invalid-aggregate-signature-address")
+
+        // check is the bls root valid, return a zero, thus causing invalid witness to work...
+        if iszero(isAggregateSignatureRootValid(proof)) {
           addr := 0
         }
       }

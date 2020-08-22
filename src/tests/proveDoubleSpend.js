@@ -4,9 +4,9 @@ const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/src/block');
-const tx = require('@fuel-js/protocol/src/transaction');
-const { Deposit } = require('@fuel-js/protocol/src/deposit');
+    merkleTreeRoot, transactions, hashes, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
+const tx = require('../protocol/src/transaction');
+const { Deposit } = require('../protocol/src/deposit');
 const { defaults } = require('./harness');
 
 module.exports = test('proveDoubleSpend', async t => { try {
@@ -97,8 +97,9 @@ module.exports = test('proveDoubleSpend', async t => { try {
       merkleTreeRoot: merkleTreeRoot(txs),
       commitmentHash: utils.keccak256(combine(txs)),
       rootLength: utils.hexDataLength(combine(txs)),
+      signatureHash: EMPTY_SIGNATURE_HASH,
     }));
-    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), 0, 0, combine(txs), overrides),
+    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), 0, 0, combine(txs), 0, [], overrides),
       'valid submit', errors);
     const header = (new BlockHeader({
       producer,
