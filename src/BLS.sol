@@ -499,6 +499,10 @@ abstract contract IFuel {
   function blockHash(
     bytes calldata blockHeader
   ) external virtual view returns (bytes32 hash);
+
+  function publicKeyHash(
+    address owner,
+  ) external virtual view returns (bytes32 hash);
 }
 
 contract FuelPackedStructures {
@@ -559,6 +563,20 @@ contract BLS is BLSLibrary, FuelPackedStructures {
     }
   }
 
+  // public key hash
+  function publicKeyHash(uint256[4] publicKey) public view returns (bytes32 hash) {
+    bytes32 keyHash = keccak256(abi.encodePacked(publicKey))
+
+    // trim off the last 4 bytes and return it
+    assembly {
+      let free := mload(0x40)
+      mstore(free, keyHash)
+
+      // 28 byte hash, 4 * 8 = 32
+      hash := shl(32, shr(32, keyHash))
+    }
+  }
+
   // will be able to determine if this root of a block had invalid aggregate signatures
   function proveMalformedAggregateSignature(
     address fuelContract,
@@ -587,6 +605,9 @@ contract BLS is BLSLibrary, FuelPackedStructures {
     // chunk index overflow
     require(signatures.length > chunkIndex, 'chunk-index-overflow');
 
+    // chunk index overflow
+    require(publicKeys.length == chunkSize, 'public-keys-not-chunk-size');
+
     // check signatures are normal valid signatures here..
     // loop thorugh all and check with BLS library they are at least on the right curve etc..
     // require signatures is eq to root hash signatures
@@ -604,21 +625,43 @@ contract BLS is BLSLibrary, FuelPackedStructures {
       blockHash,
       'transaction-length-not-tx-size');
 
+    // transaciton index and limit
     uint256 transactionIndex = chunkIndex * chunkSize;
     uint256 limit = (chunkIndex * chunkSize) + chunkSize;
 
     // start a new messages array
     uint256[2][] memory messages = new uint256[2][](32);
+    uint256 message1;
+
+    // get token and fee from the root for use in packing during assembly
+    uint256 token = _root.feeToken;
+    uint256 fee = _root.fee;
+
+    // assemble the second message for the transaction
+    assembly {
+      let free := mload(0x40)
+      mstore(free, token)
+      mstore(add(free, 32), fee)
+      message1 := mload(add(free, 28))
+    }
 
     // iterate over transactions
     for (;transactionIndex < limit; transactionIndex += 1) {
+      // setup the first message, i.e. 24 byte transaction payload
       uint256 message0;
-      uint256 message1;
 
+      // assembly
       assembly {
-        // message0 := mload()
+        // 32 - 24 = 8
+        // 8 * 8 = 64
+        // greab the 24 byte transaction from transactions memory
+        message0 := shr(64, shl(64, mload(add(mload(transactions), mul(transactionIndex, transactionSize)))))
       }
 
+      // this is also where we would check the public key against the hash provided..
+      // we do this by calling the fuel contract
+
+      // set messages for this transaction index
       messages[transactionIndex][0] = message0;
       messages[transactionIndex][1] = message1;
     }
