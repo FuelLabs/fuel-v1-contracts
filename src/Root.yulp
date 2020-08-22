@@ -57,7 +57,7 @@ object "Root" is "Storage", "Tokens" {
       require(lt(token, numTokens()), error"token-overflow")
 
       // Build root
-      mstore(0, caller(), merkleTreeRoot, commitmentHash, length, token, fee, 0, signaturesHash)
+      mstore(0, caller(), merkleTreeRoot, commitmentHash, length, token, fee, transactionType, signaturesHash)
       // Hash the block header with an offset of 12 bytes, since first field is a 32-12=20 byte address.
       const root := RootHeader.keccak256(12)
 
