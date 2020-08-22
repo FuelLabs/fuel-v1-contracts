@@ -137,10 +137,16 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
 
       /// @notice Register a new address for cheaper transactions.
       /// @param addr Address to register.
+      /// @param publicKeyA-D these are the BLS public key registration
       /// @return New ID assigned to address, or existing ID if already assigned.
       /// @dev Address::commitAddress
-      case sig"commitAddress(address addr) external returns (uint256 id)" {
-        return.word(commitAddress(calldata.word(0)))
+      case sig"commitAddress(address addr, uint256 publicKeyA, uint256 publicKeyB, uint256 publicKeyC, uint256 publicKeyD) external returns (uint256 id)" {
+        return.word(commitAddress(
+          calldata.word(0),
+          calldata.word(1),
+          calldata.word(2),
+          calldata.word(3),
+          calldata.word(4)))
       }
 
       //////////////////////////////////////////////////////////////////////////

@@ -65,7 +65,7 @@ module.exports = test('proveInvalidWitness', async t => {
       }
 
       if (opts.commitAddress) {
-        await contract.commitAddress(owner, overrides);
+        await contract.commitAddress(owner, 0, 0, 0, 0, overrides);
         owner = '0x01';
       }
 

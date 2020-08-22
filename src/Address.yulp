@@ -70,7 +70,8 @@ object "Address" is "Storage" {
     }
 
     // commit add
-    function commitAddress2(addr, pub1, pub2, pub3, pub4) -> id {
+
+    function commitAddress(addr, pub1, pub2, pub3, pub4) -> id {
       id := addressId(addr)
 
       if and(neq(addr, 0), iszero(id)) {
@@ -81,7 +82,7 @@ object "Address" is "Storage" {
 
     /// @notice Return ID of address, assigning a new one if necessary.
     /// @return ID of address as uint256
-    function commitAddress(addr) -> id {
+    function commitAddressOld(addr) -> id {
       id := addressId(addr)
 
       if and(neq(addr, 0), iszero(id)) {

@@ -51,7 +51,7 @@ module.exports = test('withdraw', async t => { try {
       'ether deposit', errors);
 
     if (opts.registeredAddress) {
-      await t.wait(contract.commitAddress(producer, overrides),
+      await t.wait(contract.commitAddress(producer, 0, 0, 0, 0, overrides),
         'commit address', errors);
     }
 
