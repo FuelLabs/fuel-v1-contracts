@@ -12,6 +12,7 @@
     "build": "npm run build-all",
     "build-all": "npm run build-fuel && npm run build-erc20 && npm run build-funnel && npm run build-revert && npm run build-htlc && npm run build-owned-proxy && npm run build-proxy && npm run build-bls",
     "build-fuel": "mkdir -p src/builds && compile=Fuel node ./config/compile",
+    "build-fuel-util": "mkdir -p src/builds && compile=FuelUtil node ./config/compile",
     "build-erc20": "mkdir -p src/builds && compile=ERC20 node ./config/compile",
     "build-funnel": "mkdir -p src/builds && compile=Funnel node ./config/compile",
     "build-revert": "mkdir -p src/builds && compile=Revert node ./config/compile",

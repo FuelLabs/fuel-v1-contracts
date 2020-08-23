@@ -217,11 +217,12 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         const fraudBlockHash := BlockHeader.keccak256(_calldata)
 
         // store block height at 512
-        mstore(0, sig"isBlockFraudulant(bytes32 blockHash) public returns (bool isFraudulent)")
-        mstore(32, fraudBlockHash)
+        mstore(0, sig"isBlockFraudulent(address, bytes32) public returns (bool isFraudulent)")
+        mstore(32, address())
+        mstore(64, fraudBlockHash)
 
         // call the fraud prover contract to check if this block hash is invalid
-        require(call(gas(), fraudProver, 0, 28, 36, 512, 32), error"fraud-prover-reverted")
+        require(call(gas(), fraudProver, 0, 28, 68, 512, 32), error"fraud-prover-reverted")
 
         // if call success to fraud prover
         let isFraudulent := mload(512)
@@ -336,13 +337,13 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
 
       // produce block hash
       case sig"blockHash(bytes proof) external view returns (bytes32 blockHash)" {
-        mstore(0, BlockHeader.keccak256(_calldata))
+        mstore(0, BlockHeader.keccak256(abi.offset(calldata.word(0))))
         return (0, 32)
       }
 
       // root hash
       case sig"rootHash(bytes proof) external view returns (bytes32 rootHash)" {
-        mstore(0, RootHeader.keccak256(_calldata))
+        mstore(0, RootHeader.keccak256(abi.offset(calldata.word(0))))
         return (0, 32)
       }
 

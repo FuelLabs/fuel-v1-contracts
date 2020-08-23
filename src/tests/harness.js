@@ -7,7 +7,7 @@ const block = require('../protocol/src/block');
 const tx = require('../protocol/src/transaction');
 const { Deposit } = require('../protocol/src/deposit');
 
-const defaults = (producer, bondSize = utils.parseEther('1.0')) => [
+const defaults = (producer, bondSize = utils.parseEther('1.0'), fraudProver = utils.emptyAddress) => [
   producer,
   20,
   20,
@@ -17,7 +17,7 @@ const defaults = (producer, bondSize = utils.parseEther('1.0')) => [
   "1.0.0",
   1,
   utils.emptyBytes32,
-  utils.emptyAddress,
+  fraudProver,
 ];
 
 module.exports = {

@@ -506,7 +506,7 @@ abstract contract IFuel {
   ) external virtual view returns (bytes32 hash);
 }
 
-contract FuelPackedStructures {
+contract FuelStructures {
 
   // @dev The Fuel V1.1 Root Header
   struct RootHeader {
@@ -531,16 +531,9 @@ contract FuelPackedStructures {
     bytes32[] roots;
   }
 
-  // @notice this will uppack a blockHeader into a struct block header
-  function unpackBlockHeader(bytes memory blockHeader) public view returns (BlockHeader memory result) {
-  }
-
-  // @notice this will unpack a rootHeader into a struct rootheader
-  function unpackRootHeader(bytes memory rootHeader) public view returns (RootHeader memory result) {
-  }
 }
 
-contract BLS is BLSLibrary, FuelPackedStructures {
+contract BLS is BLSLibrary, FuelStructures {
   // @dev constant finalization assertions
   uint8 constant NOT_FINALIZED = 1;
 
@@ -678,19 +671,22 @@ contract BLS is BLSLibrary, FuelPackedStructures {
       'block-invalid-chunk');
   }
 
-  // @dev is a specific block at a specific fuel contract fraudulent
-  function isBlockFraudulant(bytes32 blockHash) public view returns (bool isFraudulent) {
-    isFraudulent = isBlockFraudulent[msg.sender][blockHash];
+  // get the chunk index for a specific transaction index
+  function chunkIndexFromTransactionIndex(uint16 transactionIndex) public pure returns (uint8 chunkIndex) {
+    if (transactionIndex <= 0) return 0;
+    chunkIndex = uint8(transactionIndex / chunkSize);
   }
 
-  // @dev is the specified root hash valid, i.e. all transactions within this specific root
-  function verifyTransactionChunkValid(
+  // @dev is the specified transaction valid, if not revert, this doesn't mean it isn't it just means its not proven yet
+  function verifyTransactionValid(
+    address fuelContract,
     bytes32 blockHash,
     uint8 rootIndex,
-    uint8 chunkIndex
+    uint16 transactionIndex
   ) public view returns (bool isValid) {
+    uint8 chunkIndex = chunkIndexFromTransactionIndex(transactionIndex);
     // return the valid root
-    isValid = isChunkValid[msg.sender][blockHash][rootIndex][chunkIndex];
+    isValid = isChunkValid[fuelContract][blockHash][rootIndex][chunkIndex];
 
     // require the root is valid, otherwise revert
     require(isValid);

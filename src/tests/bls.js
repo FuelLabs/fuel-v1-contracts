@@ -2,9 +2,11 @@ const { test, utils, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const { BlockHeader, RootHeader, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
+const { PackedTransfer } = require('../protocol/src/transaction');
 const { defaults } = require('./harness');
 const mcl = require('../bls/mcl');
 const BLS = require('../builds/BLS.json');
+const FuelUtil = require('../builds/FuelUtil.json');
 
 function pubKeyAddress(pubkey = []) {
   const pubKeyhash = utils.keccak256('0x' + pubkey.map(v => v.slice(2)).join(''));
@@ -18,13 +20,26 @@ function addressFromHashAndId(hashAndID = '0x') {
 
 module.exports = test('bls', async t => {
 
-    // deploy Fuel
-    const producer = t.wallets[0].address;
-    const contract = await t.deploy(abi, bytecode, defaults(producer));
-
     // deploy the BLS fraud prover contract
     const blsFraudProver = await t.deploy(BLS.abi, BLS.bytecode, []);
 
+    // deploy Fuel
+    const producer = t.wallets[0].address;
+    const contract = await t.deploy(abi, bytecode, defaults(
+      producer,
+      utils.parseEther('1.0'),
+      blsFraudProver.address,
+    ));
+    const fuelUtil = await t.deploy(FuelUtil.abi, FuelUtil.bytecode, defaults(
+      producer,
+      utils.parseEther('1.0'),
+      blsFraudProver.address,
+    ));
+
+    // fraud prover address is correct from Fuel contract
+    t.equalHex(await contract.BLS_FRAUD_PROVER(), blsFraudProver.address, 'bls fraud prover address');
+
+    // init MCL for BLS aggregate signatures
     await mcl.init();
     const keypair = await mcl.newKeyPair();
     const message1 = '0xdeadbeef';
@@ -133,22 +148,43 @@ module.exports = test('bls', async t => {
     t.equal(rootTx.events[0].args.signatureHash, await blsFraudProver.signatureHash(signatures),
       'signature hash in fraud prover is the same in Fuel');
 
-    // t.equal(await blsFraudProver.signatureHash(), await
+    t.equalBig(await blsFraudProver.chunkIndexFromTransactionIndex(0), 0, 'chunk index');
+    t.equalBig(await blsFraudProver.chunkIndexFromTransactionIndex(32), 1, 'chunk index');
+    t.equalBig(await blsFraudProver.chunkIndexFromTransactionIndex(33), 1, 'chunk index');
+    t.equalBig(await blsFraudProver.chunkIndexFromTransactionIndex(64), 2, 'chunk index');
+    t.equalBig(await blsFraudProver.chunkIndexFromTransactionIndex(65), 2, 'chunk index');
+
+    const validPackedRoot = new RootHeader({
+      rootProducer: producer,
+      merkleTreeRoot: utils.emptyBytes32,
+      commitmentHash: utils.emptyBytes32,
+      rootLength: utils.emptyBytes32,
+      feeToken: utils.emptyBytes32,
+      fee: 0,
+      transactionType: 1,
+      signatureHash: utils.emptyBytes32,
+    });
+    const validBlock = new BlockHeader({
+      producer,
+      height: 1,
+      blockNumber: 0,
+      roots: [validPackedRoot.keccak256Packed()],
+    });
+
+    t.equal(await fuelUtil.rootHash(validPackedRoot.encodePacked()),
+      validPackedRoot.keccak256Packed(), 'rootHash');
+    t.equal(await fuelUtil.blockHash(validBlock.encodePacked()),
+      validBlock.keccak256Packed(), 'blockHash');
+
+    console.log(await fuelUtil.selectRoot(validPackedRoot.encodePacked()));
+    console.log(await fuelUtil.selectBlock(validBlock.encodePacked()));
 
     // Fuel
-    // - commitAddress
-    // - publicKeyHash
-    // - addressId
-
-    // BLSTest
-    // - _verifyMultiple
+    // - verifyHeader
+    // - rootHash
+    // - blockHash
 
     // FuelPackedStructures
     //  - root
     //  - block
-
-    // BLS contract
-    // - publicKeyHash
-    // - message1FromRoot
-
 });
