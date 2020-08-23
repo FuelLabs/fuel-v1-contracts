@@ -484,15 +484,7 @@ contract BLSLibrary {
     }
 }
 
-// Fuel Interface
-abstract contract IFuel {
-  function verifyHeader(
-    bytes calldata blockHeader,
-    bytes calldata root,
-    uint256 rootIndex,
-    uint8 assertFinalized
-  ) external virtual view returns (bool);
-
+abstract contract IFuelUtil {
   function rootHash(
     bytes calldata rootHeader
   ) external virtual view returns (bytes32 hash);
@@ -504,6 +496,39 @@ abstract contract IFuel {
   function publicKeyHash(
     address owner
   ) external virtual view returns (bytes32 hash);
+
+  function selectBlock(bytes memory proof)
+    external virtual view returns (
+      address producer,
+      bytes32 previousBlockHash,
+      uint256 height,
+      uint256 blockNumber,
+      uint256 numTokens,
+      uint256 numAddresses,
+      bytes32[] memory roots
+    );
+
+  function selectRoot(bytes memory proof)
+    external virtual view returns (
+      address producer,
+      bytes32 merkleTreeRoot,
+      bytes32 commitmentHash,
+      uint256 length,
+      uint256 feeToken,
+      uint256 fee,
+      uint256 transactionType,
+      bytes32 signatureHash
+    );
+}
+
+// Fuel Interface
+abstract contract IFuel {
+  function verifyHeader(
+    bytes calldata blockHeader,
+    bytes calldata root,
+    uint256 rootIndex,
+    uint8 assertFinalized
+  ) external virtual view returns (bool);
 }
 
 contract FuelStructures {
@@ -515,7 +540,7 @@ contract FuelStructures {
     uint32 feeToken;
     uint8 transactionType;
     uint32 rootLength;
-    bytes32 merkleRoot;
+    bytes32 merkleTreeRoot;
     bytes32 commitmentHash;
     bytes32 signatureHash;
   }
@@ -530,7 +555,6 @@ contract FuelStructures {
     uint256 numAddresses;
     bytes32[] roots;
   }
-
 }
 
 contract BLS is BLSLibrary, FuelStructures {
@@ -548,6 +572,14 @@ contract BLS is BLSLibrary, FuelStructures {
 
   // @dev if a chunk of transactions valid within a specific block hash => root => valid or not
   mapping(address => mapping(bytes32 => mapping(uint8 => mapping(uint8 => bool)))) public isChunkValid;
+
+  // @dev the Fuel utils contract
+  IFuelUtil public util;
+
+  // @dev construct with Fuel util
+  constructor(IFuelUtil _util) {
+    util = _util;
+  }
 
   // @dev assert or it's fraud and record fraud in state forever..
   function assertOrFraud(bool assertion, address fuelContract, bytes32 blockHash, string memory message) internal {
@@ -581,6 +613,26 @@ contract BLS is BLSLibrary, FuelStructures {
     hash = keccak256(abi.encodePacked(signatures));
   }
 
+  // decode root into a struct
+  function decodeRoot(bytes memory rootHeader) public view returns (RootHeader memory root) {
+    ( address producer,
+      bytes32 merkleTreeRoot,
+      bytes32 commitmentHash,
+      uint256 length,
+      uint256 feeToken,
+      uint256 fee,
+      uint256 transactionType,
+      bytes32 _signatureHash ) = util.selectRoot(rootHeader);
+    root.producer = producer;
+    root.merkleTreeRoot = merkleTreeRoot;
+    root.commitmentHash = commitmentHash;
+    root.rootLength = uint32(length);
+    root.feeToken = uint32(feeToken);
+    root.fee = fee;
+    root.transactionType = uint8(transactionType);
+    root.signatureHash = _signatureHash;
+  }
+
   // @dev will be able to determine if this root of a block had invalid aggregate signatures
   function proveMalformedAggregateSignature(
     address fuelContract,
@@ -597,11 +649,12 @@ contract BLS is BLSLibrary, FuelStructures {
 
     // calculate the hashes for each of these
     // bytes32 rootHash = IFuel(fuelContract).rootHash(rootHeader);
-    bytes32 blockHash = IFuel(fuelContract).blockHash(blockHeader);
+    bytes32 blockHash = util.blockHash(blockHeader);
 
     // unpack the root and block header
     // BlockHeader memory _block = unpackBlockHeader(blockHeader);
-    RootHeader memory _root = unpackRootHeader(rootHeader);
+
+    RootHeader memory _root = decodeRoot(rootHeader);
 
     // ensure the transactions data provided is correct
     require(keccak256(transactions) == _root.commitmentHash, 'commitment-hash');

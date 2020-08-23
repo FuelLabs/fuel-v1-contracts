@@ -20,17 +20,19 @@ function addressFromHashAndId(hashAndID = '0x') {
 
 module.exports = test('bls', async t => {
 
-    // deploy the BLS fraud prover contract
-    const blsFraudProver = await t.deploy(BLS.abi, BLS.bytecode, []);
-
     // deploy Fuel
     const producer = t.wallets[0].address;
-    const contract = await t.deploy(abi, bytecode, defaults(
-      producer,
-      utils.parseEther('1.0'),
-      blsFraudProver.address,
-    ));
+
+    // Fuel util contract
     const fuelUtil = await t.deploy(FuelUtil.abi, FuelUtil.bytecode, defaults(
+      producer,
+      utils.parseEther('1.0')
+    ));
+
+    // deploy the BLS fraud prover contract
+    const blsFraudProver = await t.deploy(BLS.abi, BLS.bytecode, [fuelUtil.address]);
+
+    const contract = await t.deploy(abi, bytecode, defaults(
       producer,
       utils.parseEther('1.0'),
       blsFraudProver.address,
@@ -175,9 +177,6 @@ module.exports = test('bls', async t => {
       validPackedRoot.keccak256Packed(), 'rootHash');
     t.equal(await fuelUtil.blockHash(validBlock.encodePacked()),
       validBlock.keccak256Packed(), 'blockHash');
-
-    console.log(await fuelUtil.selectRoot(validPackedRoot.encodePacked()));
-    console.log(await fuelUtil.selectBlock(validBlock.encodePacked()));
 
     // Fuel
     // - verifyHeader
