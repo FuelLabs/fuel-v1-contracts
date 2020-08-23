@@ -9,7 +9,7 @@ const target = 'target.sol';
   if (!process.env.compile) return;
 
   const contractName = process.env.compile;
-  const path = `./src/${contractName}.sol`;
+  const path = process.env.file || `./src/${contractName}.sol`;
 
   const input = {
     language: 'Solidity',
@@ -39,7 +39,7 @@ const target = 'target.sol';
     bytecode: output.contracts[target][contractName].evm.bytecode.object,
   };
 
-  await write('./src/builds/BLS.json', JSON.stringify(result, null, 2));
+  await write(`./src/builds/${process.env.compile}.json`, JSON.stringify(result, null, 2));
 
   console.log('Solidity compiling complete.');
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.0;
+pragma experimental ABIEncoderV2;
 
 contract BLSLibrary {
     // Field order
@@ -19,7 +20,7 @@ contract BLSLibrary {
         uint256[2] memory signature,
         uint256[4] memory pubkey,
         uint256[2] memory message
-    ) internal view returns (bool) {
+    ) public view returns (bool) {
         uint256[12] memory input = [
             signature[0],
             signature[1],
@@ -52,7 +53,7 @@ contract BLSLibrary {
         uint256[2] memory signature,
         uint256[4][] memory pubkeys,
         uint256[2][] memory messages
-    ) internal view returns (bool) {
+    ) public view returns (bool) {
         uint256 size = pubkeys.length;
         require(size > 0, "BLS: number of public key is zero");
         require(
@@ -97,7 +98,7 @@ contract BLSLibrary {
     }
 
     function hashToPoint(bytes memory data)
-        internal
+        public
         view
         returns (uint256[2] memory p)
     {
@@ -506,6 +507,8 @@ abstract contract IFuel {
 }
 
 contract FuelPackedStructures {
+
+  // @dev The Fuel V1.1 Root Header
   struct RootHeader {
     address producer;
     uint256 fee;
@@ -517,6 +520,7 @@ contract FuelPackedStructures {
     bytes32 signatureHash;
   }
 
+  // @dev The Fuel V1 Block Header
   struct BlockHeader {
     address producer;
     bytes32 previousBlockHash;
@@ -527,10 +531,12 @@ contract FuelPackedStructures {
     bytes32[] roots;
   }
 
-  function unpackRootHeader(bytes memory rootHeader) internal view returns (RootHeader memory result) {
+  // @notice this will uppack a blockHeader into a struct block header
+  function unpackBlockHeader(bytes memory blockHeader) public view returns (BlockHeader memory result) {
   }
 
-  function unpackBlockHeader(bytes memory blockHeader) internal view returns (BlockHeader memory result) {
+  // @notice this will unpack a rootHeader into a struct rootheader
+  function unpackRootHeader(bytes memory rootHeader) public view returns (RootHeader memory result) {
   }
 }
 
@@ -577,7 +583,7 @@ contract BLS is BLSLibrary, FuelPackedStructures {
     }
   }
 
-  function message1FromRoot(RootHeader memory _root) internal pure returns (uint256 message1) {
+  function message1FromRoot(RootHeader memory _root) public pure returns (uint256 message1) {
     // get token and fee from the root for use in packing during assembly
     uint256 token = _root.feeToken;
     uint256 fee = _root.fee;

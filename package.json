@@ -18,6 +18,7 @@
     "build-proxy": "mkdir -p src/builds && compile=Proxy node ./config/compile",
     "build-owned-proxy": "mkdir -p src/builds && compile=OwnedProxy node ./config/compile",
     "build-bls": "mkdir -p src/builds && compile=BLS node ./config/solidity",
+    "build-bls-library": "mkdir -p src/builds && file=src/BLS.sol compile=BLSLibrary node ./config/solidity",
     "build-ts": "tsc",
     "build-htlc": "mkdir -p src/builds && compile=HTLC node ./config/compile",
     "deploy-all": "npm run deploy-ropsten && npm run deploy-rinkeby && npm run deploy-goerli && npm run deploy-kovan && npm run deploy-mainnet",

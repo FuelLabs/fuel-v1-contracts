@@ -1,5 +1,8 @@
 (async () => {
 
+  await require('./bls');
+  return;
+
   await require('./constructor');
   await require('./deposit');
   await require('./htlc');
