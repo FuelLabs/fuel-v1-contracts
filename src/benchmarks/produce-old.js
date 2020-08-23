@@ -2,7 +2,7 @@
 const utils = require('@fuel-js/utils');
 const { chunk, pack, combine } = require('@fuel-js/struct');
 const ethers = require('ethers');
-const { RootHeader, merkleTreeRoot } = require('@fuel-js/protocol/src/block');
+const { RootHeader, merkleTreeRoot } = require('../protocol/src/block');
 const gasPrice = require('@fuel-js/gasprice');
 const refill = require('@fuel-js/refill');
 

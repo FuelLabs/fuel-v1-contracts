@@ -5,9 +5,9 @@ const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/src/block');
-const tx = require('@fuel-js/protocol/src/transaction');
-const { Deposit } = require('@fuel-js/protocol/src/deposit');
+    merkleTreeRoot, transactions, hashes } = require('../protocol/src/block');
+const tx = require('../protocol/src/transaction');
+const { Deposit } = require('../protocol/src/deposit');
 const { defaults } = require('../tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
@@ -39,7 +39,7 @@ module.exports = test('25k Subscription Transactions', async t => { try {
   const contract = await t.deploy(abi, bytecode,
       defaults(producer, utils.parseEther('.01')), t.getWallets()[0], t.getOverrides());
   let tokenId = '0x01';
-  const commitTx = await contract.commitAddress(producer, t.getOverrides());
+  const commitTx = await contract.commitAddress(producer, 0, 0, 0, 0, t.getOverrides());
   await commitTx.wait();
   const ownerId = await contract.addressId(producer);
 
