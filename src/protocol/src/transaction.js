@@ -20,6 +20,14 @@ const Unsigned = struct(
   opts => ({ ...opts, inputs: pack(...opts.inputs), outputs: pack(...opts.outputs) }),
 );
 
+const PackedTransfer = struct(
+  `bytes8 metadata,
+  uint32 from,
+  uint32 to,
+  uint32 transferAmount,
+  uint32 changeAmount`
+);
+
 const _Transaction = struct(`
   uint16 length,
   bytes8[*] metadata,
@@ -207,6 +215,7 @@ module.exports = {
   ...inputs,
   ...outputs,
   decodePacked,
+  PackedTransfer,
   TransactionProof,
   merkleProof,
   decodePacked,

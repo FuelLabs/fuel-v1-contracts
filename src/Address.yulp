@@ -81,6 +81,7 @@ object "Address" is "Storage" {
 
     /// @notice Return ID of address, assigning a new one if necessary.
     /// @return ID of address as uint256
+    /*
     function commitAddressOld(addr) -> id {
       id := addressId(addr)
 
@@ -89,5 +90,6 @@ object "Address" is "Storage" {
         indexAddress(addr, id, 0, 0, 0, 0)
       }
     }
+    */
   }
 }

@@ -541,22 +541,22 @@ contract FuelPackedStructures {
 }
 
 contract BLS is BLSLibrary, FuelPackedStructures {
-  // fuelContract => blockHash => fraudulent or not
-  mapping(address => mapping(bytes32 => bool)) public isBlockFraudulent;
-
-  // if a chunk of transactions valid within a specific block hash => root => valid or not
-  mapping(address => mapping(bytes32 => mapping(uint8 => mapping(uint8 => bool)))) public isChunkValid;
-
-  // constant finalization assertions
+  // @dev constant finalization assertions
   uint8 constant NOT_FINALIZED = 1;
 
-  // The number of transacitons per chunk
+  // @dev The number of transacitons per chunk
   uint8 constant chunkSize = 32;
 
-  // The size in bytes of each transaction
+  // @dev The size in bytes of each transaction
   uint8 constant transactionSize = 24;
 
-  // assert or it's fraud and record fraud in state forever..
+  // @dev fuelContract => blockHash => fraudulent or not
+  mapping(address => mapping(bytes32 => bool)) public isBlockFraudulent;
+
+  // @dev if a chunk of transactions valid within a specific block hash => root => valid or not
+  mapping(address => mapping(bytes32 => mapping(uint8 => mapping(uint8 => bool)))) public isChunkValid;
+
+  // @dev assert or it's fraud and record fraud in state forever..
   function assertOrFraud(bool assertion, address fuelContract, bytes32 blockHash, string memory message) internal {
     if (!assertion) {
       isBlockFraudulent[fuelContract][blockHash] = true;
@@ -569,7 +569,7 @@ contract BLS is BLSLibrary, FuelPackedStructures {
     }
   }
 
-  // public key hash
+  // @dev public key hash
   function publicKeyHash(uint256[4] memory publicKey) public pure returns (bytes32 hash) {
     bytes32 keyHash = keccak256(abi.encodePacked(publicKey));
 
@@ -579,25 +579,16 @@ contract BLS is BLSLibrary, FuelPackedStructures {
       mstore(free, keyHash)
 
       // 28 byte hash, 4 * 8 = 32
-      hash := shl(32, shr(32, keyHash))
+      hash := shr(32, shl(32, keyHash))
     }
   }
 
-  function message1FromRoot(RootHeader memory _root) public pure returns (uint256 message1) {
-    // get token and fee from the root for use in packing during assembly
-    uint256 token = _root.feeToken;
-    uint256 fee = _root.fee;
-
-    // assemble the second message for the transaction
-    assembly {
-      let free := mload(0x40)
-      mstore(free, token)
-      mstore(add(free, 32), fee)
-      message1 := mload(add(free, 28))
-    }
+  // @dev produce the same signature hash produced by Fuel root production
+  function signatureHash(uint256[2][] memory signatures) public pure returns (bytes32 hash) {
+    hash = keccak256(abi.encodePacked(signatures));
   }
 
-  // will be able to determine if this root of a block had invalid aggregate signatures
+  // @dev will be able to determine if this root of a block had invalid aggregate signatures
   function proveMalformedAggregateSignature(
     address fuelContract,
     bytes memory blockHeader,
@@ -622,16 +613,14 @@ contract BLS is BLSLibrary, FuelPackedStructures {
     // ensure the transactions data provided is correct
     require(keccak256(transactions) == _root.commitmentHash, 'commitment-hash');
 
+    // ensure the signatures provided match that found in the root in Fuel
+    require(signatureHash(signatures) == _root.signatureHash, 'signature-hash');
+
     // chunk index overflow
     require(signatures.length > chunkIndex, 'chunk-index-overflow');
 
     // chunk index overflow
     require(publicKeys.length == chunkSize, 'public-keys-not-chunk-size');
-
-    // check signatures are normal valid signatures here..
-    // loop thorugh all and check with BLS library they are at least on the right curve etc..
-    // require signatures is eq to root hash signatures
-    // require(keccak256(abi.encodePacked(signatures)) == _root.signatureHash, 'signature-hash');
 
     // check length
     assertOrFraud(transactions.length % (chunkSize * transactionSize) == 0,
@@ -647,7 +636,10 @@ contract BLS is BLSLibrary, FuelPackedStructures {
 
     // start a new messages array
     uint256[2][] memory messages = new uint256[2][](32);
-    uint256 message1 = message1FromRoot(_root);
+    uint256 message1; //  = message1FromRoot(_root);
+
+    // uint256 token = _root.feeToken;
+    // uint256 fee = _root.fee;
 
     // iterate over transactions
     for (uint256 transactionIndex = chunkIndex * chunkSize;
@@ -686,12 +678,12 @@ contract BLS is BLSLibrary, FuelPackedStructures {
       'block-invalid-chunk');
   }
 
-  // is a specific block at a specific fuel contract fraudulent
+  // @dev is a specific block at a specific fuel contract fraudulent
   function isBlockFraudulant(bytes32 blockHash) public view returns (bool isFraudulent) {
     isFraudulent = isBlockFraudulent[msg.sender][blockHash];
   }
 
-  // is the specified root hash valid, i.e. all transactions within this specific root
+  // @dev is the specified root hash valid, i.e. all transactions within this specific root
   function verifyTransactionChunkValid(
     bytes32 blockHash,
     uint8 rootIndex,
