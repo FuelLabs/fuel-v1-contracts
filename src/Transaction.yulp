@@ -140,11 +140,133 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       }
     }
 
+    /*
+    mstruct TransactionLeaf (
+      // Length of leaf in bytes
+      length: uint16,
+      metadata.length: uint8,
+      // List of metadata, one per input
+      metadata: [bytes8],
+      witnesses.length: uint16,
+      // List of witnesses
+      witnesses: [bytes1],
+      inputs.length: uint16,            // <--- transaction data begins here
+      // List of inputs
+      inputs: [bytes1],
+      outputs.length: uint16,
+      // List of outputs
+      outputs: [bytes1]
+    )
+    */
+
+    function shlb(shiftInBytes, value) -> result {
+      result := shl(mul(shiftInBytes, 8), value)
+    }
+
+    function shrb(shiftInBytes, value) -> result {
+      result := shr(mul(shiftInBytes, 8), value)
+    }
+
+    function factorInMantissa(transferAmount) -> manitssaAmount {
+      manitssaAmount := mul(transferAmount, 1)
+    }
+
+    mstruct PackedTransfer (
+      metadata: bytes8,
+      from: uint32,
+      to: uint32,
+      transferAmount: uint32,
+      changeAmount: uint32
+    )
+
+    /*
+    17
+    mstruct Output (
+      // Output type
+      type: uint8,
+      token.length: uint8,
+      // Token ID, as varint
+      token: [bytes1],
+      amount.shift: uint8,
+      amount.length: uint8,
+      // Amount of tokens, as packed varint
+      amount: [uint8],
+      owner.length: uint8,
+      // Recipient, as varint
+      owner: [bytes1]
+    )
+    */
+
     /// @notice expand transaction from it's compressed form into a fully expanded form
     /// @dev this will directly overrite data in memory, so it needs to be done at the right time (i.e. after merkle proofing)
     function TransactionProof.expand(proof) {
       let position := TransactionProof.transaction.position(proof)
-      let transactionType := TransactionProof.transactionType.position(proof)
+      let transactionType := TransactionProof.transactionType(proof)
+      let _transactionPosition := add(_calldata, calldatasize())
+      mstore(_transactionPosition, mload(position))
+
+      let token := TransactionProof.feeToken(proof)
+      let fromAddress := mload(add(position, 32))
+
+      // if it's a compressed PackedTransfer
+      if eq(transactionType, 1) {
+
+        // store length
+        mstore(position, shlb(30, 100))
+
+        // store metadata length
+        mstore(add(position, 2), shlb(31, 1))
+
+        // store metadata
+        mstore(add(position, 3), shlb(24, PackedTransfer.metadata(_transactionPosition)))
+
+        // witnesses length
+        mstore(add(position, 11), shlb(30, 25))
+
+        // store AggregateSignature data
+        mstore(add(position, 13), shlb(31, WitnessTypes.AggregateSignature))
+
+        // store AggregateAddress from addressIndex
+        mstore(add(position, 14), shlb(28, PackedTransfer.from(_transactionPosition)))
+
+        // store AggregateAddress address
+        mstore(add(position, 18), shlb(12, fromAddress))
+
+        // store inputs lengths
+        mstore(add(position, 38), shlb(30, 2))
+
+        // store InputTransfer type 0 witnessIndex 0
+        mstore(add(position, 39), shlb(30, 0x0000))
+
+        // store outputs length
+        mstore(add(position, 41), shlb(30, 0x0000))
+
+        // store Transfer output Type 0
+        mstore(add(position, 43), shlb(31, OutputTypes.Transfer))
+
+        // Token length
+        mstore(add(position, 44), shlb(31, 4))
+
+        // Token specifier for Output 0
+        mstore(add(position, 45), shlb(28, token))
+
+        // Amount shift 0 shift for now
+        mstore(add(position, 49), shlb(28, 0))
+
+        // Amount length, factor in mantissa
+        mstore(add(position, 50), 32)
+
+        // Amount, extract amount and factor in mantissa
+        mstore(add(position, 51), factorInMantissa(
+          PackedTransfer.transferAmount(_transactionPosition)
+        ))
+
+        // output 0 to length
+        mstore(add(position, 83), shlb(31, 4))
+
+        // output 0 packed transfer to
+        mstore(add(position, 84), shlb(28, PackedTransfer.to(_transactionPosition)))
+      }
     }
 
     /// @notice Hash a UTXO.

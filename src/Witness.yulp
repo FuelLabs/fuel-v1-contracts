@@ -38,6 +38,7 @@ object "Witness" is "Storage" {
       hash: bytes32
     )
 
+    // 25 bytes in size
     mstruct AggregateSignature (
       // Witness type
       type: uint8,
