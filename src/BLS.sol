@@ -529,6 +529,9 @@ abstract contract IFuel {
     uint256 rootIndex,
     uint8 assertFinalized
   ) external virtual view returns (bool);
+
+  function addressId(address owner) external virtual view returns (uint256 id);
+  function publicKeyHash(address owner) external virtual view returns (bytes32 pubKeyHash);
 }
 
 contract FuelStructures {
@@ -557,7 +560,48 @@ contract FuelStructures {
   }
 }
 
-contract BLS is BLSLibrary, FuelStructures {
+contract PackedTransactions {
+    struct PackedTransfer {
+        bytes32 metadata;
+        uint256 from;
+        uint256 to;
+        uint256 transferAmount;
+        uint256 changeAmount;
+    }
+
+    function extractPackedTransfer(bytes memory transactions, uint256 offset) public pure returns (bytes32 paddedPackedTransfer) {
+      assembly {
+        let position := add(add(transactions, offset), 32)
+        paddedPackedTransfer := shr(mul(8, 8), mload(position))
+      }
+    }
+
+    function decodePackedTransfer(bytes memory transactions, uint256 offset) public pure returns (PackedTransfer memory result) {
+      bytes32 metadata;
+      uint256 from;
+      uint256 to;
+      uint256 transferAmount;
+      uint256 changeAmount;
+
+      assembly {
+          let position := add(add(transactions, offset), 32)
+
+          metadata := shr(mul(24, 8), mload(position))
+          from := shr(mul(28, 8), mload(add(position, 8)))
+          to := shr(mul(28, 8), mload(add(position, 12)))
+          transferAmount := shr(mul(28, 8), mload(add(position, 16)))
+          changeAmount := shr(mul(28, 8), mload(add(position, 20)))
+      }
+
+      result.metadata = metadata;
+      result.from = from;
+      result.to = to;
+      result.transferAmount = transferAmount;
+      result.changeAmount = changeAmount;
+    }
+}
+
+contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
   // @dev constant finalization assertions
   uint8 constant NOT_FINALIZED = 1;
 
@@ -582,9 +626,9 @@ contract BLS is BLSLibrary, FuelStructures {
   }
 
   // @dev assert or it's fraud and record fraud in state forever..
-  function assertOrFraud(bool assertion, address fuelContract, bytes32 blockHash, string memory message) internal {
+  function assertOrFraud(bool assertion, IFuel fuelContract, bytes32 blockHash, string memory message) internal {
     if (!assertion) {
-      isBlockFraudulent[fuelContract][blockHash] = true;
+      isBlockFraudulent[address(fuelContract)][blockHash] = true;
 
       // for testing, comment out below for production
       require(false, message);
@@ -608,11 +652,6 @@ contract BLS is BLSLibrary, FuelStructures {
     }
   }
 
-  // @dev produce the same signature hash produced by Fuel root production
-  function signatureHash(uint256[2][] memory signatures) public pure returns (bytes32 hash) {
-    hash = keccak256(abi.encodePacked(signatures));
-  }
-
   // decode root into a struct
   function decodeRoot(bytes memory rootHeader) public view returns (RootHeader memory root) {
     ( address producer,
@@ -633,19 +672,36 @@ contract BLS is BLSLibrary, FuelStructures {
     root.signatureHash = _signatureHash;
   }
 
+  // @dev produce the same signature hash produced by Fuel root production
+  function signatureHash(uint256[2][] memory signatures) public pure returns (bytes32 hash) {
+    hash = keccak256(abi.encodePacked(signatures));
+  }
+
+  // @dev produce message for a specific transaction
+  function packedTransferMessage(bytes32 paddedPackedTransfer, RootHeader memory root) public view returns (uint256[2] memory message) {
+    message = hashToPoint(abi.encode(paddedPackedTransfer, root.fee, root.feeToken));
+  }
+
+  // get the chunk index for a specific transaction index
+  function chunkIndexFromTransactionIndex(uint16 transactionIndex) public pure returns (uint8 chunkIndex) {
+    if (transactionIndex <= 0) return 0;
+    chunkIndex = uint8(transactionIndex / chunkSize);
+  }
+
   // @dev will be able to determine if this root of a block had invalid aggregate signatures
   function proveMalformedAggregateSignature(
-    address fuelContract,
+    IFuel fuelContract,
     bytes memory blockHeader,
     bytes memory rootHeader,
     uint256 rootIndex,
     uint256 chunkIndex,
     bytes memory transactions,
-    uint256[2][] memory signatures,
-    uint256[4][] memory publicKeys) public {
-
+    address[] memory addresses, // normal ethereum addresses
+    uint256[4][] memory publicKeys,
+    uint256[2][] memory signatures
+  ) public {
     // id the header verified
-    require(IFuel(fuelContract).verifyHeader(blockHeader, rootHeader, rootIndex, NOT_FINALIZED));
+    require(fuelContract.verifyHeader(blockHeader, rootHeader, rootIndex, NOT_FINALIZED));
 
     // calculate the hashes for each of these
     // bytes32 rootHash = IFuel(fuelContract).rootHash(rootHeader);
@@ -656,11 +712,16 @@ contract BLS is BLSLibrary, FuelStructures {
 
     RootHeader memory _root = decodeRoot(rootHeader);
 
+    require(_root.transactionType > 0, 'root-transaction-type');
+
     // ensure the transactions data provided is correct
     require(keccak256(transactions) == _root.commitmentHash, 'commitment-hash');
 
     // ensure the signatures provided match that found in the root in Fuel
     require(signatureHash(signatures) == _root.signatureHash, 'signature-hash');
+
+    // Address length mismatch
+    require(addresses.length == publicKeys.length, 'addresses-length-mismatch');
 
     // chunk index overflow
     require(signatures.length > chunkIndex, 'chunk-index-overflow');
@@ -682,32 +743,29 @@ contract BLS is BLSLibrary, FuelStructures {
 
     // start a new messages array
     uint256[2][] memory messages = new uint256[2][](32);
-    uint256 message1; //  = message1FromRoot(_root);
-
-    // uint256 token = _root.feeToken;
-    // uint256 fee = _root.fee;
 
     // iterate over transactions
+    uint256 index = 0;
     for (uint256 transactionIndex = chunkIndex * chunkSize;
       transactionIndex < (chunkIndex * chunkSize) + chunkSize;
       transactionIndex += 1) {
       // setup the first message, i.e. 24 byte transaction payload
-      uint256 message0;
+      PackedTransfer memory transfer = decodePackedTransfer(transactions,
+        transactionIndex * transactionSize);
 
-      // assembly
-      assembly {
-        // 32 - 24 = 8
-        // 8 * 8 = 64
-        // grab the 24 byte transaction from transactions memory
-        message0 := shr(64, shl(64, mload(add(mload(transactions), mul(transactionIndex, transactionSize)))))
-      }
+      // require the from is correct with address id, or revert
+      require(transfer.from == fuelContract.addressId(addresses[index]), 'invalid-from-address-id');
 
-      // this is also where we would check the public key against the hash provided..
-      // we do this by calling the fuel contract
+      // require that the public key is right with the address
+      require(publicKeyHash(publicKeys[index]) == fuelContract.publicKeyHash(addresses[index]), 'invalid-public-key-hash');
 
       // set messages for this transaction index
-      messages[transactionIndex][0] = message0;
-      messages[transactionIndex][1] = message1;
+      messages[transactionIndex] = packedTransferMessage(
+        extractPackedTransfer(transactions, transactionIndex * transactionSize),
+        _root);
+
+      // increase index
+      index += 1;
     }
 
     // verify
@@ -724,12 +782,6 @@ contract BLS is BLSLibrary, FuelStructures {
       'block-invalid-chunk');
   }
 
-  // get the chunk index for a specific transaction index
-  function chunkIndexFromTransactionIndex(uint16 transactionIndex) public pure returns (uint8 chunkIndex) {
-    if (transactionIndex <= 0) return 0;
-    chunkIndex = uint8(transactionIndex / chunkSize);
-  }
-
   // @dev is the specified transaction valid, if not revert, this doesn't mean it isn't it just means its not proven yet
   function verifyTransactionValid(
     address fuelContract,
@@ -737,7 +789,9 @@ contract BLS is BLSLibrary, FuelStructures {
     uint8 rootIndex,
     uint16 transactionIndex
   ) public view returns (bool isValid) {
+    // get the chunk index for this transaction Index
     uint8 chunkIndex = chunkIndexFromTransactionIndex(transactionIndex);
+
     // return the valid root
     isValid = isChunkValid[fuelContract][blockHash][rootIndex][chunkIndex];
 

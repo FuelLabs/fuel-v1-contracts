@@ -59,6 +59,8 @@ object "VerifyWitness" is "Deposit", "Transaction" {
 
       // Aggregate Signature type (specified in the root header)
       case WitnessType.AggregateSignature {
+        // verifyTransactionChunkValid()
+
         // require(eq(Producer.hash(witness), transactionId(transactionProof)),
         //   error"witness-producer")
       }

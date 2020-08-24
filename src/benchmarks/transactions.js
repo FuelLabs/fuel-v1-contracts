@@ -5,7 +5,7 @@ const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot, transactions, hashes } = require('../protocol/src/block');
+    merkleTreeRoot, transactions, hashes, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
 const tx = require('../protocol/src/transaction');
 const { Deposit } = require('../protocol/src/deposit');
 const { defaults } = require('../tests/harness');
