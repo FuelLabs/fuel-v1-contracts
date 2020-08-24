@@ -41,8 +41,10 @@ const target = 'target.sol';
 
   await write(`./src/builds/${process.env.compile}.json`, JSON.stringify(result, null, 2));
 
-  console.log('Solidity compiling complete.');
+  // exit without issue?
+  process.exit(0);
 
+  console.log('Solidity compiling complete.');
 
   } catch (error) {
     console.error(error);

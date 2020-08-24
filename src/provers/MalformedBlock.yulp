@@ -123,7 +123,7 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
       let fixedLength := 0
 
       // if the transaction type is greater than zero, fixed length is 24s
-      if gt(RootHeader.transactionType(root), 0) {
+      if eq(RootHeader.transactionType(root), 1) {
         // now a fixed length
         fixedLength := 24
       }

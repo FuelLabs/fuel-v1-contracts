@@ -140,6 +140,13 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       }
     }
 
+    /// @notice expand transaction from it's compressed form into a fully expanded form
+    /// @dev this will directly overrite data in memory, so it needs to be done at the right time (i.e. after merkle proofing)
+    function TransactionProof.expand(proof) {
+      let position := TransactionProof.transaction.position(proof)
+      let transactionType := TransactionProof.transactionType.position(proof)
+    }
+
     /// @notice Hash a UTXO.
     /// @return The UTXO's hash as a bytes32
     function TransactionProof.UTXO.keccak256(proof) -> hash {
@@ -187,7 +194,19 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
 
     // @notice Detects if normal leaf or compressed leaf, calculates hash accoridingly
     function calculateTransactionLeafHash(proof) -> hash {
-      hash := TransactionProof.transaction.keccak256(proof)
+      // get the transaction type from the proof
+      let transactionType := RootHeader.transactionType(TransactionProof.rootProducer.position(proof))
+
+      // if it's a normal tx, the entire leaf is hashed simplistically
+      if lte(transactionType, 0) {
+        hash := TransactionProof.transaction.keccak256(proof)
+      }
+
+      // if it's a compressed transaction, the leaf is only the first 24 bytes
+      if eq(transactionType, 1) {
+        let start := TransactionProof.transaction.position(proof)
+        hash := keccak256(start, 24)
+      }
     }
 
     /// @notice Find the position of the witness at a given index.

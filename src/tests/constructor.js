@@ -5,6 +5,8 @@ const { defaults } = require('./harness.js');
 
 module.exports = test('constructor', async t => { try {
 
+  console.log('Fuel contract size', utils.hexDataLength(bytecode));
+
   // t.ok(utils.hexDataLength(bytecode) < 24100, 'contract-bytecode-size-check');
 
   const state = async (contract, producer, params) => {

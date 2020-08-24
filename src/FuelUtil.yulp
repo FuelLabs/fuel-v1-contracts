@@ -93,17 +93,6 @@ object "FuelUtil" is "Constructor", "Tokens", "Address" {
         return (0, UTXO.size(0))
       }
 
-      /// @notice Extract an output from a proof.
-      /// @param proof Proof.
-      /// @return The output.
-      /// @dev Transaction::selectOutput
-      case sig"selectOutput(bytes proof) external view returns (bytes output)" {
-        let pos := selectOutput(abi.offset(calldata.word(0)))
-        mstore(sub(pos, 64), 32)
-        mstore(sub(pos, 32), outputSize(pos))
-        return (pos, round32(outputSize(pos)))
-      }
-
       /// @notice Extract the root into normal encoded structure
       case sig"selectRoot(bytes proof)
         external view returns (
@@ -207,6 +196,17 @@ object "FuelUtil" is "Constructor", "Tokens", "Address" {
       case sig"selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata)" {
         let pos := selectMetadata(abi.offset(calldata.word(0)), calldata.word(1))
         return.word(mslice(pos, 8))
+      }
+
+      /// @notice Extract an output from a proof.
+      /// @param proof Proof.
+      /// @return The output.
+      /// @dev Transaction::selectOutput
+      case sig"selectOutput(bytes proof) external view returns (bytes output)" {
+        let pos := selectOutput(abi.offset(calldata.word(0)))
+        mstore(sub(pos, 64), 32)
+        mstore(sub(pos, 32), outputSize(pos))
+        return (pos, round32(outputSize(pos)))
       }
 
       /// @notice Not one of the above, invalid method signature.
