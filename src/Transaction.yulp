@@ -228,6 +228,34 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       }
     }
 
+    // Verify that the aggregate signature is valid
+    function verifyAggregateSignature(proof) {
+      Constructor.copy(0)
+
+      // Get the Fraud Prover contract address and the fraud block hash
+      let fraudProver := Constructor.blsFraudProver(0)
+
+      // store block height at 512
+      mstore(0, sig"verifyTransactionValid(
+        address fuelContract,
+        bytes32 blockHash,
+        uint8 rootIndex,
+        uint16 transactionIndex) public returns (bool)")
+      mstore(32, address())
+      mstore(64, BlockHeader.keccak256(TransactionProof.blockProducer.position(proof)))
+      mstore(96, TransactionProof.rootIndex(proof))
+      mstore(128, TransactionProof.transactionIndex(proof))
+
+      // call the fraud prover contract to check if this block hash is invalid
+      require(call(gas(), fraudProver, 0, 28, add(128, 4), 512, 32), error"fraud-prover-reverted")
+
+      // transaction signature is valid or not
+      let transactionSignatureIsValid := mload(512)
+
+      // check is the aggregate signature valid
+      require(transactionSignatureIsValid, error"invalid-aggregate-signature")
+    }
+
     /// @notice expand transaction from it's compressed form into a fully expanded form
     /// @dev this will directly overrite data in memory, so it needs to be done at the right time (i.e. after merkle proofing)
     function TransactionProof.expand(proof) {
