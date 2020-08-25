@@ -193,9 +193,6 @@ function TransactionProof({
 
 function decodePacked(data = '0x') {
   const decoded = _Transaction.decodePacked(data);
-
-  console.log(decoded.properties.outputs().hex());
-
   const _inputs = inputs.decodePacked(decoded.properties.inputs().hex());
   const _outputs = outputs.decodePacked(decoded.properties.outputs().hex());
   const _witnesses = witness.decodePacked(decoded.properties.witnesses().hex());

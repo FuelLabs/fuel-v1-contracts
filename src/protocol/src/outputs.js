@@ -129,8 +129,6 @@ function decodePacked(data = '0x') {
     result.push(input);
   }
 
-  console.log(pos, utils.hexDataLength(data));
-
   // utils.assert(pos === utils.hexDataLength(data), 'inputs-output-mismatch');
   utils.assert(result.length > 0, 'inputs-output-underflow');
   utils.assert(result.length <= OUTPUTS_MAX, 'inputs-output-overflow');

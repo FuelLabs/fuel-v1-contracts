@@ -1,8 +1,10 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
+const struct = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const { BlockHeader, RootHeader, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
-const { PackedTransfer, TransactionProof, _TransactionProof, decodePacked } = require('../protocol/src/transaction');
+const root = require('../protocol/src/root');
+const { PackedTransfer, TransactionProof, _TransactionProof, Metadata, decodePacked } = require('../protocol/src/transaction');
 const { defaults } = require('./harness');
 const mcl = require('../bls/mcl');
 const BLS = require('../builds/BLS.json');
@@ -151,40 +153,151 @@ module.exports = test('bls', async t => {
     t.equalBig(await blsFraudProver.chunkIndexFromTransactionIndex(64), 2, 'chunk index');
     t.equalBig(await blsFraudProver.chunkIndexFromTransactionIndex(65), 2, 'chunk index');
 
-    const validPackedRoot = new RootHeader({
+    // build a valid packed transfer
+    const packedTransfer = PackedTransfer({
+      metadata: Metadata({}).encodePacked(),
+      from: '0x00000001',
+      to: '0x00000001',
+      transferAmount: '0xffffffff',
+      changeAmount: '0xdddddddd',
+    });
+
+    // transacitons
+    const transactions = (new Array(32)).fill(packedTransfer);
+
+    // Message
+    const rootFee = 0;
+    const rootFeeToken = 0;
+    const packedTransactionMessage = utils.abi.encode(
+      ['bytes32', 'uint256', 'uint256'],
+      [
+        utils.hexZeroPad(packedTransfer.encodePacked(), 32),
+        rootFee,
+        rootFeeToken,
+      ],
+    );
+
+    // sign the packed transfer
+    const signatureData = mcl.sign(packedTransactionMessage, producerKeys.secret);
+
+    // aggregate signatures, than return hex values
+    const aggregateSignatures = [ mcl.g1ToHex((new Array(32))
+      .fill(signatureData.signature)
+      .reduce((acc, sig) => {
+        // if no acc, return the first signature to start
+        if (!acc) {
+          return sig;
+        }
+
+        // than accumulate each aggregate signature together
+        return mcl.aggreagate(acc, sig);
+      }, null)) ];
+
+    const chunkSize = 32;
+    const transactionSize = 24;
+
+    const combinedTransactions = struct.combine(transactions);
+
+    // ensure the packed data has the right size specifications
+    t.equal(utils.hexDataLength(combinedTransactions) % (chunkSize * transactionSize), 0,
+      'correct packed size');
+
+    // valid packed root
+    const validPackedRoot = new root.RootHeader({
       rootProducer: producer,
-      merkleTreeRoot: utils.emptyBytes32,
-      commitmentHash: utils.emptyBytes32,
-      rootLength: utils.emptyBytes32,
+      merkleTreeRoot: root.merkleTreeRoot(transactions, true),
+      commitmentHash: utils.keccak256(combinedTransactions),
+      rootLength: utils.hexDataLength(combinedTransactions),
       feeToken: utils.emptyBytes32,
       fee: 0,
       transactionType: 1,
-      signatureHash: utils.emptyBytes32,
-    });
-    const validBlock = new BlockHeader({
-      producer,
-      height: 1,
-      blockNumber: 0,
-      roots: [validPackedRoot.keccak256Packed()],
+      signatureHash: utils.keccak256(signaturesToBytes(aggregateSignatures)),
     });
 
+    let commitRoot = await contract.commitRoot(
+      validPackedRoot.properties.merkleTreeRoot().hex(),
+      rootFee,
+      rootFeeToken,
+      combinedTransactions,
+      1,
+      signaturesToBytes(aggregateSignatures),
+      t.getOverrides(),
+    );
+    commitRoot = await commitRoot.wait();
+
+    const commitRootEvent = commitRoot.events[0].args;
+
+    t.equal(commitRootEvent.signatureHash, validPackedRoot.properties.signatureHash().hex(), 'signatureHash');
+    t.equal(commitRootEvent.commitmentHash, validPackedRoot.properties.commitmentHash().hex(), 'commitmentHash');
+
+    const aggregateSignatureVerified = await blsFraudProver.verifyMultiple(
+      aggregateSignatures[0],
+      (new Array(32)).fill(mcl.g2ToHex(producerKeys.pubkey)),
+      (new Array(32)).fill(mcl.g1ToHex(mcl.hashToPoint(packedTransactionMessage))),
+    );
+
+    t.ok(aggregateSignatureVerified, 'aggregate signature verified');
+
+    const validBlock = (new BlockHeader({
+      producer,
+      height: 1,
+      roots: [validPackedRoot.keccak256Packed()],
+      numTokens: 1,
+      numAddresses: 2,
+    }));
+
+    const currentBlock = await t.provider.getBlockNumber();
+    const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
+    const ctx = await t.wait(contract.commitBlock(currentBlock, currentBlockHash, 1, [validPackedRoot.keccak256Packed()], {
+      ...overrides,
+      value: await contract.BOND_SIZE(),
+    }), 'commit block', errors);
+    validBlock.properties.blockNumber().set(ctx.events[0].blockNumber);
+    t.equalBig(await contract.blockTip(), 1, 'tip');
+
+    // check block hash and root hash calculations
     t.equal(await fuelUtil.rootHash(validPackedRoot.encodePacked()),
       validPackedRoot.keccak256Packed(), 'rootHash');
     t.equal(await fuelUtil.blockHash(validBlock.encodePacked()),
       validBlock.keccak256Packed(), 'blockHash');
 
-    const packedTransfer = PackedTransfer({
-      metadata: '0xaabbccddaabbccdd',
-      from: '0x00000001',
-      to: '0xbbbbbbbb',
-      transferAmount: '0xffffffff',
-      changeAmount: '0xdddddddd',
-    });
+    // verify root header
+    const verifyHeader = await contract
+      .verifyHeader(validBlock.encodePacked(), validPackedRoot.encodePacked(), 0, 0);
+    t.ok(verifyHeader, 'header data is verified');
+
+    const decodeRootCheck = await blsFraudProver.decodeRoot(
+      validPackedRoot.encodePacked(),
+    );
+
+    const rootAsObject = validPackedRoot.object();
+    const keysRoot = Object.keys(rootAsObject);
+    for (const keyRoot of keysRoot) {
+      t.equalBig(rootAsObject[keyRoot], decodeRootCheck[keyRoot], 'root decode check ' + keyRoot);
+    }
+
+    await blsFraudProver.proveMalformedAggregateSignature(
+      contract.address,
+      validBlock.encodePacked(),
+      validPackedRoot.encodePacked(),
+      0,
+      0,
+      combinedTransactions,
+      (new Array(32)).fill(producer), // normal ethereum addresses
+      (new Array(32)).fill(producerPublicKey),
+      aggregateSignatures,
+      t.getOverrides(),
+    );
+
+    t.ok(await blsFraudProver.verifyTransactionValid(contract.address, validBlock.keccak256Packed(), 0, 0), 'transaction valid check');
+    t.ok(await blsFraudProver.verifyTransactionValid(contract.address, validBlock.keccak256Packed(), 0, 1), 'transaction valid check');
+    t.ok(await blsFraudProver.verifyTransactionValid(contract.address, validBlock.keccak256Packed(), 0, 31), 'transaction valid check');
+    t.catch(blsFraudProver.verifyTransactionValid(contract.address, validBlock.keccak256Packed(), 0, 32), 'transaction valid check');
 
     const packedTransferTxProof = TransactionProof({
       block: validBlock,
       root: validPackedRoot,
-      transactions: [ packedTransfer ],
+      transactions,
       inputOutputIndex: 0,
       transactionIndex: 0,
       data: [ utils.emptyBytes32 ],
@@ -199,6 +312,8 @@ module.exports = test('bls', async t => {
     const expandedTx = expandedTransactionTxProof.properties.transaction().hex();
 
     const expandedTxDecoded = decodePacked(expandedTx);
+
+
 
     // Publish a block with 32 compressed txs
     // verifyHeader

@@ -96,7 +96,7 @@ object "FuelUtil" is "Constructor", "Tokens", "Address" {
       /// @notice Extract the root into normal encoded structure
       case sig"selectRoot(bytes proof)
         external view returns (
-          address producer,
+          address rootProducer,
           bytes32 merkleTreeRoot,
           bytes32 commitmentHash,
           uint256 length,

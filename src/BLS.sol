@@ -538,7 +538,7 @@ contract FuelStructures {
 
   // @dev The Fuel V1.1 Root Header
   struct RootHeader {
-    address producer;
+    address rootProducer;
     uint256 fee;
     uint32 feeToken;
     uint8 transactionType;
@@ -603,7 +603,7 @@ contract PackedTransactions {
 
 contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
   // @dev constant finalization assertions
-  uint8 constant NOT_FINALIZED = 1;
+  uint8 constant NOT_FINALIZED = 0;
 
   // @dev The number of transacitons per chunk
   uint8 constant chunkSize = 32;
@@ -654,7 +654,7 @@ contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
 
   // decode root into a struct
   function decodeRoot(bytes memory rootHeader) public view returns (RootHeader memory root) {
-    ( address producer,
+    ( address rootProducer,
       bytes32 merkleTreeRoot,
       bytes32 commitmentHash,
       uint256 length,
@@ -662,7 +662,7 @@ contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
       uint256 fee,
       uint256 transactionType,
       bytes32 _signatureHash ) = util.selectRoot(rootHeader);
-    root.producer = producer;
+    root.rootProducer = rootProducer;
     root.merkleTreeRoot = merkleTreeRoot;
     root.commitmentHash = commitmentHash;
     root.rootLength = uint32(length);
@@ -678,7 +678,10 @@ contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
   }
 
   // @dev produce message for a specific transaction
-  function packedTransferMessage(bytes32 paddedPackedTransfer, RootHeader memory root) public view returns (uint256[2] memory message) {
+  function packedTransferMessage(
+    bytes32 paddedPackedTransfer,
+    RootHeader memory root
+  ) public view returns (uint256[2] memory message) {
     message = hashToPoint(abi.encode(paddedPackedTransfer, root.fee, root.feeToken));
   }
 
@@ -686,6 +689,10 @@ contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
   function chunkIndexFromTransactionIndex(uint16 transactionIndex) public pure returns (uint8 chunkIndex) {
     if (transactionIndex <= 0) return 0;
     chunkIndex = uint8(transactionIndex / chunkSize);
+  }
+
+  function validSize(bytes memory transactions) public pure returns (bool) {
+    return transactions.length % (chunkSize * transactionSize) == 0;
   }
 
   // @dev will be able to determine if this root of a block had invalid aggregate signatures
@@ -700,24 +707,24 @@ contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
     uint256[4][] memory publicKeys,
     uint256[2][] memory signatures
   ) public {
-    // id the header verified
+    // Id the header verified
     require(fuelContract.verifyHeader(blockHeader, rootHeader, rootIndex, NOT_FINALIZED));
 
-    // calculate the hashes for each of these
+    // Calculate the hashes for each of these
     // bytes32 rootHash = IFuel(fuelContract).rootHash(rootHeader);
     bytes32 blockHash = util.blockHash(blockHeader);
 
-    // unpack the root and block header
+    // Unpack the root and block header
     // BlockHeader memory _block = unpackBlockHeader(blockHeader);
-
     RootHeader memory _root = decodeRoot(rootHeader);
 
+    // Root type must be a compressed root
     require(_root.transactionType > 0, 'root-transaction-type');
 
-    // ensure the transactions data provided is correct
+    // Ensure the transactions data provided is correct
     require(keccak256(transactions) == _root.commitmentHash, 'commitment-hash');
 
-    // ensure the signatures provided match that found in the root in Fuel
+    // Ensure the signatures provided match that found in the root in Fuel
     require(signatureHash(signatures) == _root.signatureHash, 'signature-hash');
 
     // Address length mismatch
@@ -730,7 +737,8 @@ contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
     require(publicKeys.length == chunkSize, 'public-keys-not-chunk-size');
 
     // check length
-    assertOrFraud(transactions.length % (chunkSize * transactionSize) == 0,
+    /*
+    assertOrFraud(validSize(transactions),
       fuelContract,
       blockHash,
       'transaction-length-not-chunk-tx-size');
@@ -740,6 +748,7 @@ contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
       fuelContract,
       blockHash,
       'transaction-length-not-tx-size');
+    */
 
     // start a new messages array
     uint256[2][] memory messages = new uint256[2][](32);
@@ -750,14 +759,18 @@ contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
       transactionIndex < (chunkIndex * chunkSize) + chunkSize;
       transactionIndex += 1) {
       // setup the first message, i.e. 24 byte transaction payload
-      PackedTransfer memory transfer = decodePackedTransfer(transactions,
-        transactionIndex * transactionSize);
+      PackedTransfer memory transfer = decodePackedTransfer(
+        transactions,
+        transactionIndex * transactionSize
+      );
 
       // require the from is correct with address id, or revert
-      require(transfer.from == fuelContract.addressId(addresses[index]), 'invalid-from-address-id');
+      require(transfer.from == fuelContract.addressId(addresses[index]),
+        'invalid-from-address-id');
 
       // require that the public key is right with the address
-      require(publicKeyHash(publicKeys[index]) == fuelContract.publicKeyHash(addresses[index]), 'invalid-public-key-hash');
+      require(publicKeyHash(publicKeys[index]) == fuelContract.publicKeyHash(addresses[index]),
+        'invalid-public-key-hash');
 
       // set messages for this transaction index
       messages[transactionIndex] = packedTransferMessage(
@@ -768,18 +781,18 @@ contract BLS is BLSLibrary, FuelStructures, PackedTransactions {
       index += 1;
     }
 
-    // verify
-    bool chunkVerified = verifyMultiple(
-      signatures[chunkIndex],
-      publicKeys,
-      messages
-    );
-
     // chunk verified
-    assertOrFraud(!chunkVerified,
+    assertOrFraud(verifyMultiple(
+        signatures[chunkIndex],
+        publicKeys,
+        messages
+      ),
       fuelContract,
       blockHash,
       'block-invalid-chunk');
+
+    // is chunk valid
+    isChunkValid[address(fuelContract)][blockHash][uint8(rootIndex)][uint8(chunkIndex)] = true;
   }
 
   // @dev is the specified transaction valid, if not revert, this doesn't mean it isn't it just means its not proven yet
