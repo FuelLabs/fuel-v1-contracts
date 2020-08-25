@@ -2,7 +2,7 @@ const { test, utils, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const { BlockHeader, RootHeader, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
-const { PackedTransfer } = require('../protocol/src/transaction');
+const { PackedTransfer, TransactionProof, _TransactionProof, decodePacked } = require('../protocol/src/transaction');
 const { defaults } = require('./harness');
 const mcl = require('../bls/mcl');
 const BLS = require('../builds/BLS.json');
@@ -120,11 +120,6 @@ module.exports = test('bls', async t => {
     t.equal(await contract.publicKeyHash(producer),
       await blsFraudProver.publicKeyHash(producerPublicKey), 'bls pub key address matches Fuel');
 
-    /*
-    bytes32 merkleTreeRoot, uint256 token,
-      uint256 fee, bytes transactions, uint8 transactionType, bytes signatures
-      */
-
     // try multiple signatures
     const signatures = [
       mcl.g1ToHex(signedPayload.signature),
@@ -177,6 +172,38 @@ module.exports = test('bls', async t => {
       validPackedRoot.keccak256Packed(), 'rootHash');
     t.equal(await fuelUtil.blockHash(validBlock.encodePacked()),
       validBlock.keccak256Packed(), 'blockHash');
+
+    const packedTransfer = PackedTransfer({
+      metadata: '0xaabbccddaabbccdd',
+      from: '0x00000001',
+      to: '0xbbbbbbbb',
+      transferAmount: '0xffffffff',
+      changeAmount: '0xdddddddd',
+    });
+
+    const packedTransferTxProof = TransactionProof({
+      block: validBlock,
+      root: validPackedRoot,
+      transactions: [ packedTransfer ],
+      inputOutputIndex: 0,
+      transactionIndex: 0,
+      data: [ utils.emptyBytes32 ],
+      pad: 400,
+      selector: producer,
+    });
+
+    const expandedTransactionTxProof = _TransactionProof.decodePacked(
+      await fuelUtil.expandPackedTransfer(packedTransferTxProof.encodePacked()),
+    );
+
+    const expandedTx = expandedTransactionTxProof.properties.transaction().hex();
+
+    const expandedTxDecoded = decodePacked(expandedTx);
+
+    // Publish a block with 32 compressed txs
+    // verifyHeader
+    // verifyMerkleProof, add merkleTreeRoot to FuelUtil, ensure merkle proof correctness with fixed lengths
+    //
 
     // Fuel
     // - verifyHeader

@@ -167,10 +167,11 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       result := shr(mul(shiftInBytes, 8), value)
     }
 
-    function factorInMantissa(transferAmount) -> manitssaAmount {
-      manitssaAmount := mul(transferAmount, 1)
-    }
+    // one ether and precision
+    const ONE_ETHER := 1000000000000000
+    const PRECISION_ROOM := 1000
 
+    // This is a simple packed transfer used for Compressed roots
     mstruct PackedTransfer (
       metadata: bytes8,
       from: uint32,
@@ -179,93 +180,113 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
       changeAmount: uint32
     )
 
-    /*
-    17
-    mstruct Output (
-      // Output type
-      type: uint8,
-      token.length: uint8,
-      // Token ID, as varint
-      token: [bytes1],
-      amount.shift: uint8,
-      amount.length: uint8,
-      // Amount of tokens, as packed varint
-      amount: [uint8],
-      owner.length: uint8,
-      // Recipient, as varint
-      owner: [bytes1]
-    )
-    */
+    // First two bytes x, second two bytes y (x * ONE_ETHER) / (y * ONE_ETHER) * ONE_ETHER
+    function factorInMantissa(transferAmount) -> manitssaAmount {
+      manitssaAmount := mul(transferAmount, div(ONE_ETHER, PRECISION_ROOM))
+    }
+
+    // Write a TransferOutput to memory
+    function TransferOutput.assign(position, token, owner, amount) {
+      // [1] store Transfer output Type 0
+      mstore(position, shlb(31, OutputType.Transfer))
+
+      // [1] Token length
+      mstore(add(position, 1), shlb(31, 4))
+
+      // [4] Token specifier for Output 0
+      mstore(add(position, 2), shlb(28, token))
+
+      // [1] Amount shift 0 shift for now
+      mstore(add(position, 6), 0)
+
+      // [1] Amount length, factor in mantissa
+      mstore(add(position, 7), shlb(31, 32))
+
+      // [32] Amount, extract amount and factor in mantissa
+      mstore(add(position, 8), factorInMantissa(
+        amount
+      ))
+
+      // [1] output 0 owner to length
+      mstore(add(position, 40), shlb(31, 4))
+
+      // [4] output 0 packed transfer to
+      mstore(add(position, 41), shlb(28, owner))
+    }
+
+    // This will verify the suppied returnOwner is correct
+    function TransactionProof.verify(proof) {
+      // grab the original position of the transaciton proof
+      let position := TransactionProof.transaction.position(proof)
+
+      // if it's a compressed PackedTransfer
+      if eq(TransactionProof.transactionType(proof), 1) {
+
+        // verify the address id is correct
+        require(eq(addressId(TransactionProof.returnOwner(proof)), PackedTransfer.from(position)),
+          error"from-owner-address")
+      }
+    }
 
     /// @notice expand transaction from it's compressed form into a fully expanded form
     /// @dev this will directly overrite data in memory, so it needs to be done at the right time (i.e. after merkle proofing)
     function TransactionProof.expand(proof) {
+      // grab the original position of the transaciton proof
       let position := TransactionProof.transaction.position(proof)
-      let transactionType := TransactionProof.transactionType(proof)
-      let _transactionPosition := add(_calldata, calldatasize())
-      mstore(_transactionPosition, mload(position))
 
-      let token := TransactionProof.feeToken(proof)
-      let fromAddress := mload(add(position, 32))
+      // Determine a new place for the packed transaction data
+      let _transactionPosition := add(_calldata, calldatasize())
 
       // if it's a compressed PackedTransfer
-      if eq(transactionType, 1) {
+      if eq(TransactionProof.transactionType(proof), 1) {
 
-        // store length
+        // ensure the proof has enough room for expansion of data..
+        require(gt(TransactionProof.transaction.length(proof), 250), error"not-enough-expansion-room")
+
+        // copy the 24 byte transaction over to a fresh piece of memory
+        mstore(_transactionPosition, mload(position))
+
+        // [2] store length
         mstore(position, shlb(30, 100))
 
-        // store metadata length
+        // [1] store metadata length
         mstore(add(position, 2), shlb(31, 1))
 
-        // store metadata
+        // [8] store metadata
         mstore(add(position, 3), shlb(24, PackedTransfer.metadata(_transactionPosition)))
 
-        // witnesses length
+        // [2] witnesses length
         mstore(add(position, 11), shlb(30, 25))
 
-        // store AggregateSignature data
-        mstore(add(position, 13), shlb(31, WitnessTypes.AggregateSignature))
+        // [1] store AggregateSignature data
+        mstore(add(position, 13), shlb(31, WitnessType.AggregateSignature))
 
-        // store AggregateAddress from addressIndex
+        // [4] store AggregateAddress from addressIndex
         mstore(add(position, 14), shlb(28, PackedTransfer.from(_transactionPosition)))
 
-        // store AggregateAddress address
-        mstore(add(position, 18), shlb(12, fromAddress))
+        // [20] store AggregateAddress address
+        mstore(add(position, 18), shlb(12, TransactionProof.returnOwner(proof)))
 
-        // store inputs lengths
+        // [2] store inputs lengths
         mstore(add(position, 38), shlb(30, 2))
 
-        // store InputTransfer type 0 witnessIndex 0
-        mstore(add(position, 39), shlb(30, 0x0000))
+        // [2] store InputTransfer type 0 witnessIndex 0
+        mstore(add(position, 40), shlb(30, 0x0000))
 
-        // store outputs length
-        mstore(add(position, 41), shlb(30, 0x0000))
+        // [2] store outputs length
+        mstore(add(position, 42), shlb(30, add(45, 45)))
 
-        // store Transfer output Type 0
-        mstore(add(position, 43), shlb(31, OutputTypes.Transfer))
+        // [45] Write the output to memory
+        TransferOutput.assign(add(position, 44),
+          TransactionProof.feeToken(proof),
+          PackedTransfer.to(_transactionPosition),
+          PackedTransfer.transferAmount(_transactionPosition))
 
-        // Token length
-        mstore(add(position, 44), shlb(31, 4))
-
-        // Token specifier for Output 0
-        mstore(add(position, 45), shlb(28, token))
-
-        // Amount shift 0 shift for now
-        mstore(add(position, 49), shlb(28, 0))
-
-        // Amount length, factor in mantissa
-        mstore(add(position, 50), 32)
-
-        // Amount, extract amount and factor in mantissa
-        mstore(add(position, 51), factorInMantissa(
-          PackedTransfer.transferAmount(_transactionPosition)
-        ))
-
-        // output 0 to length
-        mstore(add(position, 83), shlb(31, 4))
-
-        // output 0 packed transfer to
-        mstore(add(position, 84), shlb(28, PackedTransfer.to(_transactionPosition)))
+        // [45] Write the change amount to memory
+        TransferOutput.assign(add(position, 89),
+          TransactionProof.feeToken(proof),
+          PackedTransfer.from(_transactionPosition),
+          PackedTransfer.changeAmount(_transactionPosition))
       }
     }
 

@@ -156,6 +156,11 @@ const _TransactionProof = struct(`
   address selector
 `);
 
+function suffixPadArray(arr = [], pad = 0) {
+  const fill = (new Array(pad)).fill('0x00');
+  return arr.concat(fill);
+}
+
 function TransactionProof({
   block,
   root,
@@ -163,6 +168,8 @@ function TransactionProof({
   transactions,
   transactionIndex,
   token,
+  data,
+  pad,
   selector }) {
   const isEmpty = transactionIndex >= transactions.length;
   const transaction = isEmpty ? null : transactions[transactionIndex || 0];
@@ -173,12 +180,12 @@ function TransactionProof({
     merkleProof: merkleProof(transactions, transactionIndex),
     inputOutputIndex,
     transactionIndex,
-    transaction: isEmpty ? [] : pack(transaction),
+    transaction: isEmpty ? [] : suffixPadArray(pack(transaction), pad || 0),
     rootLength: utils.hexDataLength(combine(transactions)),
     data: isEmpty
       ? []
-      : (transaction.unsigned().object().data || [])
-          .map(d => d._isStruct ? d.keccak256() : d),
+      : (data || ((transaction.unsigned().object().data || [])
+          .map(d => d._isStruct ? d.keccak256() : d))),
     token,
     selector,
   });
@@ -186,6 +193,9 @@ function TransactionProof({
 
 function decodePacked(data = '0x') {
   const decoded = _Transaction.decodePacked(data);
+
+  console.log(decoded.properties.outputs().hex());
+
   const _inputs = inputs.decodePacked(decoded.properties.inputs().hex());
   const _outputs = outputs.decodePacked(decoded.properties.outputs().hex());
   const _witnesses = witness.decodePacked(decoded.properties.witnesses().hex());
@@ -210,6 +220,7 @@ module.exports = {
   Unsigned,
   Transaction,
   _Transaction,
+  _TransactionProof,
   ...metadata,
   ...witness,
   ...inputs,

@@ -170,6 +170,12 @@ object "FuelUtil" is "Constructor", "Tokens", "Address" {
         return (0, 32)
       }
 
+      // root hash
+      case sig"expandPackedTransfer(bytes proof) external view returns (bytes expandedProof)" {
+        TransactionProof.expand(abi.offset(calldata.word(0)))
+        return (add(_calldata, 4), add(abi.length(calldata.word(0)), 64))
+      }
+
       /// @notice Extract output metadata from a proof.
       /// @param proof Proof.
       /// @return The output metadata.

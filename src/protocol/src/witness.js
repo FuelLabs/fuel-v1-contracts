@@ -8,6 +8,7 @@ const WitnessTypes = {
   Signature: 0,
   Caller: 1,
   Producer: 2,
+  AggregateSignature: 3,
 };
 
 const _Signature = struct(
@@ -54,6 +55,11 @@ Object.assign(Signature, _Signature);
 const Producer = struct(
   `uint8 type, bytes32 hash`,
   opts => ({ ...opts, type: WitnessTypes.Producer })
+);
+
+const AggregateSignature = struct(
+  `uint8 type, uint32 addressIndex, address owner`,
+  opts => ({ ...opts, type: WitnessTypes.AggregateSignature })
 );
 
 const Caller = struct(
@@ -120,6 +126,10 @@ function decodePacked(data = '0x') {
         decoder = Producer;
         break;
 
+      case WitnessTypes.AggregateSignature:
+        decoder = AggregateSignature;
+        break;
+
       default:
         utils.assert(0, 'invalid-witness-type');
     }
@@ -144,6 +154,7 @@ module.exports = {
   Signature,
   chainId,
   transactionHashId,
+  AggregateSignature,
   decodePacked,
   _Signature,
   recover,
