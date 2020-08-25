@@ -214,7 +214,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
 
         // Get the Fraud Prover contract address and the fraud block hash
         const fraudProver := Constructor.blsFraudProver(0)
-        const fraudBlockHash := BlockHeader.keccak256(_calldata)
+        const fraudBlockHash := BlockHeader.keccak256(abi.offset(calldata.word(1)))
 
         // store block height at 512
         mstore(0, sig"isBlockFraudulent(address, bytes32) public returns (bool isFraudulent)")
@@ -229,7 +229,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         require(lte(isFraudulent, 0), error"block-not-fraudulent")
 
         // assert fraud, the block is fraudulent
-        assertOrFraud(0, error"invalid-aggregate-witness", _calldata)
+        assertOrFraud(0, error"invalid-aggregate-witness", abi.offset(calldata.word(1)))
       }
 
       /// @notice Prove that a transation produced more than it consumed.

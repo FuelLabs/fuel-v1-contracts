@@ -10,7 +10,7 @@
     "start": "npm run test",
     "test": "TAP_EXIT=1 npm run build-ts && node src/tests",
     "build": "npm run build-all",
-    "build-all": "npm run build-fuel && npm run build-erc20 && npm run build-funnel && npm run build-revert && npm run build-htlc && npm run build-owned-proxy && npm run build-proxy && npm run build-bls",
+    "build-all": "npm run build-fuel && npm run build-erc20 && npm run build-funnel && npm run build-revert && npm run build-htlc && npm run build-owned-proxy && npm run build-proxy && npm run build-fuel-util && npm run build-bls",
     "build-fuel": "mkdir -p src/builds && compile=Fuel node ./config/compile",
     "build-fuel-util": "mkdir -p src/builds && compile=FuelUtil node ./config/compile",
     "build-erc20": "mkdir -p src/builds && compile=ERC20 node ./config/compile",
