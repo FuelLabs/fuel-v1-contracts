@@ -3,10 +3,11 @@ const {chunk, pack, combine} = require('@fuel-js/struct');
 const {bytecode, abi, errors} = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
-const {BlockHeader, RootHeader, Leaf, merkleTreeRoot, transactions, hashes} =
-    require('@fuel-js/protocol/src/block');
-const tx = require('@fuel-js/protocol/src/transaction');
-const {Deposit} = require('@fuel-js/protocol/src/deposit');
+const {BlockHeader, RootHeader, Leaf, merkleTreeRoot, transactions, hashes,
+    EMPTY_SIGNATURE_HASH} =
+    require('../protocol/src/block');
+const tx = require('../protocol/src/transaction');
+const {Deposit} = require('../protocol/src/deposit');
 const {defaults} = require('./harness');
 
 module.exports = test('proveInvalidWitness', async t => {
@@ -64,7 +65,7 @@ module.exports = test('proveInvalidWitness', async t => {
       }
 
       if (opts.commitAddress) {
-        await contract.commitAddress(owner, overrides);
+        await contract.commitAddress(owner, 0, 0, 0, 0, overrides);
         owner = '0x01';
       }
 
@@ -279,10 +280,11 @@ module.exports = test('proveInvalidWitness', async t => {
         merkleTreeRoot: merkleTreeRoot(txs),
         commitmentHash: utils.keccak256(combine(txs)),
         rootLength: utils.hexDataLength(combine(txs)),
+        signatureHash: EMPTY_SIGNATURE_HASH,
       }));
       await t.wait(
           contract.commitRoot(
-              root.properties.merkleTreeRoot().get(), 0, 0, combine(txs),
+              root.properties.merkleTreeRoot().get(), 0, 0, combine(txs), 0, [],
               overrides),
           'valid submit', errors);
       const header = (new BlockHeader({
@@ -413,10 +415,11 @@ module.exports = test('proveInvalidWitness', async t => {
           merkleTreeRoot: merkleTreeRoot(txs2),
           commitmentHash: utils.keccak256(combine(txs2)),
           rootLength: utils.hexDataLength(combine(txs2)),
+          signatureHash: EMPTY_SIGNATURE_HASH,
         }));
         await t.wait(
             contract.commitRoot(
-                root2.properties.merkleTreeRoot().get(), 0, 0, combine(txs2),
+                root2.properties.merkleTreeRoot().get(), 0, 0, combine(txs2), 0, [],
                 overrides),
             'valid submit', errors);
 

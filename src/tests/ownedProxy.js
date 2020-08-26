@@ -2,7 +2,7 @@ const { test, utils, overrides } = require('@fuel-js/environment');
 const ERC20 = require('../builds/ERC20.json');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const OwnedProxy = require('../builds/OwnedProxy.json');
-const { BlockHeader, RootHeader } = require('@fuel-js/protocol/src/block');
+const { BlockHeader, RootHeader, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
 const { defaults } = require('./harness');
 
 module.exports = test('owned proxy', async t => {
@@ -42,8 +42,9 @@ module.exports = test('owned proxy', async t => {
     merkleTreeRoot: merkleRootA,
     commitmentHash: utils.keccak256(emptyTxs),
     rootLength: emptyTxs.length,
+    signatureHash: EMPTY_SIGNATURE_HASH,
   })).keccak256Packed();
-  const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, overrides),
+  const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, 0, [], overrides),
     'valid submit', errors);
   t.equal(atx.logs.length, 1, 'length');
   t.equalBig(await contract.rootBlockNumberAt(aroot), blocka, 'block');

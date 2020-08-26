@@ -5,9 +5,9 @@ const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
 const ERC20 = require('../builds/ERC20.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/src/block');
-const tx = require('@fuel-js/protocol/src/transaction');
-const { Deposit } = require('@fuel-js/protocol/src/deposit');
+    merkleTreeRoot, transactions, hashes } = require('../protocol/src/block');
+const tx = require('../protocol/src/transaction');
+const { Deposit } = require('../protocol/src/deposit');
 const { defaults } = require('../tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');

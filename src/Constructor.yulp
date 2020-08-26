@@ -10,8 +10,11 @@ object "Constructor" {
       name: uint256,
       version: uint256,
       chainId: uint256,
-      genesis: bytes32
+      genesis: bytes32,
+      blsFraudProver: bytes32
     )
+
+    //blsFraudProver: bytes32
 
     let Constructor.abi := sig"constructor(
       address operator,
@@ -22,9 +25,15 @@ object "Constructor" {
       string name,
       string version,
       uint256 chainId,
-      bytes32 genesis)"
+      bytes32 genesis,
+      address blsFraudProver
+    )"
 
-    const Constructor.size := 416
+    //address blsFraudProver
+
+    const Constructor.size := 448 // 416 // 448 // 416
+    const Name.offset := 288 // 288 // 256
+    const Version.offset := 352 // 352 // 320
 
     function Constructor.copy(pos) {
       codecopy(pos, sub(codesize(), Constructor.size), Constructor.size)
@@ -45,7 +54,7 @@ object "Constructor" {
     }
 
     function Constructor.name.hash(pos) -> hash {
-      hash := keccak256(add(add(pos, 256), 64), mload(Constructor.name(pos)))
+      hash := keccak256(add(add(pos, Name.offset), 64), mload(Constructor.name(pos)))
     }
 
     function Constructor.version.copy(cpos, pos) {
@@ -55,7 +64,7 @@ object "Constructor" {
     }
 
     function Constructor.version.hash(pos) -> hash {
-      hash := keccak256(add(add(pos, 320), 64), mload(Constructor.version(pos)))
+      hash := keccak256(add(add(pos, Version.offset), 64), mload(Constructor.version(pos)))
     }
   }
 }

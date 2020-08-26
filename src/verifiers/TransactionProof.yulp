@@ -22,6 +22,10 @@ object "TransactionProof" is "BlockHeader", "MerkleProof" {
       // Transaction must be at least one byte long
       require(gt(TransactionProof.transaction.length(transactionProof), 0),
         error"empty-transaction")
+
+      // Expand transaction if needed
+      TransactionProof.verify(transactionProof)
+      TransactionProof.expand(transactionProof)
     }
   }
 }

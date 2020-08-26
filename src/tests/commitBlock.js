@@ -1,7 +1,7 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const Proxy = require('../builds/Proxy.json');
-const { BlockHeader, RootHeader } = require('@fuel-js/protocol/src/block');
+const { BlockHeader, RootHeader, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
 const { defaults } = require('./harness.js');
 
 module.exports = test('commitBlock', async t => { try {
@@ -21,8 +21,9 @@ module.exports = test('commitBlock', async t => { try {
       merkleTreeRoot: merkleRootA,
       commitmentHash: utils.keccak256(emptyTxs),
       rootLength: emptyTxs.length,
+      signatureHash: EMPTY_SIGNATURE_HASH,
     })).keccak256Packed();
-    const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, overrides),
+    const atx = await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, 0, [], overrides),
       'valid submit', errors);
     t.equal(atx.logs.length, 1, 'length');
     t.equalBig(await contract.rootBlockNumberAt(aroot), blocka, 'block');
@@ -64,8 +65,9 @@ module.exports = test('commitBlock', async t => { try {
       merkleTreeRoot: merkleRootA,
       commitmentHash: utils.keccak256(emptyTxs),
       rootLength: emptyTxs.length,
+      signatureHash: EMPTY_SIGNATURE_HASH,
     })).keccak256Packed();
-    await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, overrides),
+    await t.wait(contract.commitRoot(merkleRootA, 0, 0, emptyTxs, 0, [], overrides),
       'valid submit', errors);
 
     const invalidHeader = (new BlockHeader({
@@ -204,8 +206,9 @@ module.exports = test('commitBlock', async t => { try {
       merkleTreeRoot: merkleRootB,
       commitmentHash: utils.keccak256(emptyTxsB),
       rootLength: emptyTxsB.length,
+      signatureHash: EMPTY_SIGNATURE_HASH,
     })).keccak256Packed();
-    const btx = await t.wait(other.commitRoot(merkleRootB, 0, 0, emptyTxsB, overrides),
+    const btx = await t.wait(other.commitRoot(merkleRootB, 0, 0, emptyTxsB, 0, [], overrides),
       'valid submit', errors);
     t.equal(btx.logs.length, 1, 'length');
     t.equalBig(await other.rootBlockNumberAt(broot), blockb, 'block');

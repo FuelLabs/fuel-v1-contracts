@@ -1,0 +1,227 @@
+import "./Constructor.yulp"
+import "./Utils.yulp"
+import "./Storage.yulp"
+import "./Calldata.yulp"
+import "./Withdraw.yulp"
+import "./Address.yulp"
+import "./provers/InvalidSum.yulp"
+import "./provers/InvalidTransaction.yulp"
+import "./provers/DoubleSpend.yulp"
+import "./provers/MalformedBlock.yulp"
+import "./provers/InvalidInput.yulp"
+import "./provers/InvalidWitness.yulp"
+
+/// @title Fuel optimistic rollup top-level contract
+object "FuelUtil" is "Constructor", "Tokens", "Address" {
+  code {
+    // Constants
+    const NUM_TOKENS_INIT := 1
+    const NUM_ADDRESSES_INIT := 1
+    const GENESIS_ROOTS_LENGTH := 0
+
+    // Copy constructor arguments to memory, verify construction
+    Constructor.copy(0)
+    Constructor.verify(0)
+    let operator := Constructor.operator(0)
+    let genesis := Constructor.genesis(0)
+
+    // Index the ETH token ID and zero address
+    indexToken(ETHER_TOKEN_ADDRESS, 0)
+    indexAddress(ZERO_ADDRESS, 0, 0, 0, 0, 0)
+
+    // Log genesis block
+    mstore(0, operator, NUM_TOKENS_INIT, NUM_ADDRESSES_INIT, 128, GENESIS_ROOTS_LENGTH)
+    log3(
+      0,
+      160,
+      topic"event BlockCommitted(
+        address producer,
+        uint256 numTokens,
+        uint256 numAddresses,
+        bytes32 indexed previousBlockHash,
+        uint256 indexed height,
+        bytes32[] roots)",
+      0,
+      0
+    )
+
+    // Implicitly commit genesis block
+    sstore(mappingKey(Storage.BlockCommitments, 0), genesis)
+
+    // Add extra data for block producer
+    let dataSize := add(datasize("Runtime"), Constructor.size)
+
+    // Goto runtime
+    datacopy(0, dataoffset("Runtime"), dataSize)
+    return(0, dataSize)
+  }
+
+  /// @notice Public methods
+  object "Runtime" is
+    "Constructor",
+    "Calldata",
+    "DoubleSpend",
+    "MalformedBlock",
+    "InvalidTransaction",
+    "InvalidInput",
+    "InvalidWitness",
+    "Withdraw",
+    "Address",
+    "InvalidSum" {
+    code {
+      // Load calldata to memory
+      calldata.copy()
+
+      // Call a different method depending on method signature in calldata
+      switch calldata.signature()
+
+      /// @notice Extract a UTXO from a proof.
+      /// @param proof Proof.
+      /// @return UTXO data structure.
+      /// @dev Transaction::TransactionProof.UTXO.assign
+      case sig"selectUTXO(bytes proof) external view returns (
+        bytes32 transactionId,
+        uint8 outputIndex,
+        uint8 outputType,
+        address owner,
+        uint256 amount,
+        uint32 token,
+        bytes32 digest,
+        uint256 expiry,
+        address returnOwner)" {
+        TransactionProof.UTXO.assign(abi.offset(calldata.word(0)), 0)
+        return (0, UTXO.size(0))
+      }
+
+      /// @notice Extract the root into normal encoded structure
+      case sig"selectRoot(bytes proof)
+        external view returns (
+          address rootProducer,
+          bytes32 merkleTreeRoot,
+          bytes32 commitmentHash,
+          uint256 length,
+          uint256 feeToken,
+          uint256 fee,
+          uint256 transactionType,
+          bytes32 signatureHash
+        )" {
+        let rootPosition := abi.offset(calldata.word(0))
+        mstore(0, RootHeader.producer(rootPosition))
+        mstore(32, RootHeader.merkleTreeRoot(rootPosition))
+        mstore(64, RootHeader.commitmentHash(rootPosition))
+        mstore(96, RootHeader.length(rootPosition))
+        mstore(128, RootHeader.feeToken(rootPosition))
+        mstore(160, RootHeader.fee(rootPosition))
+        mstore(192, RootHeader.transactionType(rootPosition))
+        mstore(224, RootHeader.signatureHash(rootPosition))
+        return (0, 256)
+      }
+
+      /// @notice Extract the block structure from encode packed block
+      case sig"selectBlock(bytes proof)
+        external view returns (
+          address producer,
+          bytes32 previousBlockHash,
+          uint256 height,
+          uint256 blockNumber,
+          uint256 numTokens,
+          uint256 numAddresses,
+          bytes32[] roots
+        )" {
+        // get free memory pointer
+        let free := add(_calldata, calldatasize())
+
+        // get the position of the block in memory
+        let blockPosition := abi.offset(calldata.word(0))
+
+        // get the number of roots in the packed block
+        let numRoots := BlockHeader.roots.length(blockPosition)
+
+        // unpack the block into 32 byte chunk format
+        mstore(add(free, 0), BlockHeader.producer(blockPosition))
+        mstore(add(free, 32), BlockHeader.previousBlockHash(blockPosition))
+        mstore(add(free, 64), BlockHeader.height(blockPosition))
+        mstore(add(free, 96), BlockHeader.blockNumber(blockPosition))
+        mstore(add(free, 128), BlockHeader.numTokens(blockPosition))
+        mstore(add(free, 160), BlockHeader.numAddresses(blockPosition))
+
+        // path the roots, first the offset, then length, then the data
+        mstore(add(free, 192), 224)
+        mstore(add(free, 224), numRoots)
+
+        // unpack each root into data
+        for { let i := 0 } lt(i, numRoots) { i := add(i, 1) } {
+          mstore(add(free, add(256, mul(i, 32))), BlockHeader.roots(blockPosition, i))
+        }
+
+        // return from the free position to the end of the block data
+        return (free, add(256, mul(numRoots, 32)))
+      }
+
+      // produce block hash
+      case sig"blockHash(bytes proof) external view returns (bytes32 blockHash)" {
+        mstore(0, BlockHeader.keccak256(abi.offset(calldata.word(0))))
+        return (0, 32)
+      }
+
+      // root hash
+      case sig"rootHash(bytes proof) external view returns (bytes32 rootHash)" {
+        mstore(0, RootHeader.keccak256(abi.offset(calldata.word(0))))
+        return (0, 32)
+      }
+
+      // root hash
+      case sig"expandPackedTransfer(bytes proof) external view returns (bytes expandedProof)" {
+        TransactionProof.expand(abi.offset(calldata.word(0)))
+        return (add(_calldata, 4), add(abi.length(calldata.word(0)), 64))
+      }
+
+      /// @notice Extract output metadata from a proof.
+      /// @param proof Proof.
+      /// @return The output metadata.
+      /// @dev Transaction::outputMetadata
+      case sig"outputMetadata(bytes proof) external view returns (uint256 metadata)" {
+        let metadata := outputMetadata(abi.offset(calldata.word(0)))
+        return.word(metadata)
+      }
+
+      /// @notice Extract input metadata from a proof.
+      /// @param proof Proof.
+      /// @return The input metadata.
+      /// @dev Transaction::inputMetadata
+      case sig"inputMetadata(bytes proof) external view returns (uint256 metadata)" {
+        let metadata := inputMetadata(abi.offset(calldata.word(0)))
+        return.word(metadata)
+      }
+
+      /// @notice Extract metadata at a given index from a proof.
+      /// @param proof Proof.
+      /// @param index Metadata index.
+      /// @return The metadata.
+      /// @dev Transaction::selectMetadata
+      case sig"selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata)" {
+        let pos := selectMetadata(abi.offset(calldata.word(0)), calldata.word(1))
+        return.word(mslice(pos, 8))
+      }
+
+      /// @notice Extract an output from a proof.
+      /// @param proof Proof.
+      /// @return The output.
+      /// @dev Transaction::selectOutput
+      case sig"selectOutput(bytes proof) external view returns (bytes output)" {
+        let pos := selectOutput(abi.offset(calldata.word(0)))
+        mstore(sub(pos, 64), 32)
+        mstore(sub(pos, 32), outputSize(pos))
+        return (pos, round32(outputSize(pos)))
+      }
+
+      /// @notice Not one of the above, invalid method signature.
+      default {
+        require(0, error"invalid-signature")
+      }
+
+      // Ensure execution stops
+      stop()
+    }
+  }
+}

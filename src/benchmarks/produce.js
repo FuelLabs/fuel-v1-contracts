@@ -2,7 +2,7 @@
 const utils = require('@fuel-js/utils');
 const { chunk, pack, combine } = require('@fuel-js/struct');
 const ethers = require('ethers');
-const { RootHeader, merkleTreeRoot } = require('@fuel-js/protocol/src/block');
+const { RootHeader, merkleTreeRoot, EMPTY_SIGNATURE_HASH } = require('../protocol/src/block');
 const gasPrice = require('@fuel-js/gasprice');
 const refill = require('@fuel-js/refill');
 
@@ -141,6 +141,10 @@ async function rootDeployment(transactions = [], config = {}) {
               rootLength: utils.hexDataLength(combine(root)),
               fee: utils.bigNumberify(_wallet.address).add(_rootIndex),
               feeToken: config.tokenId,
+              transactionType: config.signature ? 1 : 0,
+              signatureHash: config.signature
+                ? utils.keccak256(config.signature)
+                : EMPTY_SIGNATURE_HASH,
             });
 
             // Root hash
@@ -180,6 +184,8 @@ async function rootDeployment(transactions = [], config = {}) {
                   config.tokenId,
                   header.properties.fee().get(),
                   combine(root),
+                  config.signature ? 1 : 0,
+                  config.signature ? config.signature : [],
                   rootTxOptions,
                 );
 

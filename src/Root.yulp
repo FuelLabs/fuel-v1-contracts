@@ -23,7 +23,11 @@ object "Root" is "Storage", "Tokens" {
       // Token ID of all fees paid in this root
       feeToken: uint256,
       // Feerate of all fees paid in this root
-      fee: uint256
+      fee: uint256,
+      // Transaction Type 0 for no compressed, 1 for compressed transfer
+      transactionType: uint256,
+      // Signature Hash for compressed txs
+      signatureHash: bytes32
     )
 
     /// @notice Get block number of a registered root.
@@ -37,7 +41,7 @@ object "Root" is "Storage", "Tokens" {
       sstore(mappingKey(Storage.Roots, root), 0)
     }
 
-    function commitRoot(merkleTreeRoot, commitmentHash, length, token, fee) {
+    function commitRoot(merkleTreeRoot, commitmentHash, length, token, fee, transactionType, signaturesHash) {
       // Caller/msg.sender must not be a contract
       require(eq(origin(), caller()), error"origin-not-caller")
       require(eq(extcodesize(caller()), 0), error"is-contract")
@@ -53,7 +57,7 @@ object "Root" is "Storage", "Tokens" {
       require(lt(token, numTokens()), error"token-overflow")
 
       // Build root
-      mstore(0, caller(), merkleTreeRoot, commitmentHash, length, token, fee)
+      mstore(0, caller(), merkleTreeRoot, commitmentHash, length, token, fee, transactionType, signaturesHash)
       // Hash the block header with an offset of 12 bytes, since first field is a 32-12=20 byte address.
       const root := RootHeader.keccak256(12)
 
@@ -65,10 +69,10 @@ object "Root" is "Storage", "Tokens" {
       sstore(mappingKey(Storage.Roots, root), number())
 
       // Store caller in data
-      mstore(0, caller(), token, fee, length)
+      mstore(0, caller(), token, fee, length, transactionType, signaturesHash)
       log4(
         0,
-        mul32(4),
+        mul32(6),
         topic"event RootCommitted(
           bytes32 indexed root,
           address rootProducer,
@@ -76,7 +80,10 @@ object "Root" is "Storage", "Tokens" {
           uint256 fee,
           uint256 rootLength,
           bytes32 indexed merkleTreeRoot,
-          bytes32 indexed commitmentHash)",
+          bytes32 indexed commitmentHash,
+          uint256 transactionType,
+          bytes32 signatureHash
+        )",
         root,
         merkleTreeRoot,
         commitmentHash

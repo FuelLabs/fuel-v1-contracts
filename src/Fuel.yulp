@@ -27,7 +27,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
 
     // Index the ETH token ID and zero address
     indexToken(ETHER_TOKEN_ADDRESS, 0)
-    indexAddress(ZERO_ADDRESS, 0)
+    indexAddress(ZERO_ADDRESS, 0, 0, 0, 0, 0)
 
     // Log genesis block
     mstore(0, operator, NUM_TOKENS_INIT, NUM_ADDRESSES_INIT, 128, GENESIS_ROOTS_LENGTH)
@@ -90,12 +90,26 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param transactions List of transactions.
       /// @dev Root::commitRoot
       case sig"commitRoot(bytes32 merkleTreeRoot, uint256 token,
-        uint256 fee, bytes transactions) external" {
+        uint256 fee, bytes transactions, uint8 transactionType, bytes signatures) external" {
         commitRoot(calldata.word(0),
           keccak256(abi.offset(calldata.word(3)), abi.length(calldata.word(3))),
           abi.length(calldata.word(3)),
           calldata.word(1),
-          calldata.word(2))
+          calldata.word(2),
+          calldata.word(4),
+          keccak256(abi.offset(calldata.word(5)), abi.length(calldata.word(5)))
+        )
+
+        // get the signatures length and check it
+        let signaturesLength := abi.length(calldata.word(5))
+
+        // signatures available
+        // we must ensure the signatures provided are 64 byte chunks and greater than zero length
+        // uncomment this for the production version
+        // require(gt(signaturesLength, 0), error"signatures-length-underflow")
+
+        // signatures length % (chunksize * 2) === 0
+        require(eq(mod(signaturesLength, mul(32, 2)), 0), error"signatures-length-mismatch")
       }
 
       /// @notice Commit a new block.
@@ -123,10 +137,16 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
 
       /// @notice Register a new address for cheaper transactions.
       /// @param addr Address to register.
+      /// @param publicKeyA-D these are the BLS public key registration
       /// @return New ID assigned to address, or existing ID if already assigned.
       /// @dev Address::commitAddress
-      case sig"commitAddress(address addr) external returns (uint256 id)" {
-        return.word(commitAddress(calldata.word(0)))
+      case sig"commitAddress(address addr, uint256 publicKeyA, uint256 publicKeyB, uint256 publicKeyC, uint256 publicKeyD) external returns (uint256 id)" {
+        return.word(commitAddress(
+          calldata.word(0),
+          calldata.word(1),
+          calldata.word(2),
+          calldata.word(3),
+          calldata.word(4)))
       }
 
       //////////////////////////////////////////////////////////////////////////
@@ -185,6 +205,31 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @dev provers::InvalidWitness::proveInvalidWitness
       case sig"proveInvalidWitness(bytes transactionProof, bytes inputProofs) external" {
         proveInvalidWitness(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
+      }
+
+      /// @notice Prove a BLS aggregate witness is incorrect
+      /// @param blockHeader the bytes data for a fraudulant Fuel block header
+      case sig"proveInvalidAggregateWitness(bytes blockHeader) external" {
+        Constructor.copy(0)
+
+        // Get the Fraud Prover contract address and the fraud block hash
+        const fraudProver := Constructor.blsFraudProver(0)
+        const fraudBlockHash := BlockHeader.keccak256(abi.offset(calldata.word(1)))
+
+        // store block height at 512
+        mstore(0, sig"isBlockFraudulent(address, bytes32) public returns (bool isFraudulent)")
+        mstore(32, address())
+        mstore(64, fraudBlockHash)
+
+        // call the fraud prover contract to check if this block hash is invalid
+        require(call(gas(), fraudProver, 0, 28, 68, 512, 32), error"fraud-prover-reverted")
+
+        // if call success to fraud prover
+        let isFraudulent := mload(512)
+        require(lte(isFraudulent, 0), error"block-not-fraudulent")
+
+        // assert fraud, the block is fraudulent
+        assertOrFraud(0, error"invalid-aggregate-witness", abi.offset(calldata.word(1)))
       }
 
       /// @notice Prove that a transation produced more than it consumed.
@@ -261,63 +306,6 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(true)
       }
 
-      /// @notice Extract a UTXO from a proof.
-      /// @param proof Proof.
-      /// @return UTXO data structure.
-      /// @dev Transaction::TransactionProof.UTXO.assign
-      case sig"selectUTXO(bytes proof) external view returns (
-        bytes32 transactionId,
-        uint8 outputIndex,
-        uint8 outputType,
-        address owner,
-        uint256 amount,
-        uint32 token,
-        bytes32 digest,
-        uint256 expiry,
-        address returnOwner)" {
-        TransactionProof.UTXO.assign(abi.offset(calldata.word(0)), 0)
-        return (0, UTXO.size(0))
-      }
-
-      /// @notice Extract an output from a proof.
-      /// @param proof Proof.
-      /// @return The output.
-      /// @dev Transaction::selectOutput
-      case sig"selectOutput(bytes proof) external view returns (bytes output)" {
-        let pos := selectOutput(abi.offset(calldata.word(0)))
-        mstore(sub(pos, 64), 32)
-        mstore(sub(pos, 32), outputSize(pos))
-        return (pos, round32(outputSize(pos)))
-      }
-
-      /// @notice Extract output metadata from a proof.
-      /// @param proof Proof.
-      /// @return The output metadata.
-      /// @dev Transaction::outputMetadata
-      case sig"outputMetadata(bytes proof) external view returns (uint256 metadata)" {
-        let metadata := outputMetadata(abi.offset(calldata.word(0)))
-        return.word(metadata)
-      }
-
-      /// @notice Extract input metadata from a proof.
-      /// @param proof Proof.
-      /// @return The input metadata.
-      /// @dev Transaction::inputMetadata
-      case sig"inputMetadata(bytes proof) external view returns (uint256 metadata)" {
-        let metadata := inputMetadata(abi.offset(calldata.word(0)))
-        return.word(metadata)
-      }
-
-      /// @notice Extract metadata at a given index from a proof.
-      /// @param proof Proof.
-      /// @param index Metadata index.
-      /// @return The metadata.
-      /// @dev Transaction::selectMetadata
-      case sig"selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata)" {
-        let pos := selectMetadata(abi.offset(calldata.word(0)), calldata.word(1))
-        return.word(mslice(pos, 8))
-      }
-
       /// @notice Get the operator address.
       /// @return The operator address.
       case sig"operator() external view returns (address operator)" {
@@ -360,6 +348,12 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @dev Address::addressId
       case sig"addressId(address owner) external view  returns (uint256 addressId)" {
         return.word(addressId(calldata.word(0)))
+      }
+
+      /// @notice Get the public key hash for a specific owner
+      /// @param owner Registered address.
+      case sig"publicKeyHash(address owner) external view returns (bytes32 hash)" {
+        return.word(publicKeyHash(calldata.word(0)))
       }
 
       /// @notice Get deposit amount for a particular deposit.
@@ -433,6 +427,22 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       case sig"PENALTY_DELAY() external view returns (uint256)" {
         Constructor.copy(0)
         return(Constructor.penaltyDelay.position(0), 32)
+      }
+
+      /// @notice Get penalty delay constant. Ethereum blocks after a fraud during which anyone may commit new blocks without submission delay.
+      /// @return Penalty delay.
+      case sig"CHAIN_ID() external view returns (uint256)" {
+        Constructor.copy(0)
+        return(Constructor.chainId.position(0), 32)
+      }
+
+      /// @notice Get penalty delay constant. Ethereum blocks after a fraud during which anyone may commit new blocks without submission delay.
+      /// @return Penalty delay.
+      case sig"BLS_FRAUD_PROVER() external view returns (address)" {
+        Constructor.copy(0)
+        return(Constructor.blsFraudProver.position(0), 32)
+        // mstore(0, 0)
+        // return(0, 32)
       }
 
       /// @notice Get Ethereum block number until which operator is penalized.

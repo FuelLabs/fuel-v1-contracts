@@ -11,7 +11,11 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
     /// @param transactionsLength
     /// @param fraudBlock
     /// @return Merkle root as bytes32
-    function constructMerkleTreeRoot(transactions, transactionsLength, fraudBlock) -> merkleTreeRoot {
+    function constructMerkleTreeRoot(
+      transactions,
+      transactionsLength,
+      fraudBlock,
+      fixedLength) -> merkleTreeRoot {
       // Initialize memory position to position of start of transaction list
       let memoryPosition := transactions
       // Holds computed hashes
@@ -21,15 +25,20 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
       // Loop through each transaction (leaf in Merkle tree) and hash it
       for {} lt(memoryPosition, add(transactions, transactionsLength)) {} {
         // Extract length of current transaction
-        let len := add(mslice(memoryPosition, 2), 2)
+        let len := fixedLength
 
-        // Transaction length must be above minimum
-        assertOrFraud(gte(len, TRANSACTION_SIZE_MIN),
-            error"transaction-length-underflow", fraudBlock)
+        // if no fixed length
+        if eq(fixedLength, 0) {
+          len := add(mslice(memoryPosition, 2), 2)
 
-        // Transaction length must be below maximum
-        assertOrFraud(lte(len, TRANSACTION_SIZE_MAX),
-            error"transaction-length-overflow", fraudBlock)
+          // Transaction length must be above minimum
+          assertOrFraud(gte(len, TRANSACTION_SIZE_MIN),
+              error"transaction-length-underflow", fraudBlock)
+
+          // Transaction length must be below maximum
+          assertOrFraud(lte(len, TRANSACTION_SIZE_MAX),
+              error"transaction-length-overflow", fraudBlock)
+        }
 
         // Computed length must not be greater than provided payload
         assertOrFraud(lte(sub(memoryPosition, transactions), transactionsLength),
@@ -110,11 +119,20 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
         error"commitment-hash"
       )
 
+      // transaction size dynamic
+      let fixedLength := 0
+
+      // if the transaction type is greater than zero, fixed length is 24s
+      if eq(RootHeader.transactionType(root), 1) {
+        // now a fixed length
+        fixedLength := 24
+      }
+
       // Computed Merkle root of transactions must match commtted Merkle root
       assertOrFraud(
         eq(
           RootHeader.merkleTreeRoot(root),
-          constructMerkleTreeRoot(transactions, transactionsLength, block)
+          constructMerkleTreeRoot(transactions, transactionsLength, block, fixedLength)
         ),
         error"merkle-root", block
       )
