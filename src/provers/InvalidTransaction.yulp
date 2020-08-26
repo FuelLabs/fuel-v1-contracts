@@ -350,7 +350,10 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
 
       assertOrFraud(gte(size, TRANSACTION_SIZE_MIN), error"transaction-size-underflow", transactionProof)
       assertOrFraud(lte(size, TRANSACTION_SIZE_MAX), error"transaction-size-overflow", transactionProof)
-      assertOrFraud(eq(size, add(TransactionLeaf.length(leaf), 2)), error"transaction-length", transactionProof)
+
+      if lte(TransactionProof.transactionType(transactionProof), 0) {
+        assertOrFraud(eq(size, add(TransactionLeaf.length(leaf), 2)), error"transaction-length", transactionProof)
+      }
 
       proveWitnesses(leaf, transactionProof)
       proveInputs(leaf, transactionProof)

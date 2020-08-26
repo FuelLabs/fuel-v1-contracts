@@ -90,7 +90,7 @@ object "Witness" is "Storage" {
       }
 
       case WitnessType.AggregateSignature {
-        size := Producer.size(witness)
+        size := AggregateSignature.size(witness)
       }
 
       default { // avoid infinite loops

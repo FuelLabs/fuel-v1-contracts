@@ -132,7 +132,7 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
       assertOrFraud(
         eq(
           RootHeader.merkleTreeRoot(root),
-          constructMerkleTreeRoot(transactions, transactionsLength, block, 0)
+          constructMerkleTreeRoot(transactions, transactionsLength, block, fixedLength)
         ),
         error"merkle-root", block
       )

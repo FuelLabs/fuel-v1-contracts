@@ -155,7 +155,12 @@ module.exports = test('bls', async t => {
 
     // build a valid packed transfer
     const packedTransfer = PackedTransfer({
-      metadata: Metadata({}).encodePacked(),
+      metadata: Metadata({
+        blockHeight: 1,
+        rootIndex: 0,
+        transactionIndex: 0,
+        outputIndex: 0,
+      }).encodePacked(),
       from: '0x00000001',
       to: '0x00000001',
       transferAmount: '0xffffffff',
@@ -302,6 +307,7 @@ module.exports = test('bls', async t => {
       transactionIndex: 0,
       data: [ utils.emptyBytes32 ],
       pad: 400,
+      token: utils.emptyAddress,
       selector: producer,
     });
 
@@ -310,10 +316,26 @@ module.exports = test('bls', async t => {
     );
 
     const expandedTx = expandedTransactionTxProof.properties.transaction().hex();
-
     const expandedTxDecoded = decodePacked(expandedTx);
 
+    // submit proof, but block is valid
+    const proofa = [validBlock.encodePacked(), validPackedRoot.encodePacked(), 0, combinedTransactions];
+    txr = await t.wait(contract.proveMalformedBlock(...proofa, overrides),
+      'submit malformed proof', errors);
+    t.equalBig(await contract.blockTip(), 1, 'tip');
 
+    const fraudTx = await t.wait(contract.proveInvalidTransaction(packedTransferTxProof.encodePacked(), {
+      ...overrides,
+    }), 'submit valid input transaction', errors);
+    t.equalBig(await contract.blockTip(), 1, 'tip');
+
+    if (fraudTx.logs.length) {
+      console.log(fraudTx.logs[0].topics);
+    }
+
+    if (fraudTx.events.length) {
+      console.log(fraudTx.events[0].args);
+    }
 
     // Publish a block with 32 compressed txs
     // verifyHeader

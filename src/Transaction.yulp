@@ -531,15 +531,6 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     // number of transactions per aggregate chunk
     const aggregateChunkSize := 32
 
-    // check if an aggregate signture root is valid, if not agg sig root, throw
-    function isAggregateSignatureRootValid(proof) -> isValid {
-      let blockHash := BlockHeader.keccak256(TransactionProof.blockProducer.position(proof))
-      let rootIndex := TransactionProof.rootIndex(proof)
-      let transactionIndex := TransactionProof.transactionIndex(proof)
-      let chunkIndex := mod(transactionIndex, 32)
-      isValid := true
-    }
-
     /// @notice Recover witness address from proof.
     /// @return Recovered address as address. 0 on fail.
     function recoverFromWitness(witness, proof) -> addr {
@@ -575,9 +566,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
         require(eq(id, AggregateSignature.addressIndex(witness)), error"invalid-aggregate-signature-address")
 
         // check is the bls root valid, return a zero, thus causing invalid witness to work...
-        if iszero(isAggregateSignatureRootValid(proof)) {
-          addr := 0
-        }
+        verifyAggregateSignature(proof)
       }
 
       default { require(0, error"witness-type") }
