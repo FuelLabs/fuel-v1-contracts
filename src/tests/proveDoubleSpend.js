@@ -137,6 +137,22 @@ module.exports = test('proveDoubleSpend', async t => { try {
       token,
     });
 
+    // Generate the fraud hash
+    const fraudHash = utils.keccak256(contract.interface.functions.proveDoubleSpend.encode(
+      [
+        proof.encodePacked(),
+        proofB.encodePacked(),
+      ],
+    ));
+
+    // Commit the fraud hash.
+    await t.wait(contract.commitFraudHash(fraudHash, {
+      ...overrides,
+    }), 'commit fraud hash', errors);
+
+    // Wait 10 blocks for fraud finalization.
+    await t.increaseBlock(10);
+
     const fraud = await t.wait(contract.proveDoubleSpend(proof.encodePacked(), proofB.encodePacked(), {
       ...overrides,
       value: await contract.BOND_SIZE(),

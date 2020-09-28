@@ -129,6 +129,13 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(commitAddress(calldata.word(0)))
       }
 
+      /// @notice Register a fraud commitment hash.
+      /// @param fraudHash The hash of the calldata used for a fraud commitment.
+      /// @dev Uses the message sender (caller()) in the commitment.
+      case sig"commitFraudHash(bytes32 fraudHash)" {
+        commitFraudHash(calldata.word(0))
+      }
+
       //////////////////////////////////////////////////////////////////////////
       /// FRAUD PROOFS BEGIN
       //////////////////////////////////////////////////////////////////////////
@@ -162,6 +169,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param proofB Second proof.
       /// @dev provers::InvalidInput::proveInvalidInput
       case sig"proveInvalidInput(bytes proofA, bytes proofB) external" {
+        // requireValidFraudCommitment()
+
         let transactionProofA := abi.offset(calldata.word(0))
         let transactionProofB := abi.offset(calldata.word(1))
 
@@ -173,6 +182,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param proofB Proof of UTXO being spent again.
       /// @dev provers::DoubleSpend::proveDoubleSpend
       case sig"proveDoubleSpend(bytes proofA, bytes proofB) external" {
+        requireValidFraudCommitment()
+
         let transactionProofA := abi.offset(calldata.word(0))
         let transactionProofB := abi.offset(calldata.word(1))
 
@@ -259,63 +270,6 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
           calldata.word(1)
         )
         return.word(true)
-      }
-
-      /// @notice Extract a UTXO from a proof.
-      /// @param proof Proof.
-      /// @return UTXO data structure.
-      /// @dev Transaction::TransactionProof.UTXO.assign
-      case sig"selectUTXO(bytes proof) external view returns (
-        bytes32 transactionId,
-        uint8 outputIndex,
-        uint8 outputType,
-        address owner,
-        uint256 amount,
-        uint32 token,
-        bytes32 digest,
-        uint256 expiry,
-        address returnOwner)" {
-        TransactionProof.UTXO.assign(abi.offset(calldata.word(0)), 0)
-        return (0, UTXO.size(0))
-      }
-
-      /// @notice Extract an output from a proof.
-      /// @param proof Proof.
-      /// @return The output.
-      /// @dev Transaction::selectOutput
-      case sig"selectOutput(bytes proof) external view returns (bytes output)" {
-        let pos := selectOutput(abi.offset(calldata.word(0)))
-        mstore(sub(pos, 64), 32)
-        mstore(sub(pos, 32), outputSize(pos))
-        return (pos, round32(outputSize(pos)))
-      }
-
-      /// @notice Extract output metadata from a proof.
-      /// @param proof Proof.
-      /// @return The output metadata.
-      /// @dev Transaction::outputMetadata
-      case sig"outputMetadata(bytes proof) external view returns (uint256 metadata)" {
-        let metadata := outputMetadata(abi.offset(calldata.word(0)))
-        return.word(metadata)
-      }
-
-      /// @notice Extract input metadata from a proof.
-      /// @param proof Proof.
-      /// @return The input metadata.
-      /// @dev Transaction::inputMetadata
-      case sig"inputMetadata(bytes proof) external view returns (uint256 metadata)" {
-        let metadata := inputMetadata(abi.offset(calldata.word(0)))
-        return.word(metadata)
-      }
-
-      /// @notice Extract metadata at a given index from a proof.
-      /// @param proof Proof.
-      /// @param index Metadata index.
-      /// @return The metadata.
-      /// @dev Transaction::selectMetadata
-      case sig"selectMetadata(bytes proof, uint8 index) external view returns (bytes8 metadata)" {
-        let pos := selectMetadata(abi.offset(calldata.word(0)), calldata.word(1))
-        return.word(mslice(pos, 8))
       }
 
       /// @notice Get the operator address.

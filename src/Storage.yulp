@@ -13,7 +13,8 @@ object "Storage" {
         Token,
         NumAddresses,
         Address,
-        Witness
+        Witness,
+        FraudCommitments
     )
 
     /// @notice Compute storage key for single-element object.
