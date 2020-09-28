@@ -28,7 +28,7 @@ object "Fraud" is "Utils", "Block", "Calldata" {
       )
 
       // Check the fraud commitment exists.
-      require(gte(commitmentBlockNumber, 0), "fraud-commitment")
+      require(gt(commitmentBlockNumber, 0), error"fraud-commitment")
 
       // Require that the commitment blockNumber + period >= current block number.
       require(gte(

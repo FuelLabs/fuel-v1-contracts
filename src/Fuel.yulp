@@ -148,6 +148,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @dev provers::MalformedBlock::proveMalformedBlock
       case sig"proveMalformedBlock(bytes blockHeader, bytes rootHeader,
         uint16 rootIndex, bytes transactions) external" {
+        requireValidFraudCommitment()
         let block := abi.offset(calldata.word(0))
         let root := abi.offset(calldata.word(1))
         let rootIndex := calldata.word(2)
@@ -161,6 +162,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param transactionProof Proof.
       /// @dev provers::InvalidTransaction::proveInvalidTransaction
       case sig"proveInvalidTransaction(bytes transactionProof) external" {
+        requireValidFraudCommitment()
+        
         proveInvalidTransaction(abi.offset(calldata.word(0)))
       }
 
@@ -169,7 +172,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param proofB Second proof.
       /// @dev provers::InvalidInput::proveInvalidInput
       case sig"proveInvalidInput(bytes proofA, bytes proofB) external" {
-        // requireValidFraudCommitment()
+        requireValidFraudCommitment()
 
         let transactionProofA := abi.offset(calldata.word(0))
         let transactionProofB := abi.offset(calldata.word(1))
@@ -195,6 +198,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param inputProofs Memory offset of start of input proofs.
       /// @dev provers::InvalidWitness::proveInvalidWitness
       case sig"proveInvalidWitness(bytes transactionProof, bytes inputProofs) external" {
+        requireValidFraudCommitment()
         proveInvalidWitness(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
       }
 
@@ -203,6 +207,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param inputProofs Memory offset of start of input proofs.
       /// @dev provers::InvalidSum::proveInvalidSum
       case sig"proveInvalidSum(bytes transactionProof, bytes inputProofs) external" {
+        requireValidFraudCommitment()
         proveInvalidSum(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
       }
 

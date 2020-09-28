@@ -434,6 +434,21 @@ module.exports = test('proveInvalidTransaction', async t => { try {
       token,
     });
 
+    // Generate the fraud hash
+    const fraudHash = utils.keccak256(contract.interface.functions.proveInvalidTransaction.encode(
+      [
+        proof.encodePacked()
+      ],
+    ));
+
+    // Commit the fraud hash.
+    await t.wait(contract.commitFraudHash(fraudHash, {
+      ...overrides,
+    }), 'commit fraud hash', errors);
+
+    // Wait 10 blocks for fraud finalization.
+    await t.increaseBlock(10);
+
     if (opts.fraud) {
       const fraudTx = await t.wait(contract.proveInvalidTransaction(proof.encodePacked(), {
         ...overrides,

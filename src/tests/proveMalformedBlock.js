@@ -61,6 +61,21 @@ module.exports = test('proveMalformedBlock', async t => { try {
 
       let txr = null;
 
+      // Generate the fraud hash
+      const fraudHash = utils.keccak256(contract.interface.functions.proveMalformedBlock.encode(
+        [
+          ...proofa
+        ],
+      ));
+
+      // Commit the fraud hash.
+      await t.wait(contract.commitFraudHash(fraudHash, {
+        ...overrides,
+      }), 'commit fraud hash', errors);
+
+      // Wait 10 blocks for fraud finalization.
+      await t.increaseBlock(10);
+
       if (opts.fraud) {
         txr = await t.wait(contract.proveMalformedBlock(...proofa, overrides),
           'submit malformed proof', errors);
