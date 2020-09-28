@@ -6,6 +6,7 @@ const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
 const write = require('write');
 const readFile = require('fs-readfile-promise');
+const deployments = require('../src/deployments/Fuel.json');
 
 // Network Specification
 const network_name = process.env['fuel_v1_network'];
@@ -34,6 +35,18 @@ function operatorsToWallets(operators = '') {
   }
 
   return wallets;
+}
+
+// Is this just a deployment verification.
+const verify = process.env['verify'] === '1';
+
+// If it's just a verification, we use a fake operator.
+if (verify) {
+  // Specify a fo-operator.
+  process.env['fuel_v1_default_operators'] = utils.hexlify(utils.randomBytes(32));
+
+  // Log verifying deployment.
+  console.log('Verifying deployment');
 }
 
 // Deploy Fuel to Network
@@ -82,7 +95,7 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
   // Set Deployment Parameters
   const deploymentParameters = [
     // Block Producer
-    operator,
+    verify ? process.env['fuel_operator'] : operator,
 
     // finalizationDelay: uint256 | 2 weeks | Seconds: (14 * 24 * 60 * 60) / 13 = 93046
     oneWeekInBlocks,
@@ -108,6 +121,33 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     // Contract Genesis
     genesis_hash
   ];
+
+  // If it's a verification, we stop it here
+  if (verify) {
+    // Assert there is a deployment to verify.
+    utils.assert(deployments.v1[network_name], 'there is no deployment for this network');
+
+    // Get the contract code from the provider.
+    const contractCode = (await t.getProvider()
+      .getTransaction('0xd21eb619e2e7b1aa0268be9b231e3ff5ba5e732b53ce1525a8e653b503290507'))
+      .data;
+
+    console.log(contractCode.length);
+
+    // Code produced from deployment.
+    const fuelInterface = new ethers.utils.Interface(abi);
+    const producedBytecode = fuelInterface.deployFunction
+      .encode(bytecode, deploymentParameters);
+
+    // Comparse the two.
+    console.log(contractCode === producedBytecode);
+
+    // Assert the bytecode to be the same.
+    utils.assert(contractCode === producedBytecode, 'bytecode-verified');
+
+    // Stop deployment sequence from progressing.
+    return;
+  }
 
   // Setup Contract for Deployment
   const contract = await t.deploy(abi, bytecode,
