@@ -380,6 +380,90 @@ module.exports = test('proveInvalidTransaction', async t => { try {
       outputs = [invalidOutput];
     }
 
+    // A very complex transaction with many kinds of inputs and outputs.
+    if (opts.valid === 'multi-tx') {
+      metadata = [
+        tx.MetadataDeposit(deposit.object()),
+        tx.MetadataDeposit(deposit.object()),
+        tx.MetadataDeposit(deposit.object()),
+        tx.MetadataDeposit(deposit.object()),
+        tx.MetadataDeposit(deposit.object()),
+        tx.MetadataDeposit(deposit.object()),
+        tx.MetadataDeposit(deposit.object()),
+        tx.MetadataDeposit(deposit.object()),
+      ];
+      inputs = [
+        tx.InputDeposit({ witnessReference: 0, owner: producer }),
+        tx.InputDeposit({ witnessReference: 0, owner: producer }),
+        tx.InputDeposit({ witnessReference: 0, owner: producer }),
+        tx.InputDeposit({ witnessReference: 0, owner: producer }),
+        tx.InputDeposit({ witnessReference: 0, owner: producer }),
+        tx.InputDeposit({ witnessReference: 0, owner: producer }),
+        tx.InputDeposit({ witnessReference: 0, owner: producer }),
+        tx.InputDeposit({ witnessReference: 0, owner: producer }),
+      ];
+      outputs = [
+        tx.OutputReturn({
+          data: utils.hexZeroPad('0xaa', 21),
+        }),
+        tx.OutputHTLC({
+          token: '0x01',
+          amount: utils.parseEther('2398234.38298919282'),
+          owner: producer,
+          digest: utils.emptyBytes32,
+          returnOwner: '0x00',
+        }),
+        tx.OutputTransfer({
+          token: '0x00',
+          amount: utils.parseEther('10032.38298919282'),
+          owner: utils.hexlify(utils.randomBytes(20)),
+        }),
+        tx.OutputReturn({
+          data: utils.hexZeroPad('0xaa', 1),
+        }),
+        tx.OutputTransfer({
+          token: '0x01',
+          amount: utils.hexlify(utils.randomBytes(32)),
+          owner: '0x00',
+        }),
+        tx.OutputHTLC({
+          token: '0x01',
+          amount: 1,
+          owner: producer,
+          digest: utils.hexlify(utils.randomBytes(32)),
+          returnOwner: '0x00',
+        }),
+        tx.OutputReturn({
+          data: utils.hexZeroPad('0xaa', 1),
+        }),
+        tx.OutputWithdraw({
+          token: '0x00',
+          amount: utils.parseEther('10000'),
+          owner: utils.hexlify(utils.randomBytes(20)),
+        }),
+      ];
+      witnesses = [
+        t.wallets[0],
+        tx.Producer({
+          hash: utils.hexlify(utils.randomBytes(32)),
+        }),
+        t.wallets[0],
+        t.wallets[0],
+        tx.Producer({
+          hash: utils.hexlify(utils.randomBytes(32)),
+        }),
+        tx.Producer({
+          hash: utils.hexlify(utils.randomBytes(32)),
+        }),
+        tx.Producer({
+          hash: utils.hexlify(utils.randomBytes(32)),
+        }),
+        tx.Producer({
+          hash: utils.hexlify(utils.randomBytes(32)),
+        }),
+      ];
+    }
+
     // build a transaction
     let transaction = await tx.Transaction({
       override: true,
@@ -461,14 +545,15 @@ module.exports = test('proveInvalidTransaction', async t => { try {
 
     // no fraud
 
-    await t.wait(contract.proveInvalidTransaction(proof.encodePacked(), {
+    console.log((await t.wait(contract.proveInvalidTransaction(proof.encodePacked(), {
       ...overrides,
-    }), 'submit valid input transaction', errors);
+    }), 'submit valid input transaction', errors)).events[0]);
     t.equalBig(await contract.blockTip(), 1, 'tip');
   }
 
   await state ({ useErc20: false });
   await state ({ useErc20: true });
+  await state ({ useErc20: true, valid: 'multi-tx' });
 
   await state ({ useErc20: true, fraud: 'metadata-size-underflow' });
   await state ({ useErc20: true, fraud: 'metadata-size-overflow' });

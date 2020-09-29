@@ -151,7 +151,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         pos := add(pos, witnessSize(pos))
         index := add(index, 1)
 
-        assertOrFraud(lt(index, INPUTS_MAX), error"witnesses-index-overflow", transactionProof)
+        assertOrFraud(lte(index, INPUTS_MAX), error"witnesses-index-overflow", transactionProof)
       }
 
       assertOrFraud(eq(pos, end), error"witnesses-size-overflow", transactionProof)
@@ -284,7 +284,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         pos := add(pos, outputSize(pos))
         index := add(index, 1)
 
-        assertOrFraud(lt(index, OUTPUTS_MAX), error"outputs-index-overflow", transactionProof)
+        assertOrFraud(lte(index, OUTPUTS_MAX), error"outputs-index-overflow", transactionProof)
       }
 
       assertOrFraud(eq(pos, end), error"outputs-size", transactionProof)
@@ -314,7 +314,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
         index := add(index, 1)
       }
 
-      assertOrFraud(lt(index, INPUTS_MAX), error"inputs-index-overflow", transactionProof)
+      assertOrFraud(lte(index, INPUTS_MAX), error"inputs-index-overflow", transactionProof)
       assertOrFraud(eq(pos, end), error"inputs-size", transactionProof)
     }
 
