@@ -6,7 +6,16 @@ object "Calldata" {
 
     /// @notice Copy all calldata to memory.
     function calldata.copy() {
+      // Require calldata is available.
+      require(gt(calldatasize(), 0), error"fallback")
+
+      // Copy calldata.
       calldatacopy(_calldata, 0, calldatasize())
+    }
+
+    /// @notice payable requirement, ensure value is not used.
+    function nonpayable() {
+      require(iszero(callvalue()), error"not-payable")
     }
 
     /// @notice Get function signature.

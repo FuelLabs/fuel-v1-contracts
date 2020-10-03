@@ -51,6 +51,23 @@ module.exports = test('constructor', async t => { try {
     t.equal(await contract.name(), params[5], 'name');
     t.equal(await contract.version(), params[6], 'version');
 
+    // Fallback
+    await t.revert(t.wallets[0].sendTransaction({
+      to: contract.address,
+      value: 0,
+      gasLimit: 100000,
+    }),
+    errors['fallback'],
+    'fallback no value');
+
+    await t.revert(t.wallets[0].sendTransaction({
+      to: contract.address,
+      value: 1,
+      gasLimit: 100000,
+    }), 
+    errors['fallback'],
+    'fallback with value');
+
     await t.revert(t.wallets[0].sendTransaction({ to: contract.address, data: '0xaa' }),
       errors['invalid-signature'], 'invalid signature');
   };

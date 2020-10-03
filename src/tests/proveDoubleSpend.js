@@ -155,7 +155,6 @@ module.exports = test('proveDoubleSpend', async t => { try {
 
     const fraud = await t.wait(contract.proveDoubleSpend(proof.encodePacked(), proofB.encodePacked(), {
       ...overrides,
-      value: await contract.BOND_SIZE(),
     }), 'double spend same deposit', errors);
 
     t.equalBig(await contract.penalty(), (await contract.PENALTY_DELAY()).add(fraud.blockNumber), 'penalty')

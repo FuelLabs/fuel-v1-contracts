@@ -80,6 +80,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param token Token address.
       /// @dev Deposit::deposit
       case sig"deposit(address account, address token) external" {
+        // Ensure non-payable.
+        nonpayable()
+
+        // Deposit.
         deposit(calldata.word(0), calldata.word(1))
       }
 
@@ -91,6 +95,8 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @dev Root::commitRoot
       case sig"commitRoot(bytes32 merkleTreeRoot, uint256 token,
         uint256 fee, bytes transactions) external" {
+        nonpayable()
+
         commitRoot(calldata.word(0),
           keccak256(abi.offset(calldata.word(3)), abi.length(calldata.word(3))),
           abi.length(calldata.word(3)),
@@ -104,7 +110,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param height Rollup block height.
       /// @param roots List of roots in block.
       /// @dev Block::commitBlock
-      case sig"commitBlock(uint32 minimum, bytes32 minimumHash, uint32 height, bytes32[] roots) external" {
+      case sig"commitBlock(uint32 minimum, bytes32 minimumHash, uint32 height, bytes32[] roots) external payable" {
         commitBlock(
           calldata.word(0),
           calldata.word(1),
@@ -118,6 +124,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param transactionId Transaction ID to authorize.
       /// @dev Witness::commitWitness
       case sig"commitWitness(bytes32 transactionId) external" {
+        nonpayable()
         commitWitness(calldata.word(0))
       }
 
@@ -126,6 +133,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @return New ID assigned to address, or existing ID if already assigned.
       /// @dev Address::commitAddress
       case sig"commitAddress(address addr) external returns (uint256 id)" {
+        nonpayable()
         return.word(commitAddress(calldata.word(0)))
       }
 
@@ -133,6 +141,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param fraudHash The hash of the calldata used for a fraud commitment.
       /// @dev Uses the message sender (caller()) in the commitment.
       case sig"commitFraudHash(bytes32 fraudHash)" {
+        nonpayable()
         commitFraudHash(calldata.word(0))
       }
 
@@ -148,6 +157,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @dev provers::MalformedBlock::proveMalformedBlock
       case sig"proveMalformedBlock(bytes blockHeader, bytes rootHeader,
         uint16 rootIndex, bytes transactions) external" {
+        nonpayable()
         requireValidFraudCommitment()
         let block := abi.offset(calldata.word(0))
         let root := abi.offset(calldata.word(1))
@@ -162,6 +172,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param transactionProof Proof.
       /// @dev provers::InvalidTransaction::proveInvalidTransaction
       case sig"proveInvalidTransaction(bytes transactionProof) external" {
+        nonpayable()
         requireValidFraudCommitment()
         
         proveInvalidTransaction(abi.offset(calldata.word(0)))
@@ -172,6 +183,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param proofB Second proof.
       /// @dev provers::InvalidInput::proveInvalidInput
       case sig"proveInvalidInput(bytes proofA, bytes proofB) external" {
+        nonpayable()
         requireValidFraudCommitment()
 
         let transactionProofA := abi.offset(calldata.word(0))
@@ -185,6 +197,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param proofB Proof of UTXO being spent again.
       /// @dev provers::DoubleSpend::proveDoubleSpend
       case sig"proveDoubleSpend(bytes proofA, bytes proofB) external" {
+        nonpayable()
         requireValidFraudCommitment()
 
         let transactionProofA := abi.offset(calldata.word(0))
@@ -198,6 +211,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param inputProofs Memory offset of start of input proofs.
       /// @dev provers::InvalidWitness::proveInvalidWitness
       case sig"proveInvalidWitness(bytes transactionProof, bytes inputProofs) external" {
+        nonpayable()
         requireValidFraudCommitment()
         proveInvalidWitness(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
       }
@@ -207,6 +221,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param inputProofs Memory offset of start of input proofs.
       /// @dev provers::InvalidSum::proveInvalidSum
       case sig"proveInvalidSum(bytes transactionProof, bytes inputProofs) external" {
+        nonpayable()
         requireValidFraudCommitment()
         proveInvalidSum(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
       }
@@ -219,6 +234,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param proof Inclusion proof for withdrawal on the rollup chain.
       /// @dev Withdraw::withdraw
       case sig"withdraw(bytes proof) external" {
+        nonpayable()
         withdraw(abi.offset(calldata.word(0)))
       }
 
@@ -226,6 +242,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param blockHeader Rollup block header of block to withdraw bond for.
       /// @dev Withdraw::bondWithdraw
       case sig"bondWithdraw(bytes blockHeader) external" {
+        nonpayable()
         bondWithdraw(abi.offset(calldata.word(0)))
       }
 
@@ -287,14 +304,14 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @notice Get the rollup block height tip.
       /// @return The tip height.
       /// @dev Block::blockTip
-      case sig"blockTip() external view  returns (uint256 blockTip)" {
+      case sig"blockTip() external view returns (uint256 blockTip)" {
         return.word(blockTip())
       }
 
       /// @notice Get number of registered tokens.
       /// @return The number of registered tokens.
       /// @dev Tokens::numTokens
-      case sig"numTokens() external view  returns (uint256 numTokens)" {
+      case sig"numTokens() external view returns (uint256 numTokens)" {
         return.word(numTokens())
       }
 
@@ -302,14 +319,14 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param token Address of token contract.
       /// @return The token ID. 0 if not registered.
       /// @dev Tokens::tokenId
-      case sig"tokenId(address token) external view  returns (uint256 tokenId)" {
+      case sig"tokenId(address token) external view returns (uint256 tokenId)" {
         return.word(tokenId(calldata.word(0)))
       }
 
       /// @notice Get number of registered addresses.
       /// @return The number of registered addresses.
       /// @dev Address::numAddresses
-      case sig"numAddresses() external view  returns (uint256 numAddresses)" {
+      case sig"numAddresses() external view returns (uint256 numAddresses)" {
         return.word(numAddresses())
       }
 
@@ -317,7 +334,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param owner Registered address.
       /// @return The address ID. 0 if not registered.
       /// @dev Address::addressId
-      case sig"addressId(address owner) external view  returns (uint256 addressId)" {
+      case sig"addressId(address owner) external view returns (uint256 addressId)" {
         return.word(addressId(calldata.word(0)))
       }
 
@@ -327,7 +344,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param blockNumber Ethereum block number the deposit was made.
       /// @return The deposit amount. 0 if no deposit made.
       /// @dev Deposit::depositAt
-      case sig"depositAt(address account, uint32 token, uint32 blockNumber) external view  returns (uint256 amount)" {
+      case sig"depositAt(address account, uint32 token, uint32 blockNumber) external view returns (uint256 amount)" {
         return.word(depositAt(
           calldata.word(0),
           calldata.word(1),
