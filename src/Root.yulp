@@ -6,7 +6,7 @@ import "./Tokens.yulp"
 object "Root" is "Storage", "Tokens" {
   code {
     // Maximum size of list of transactions, in bytes
-    const MAX_ROOT_SIZE := 57600
+    const MAX_ROOT_SIZE := 32000
     // Maximum number of transactions in list of transactions
     const MAX_TRANSACTIONS_IN_ROOT := 2048
 

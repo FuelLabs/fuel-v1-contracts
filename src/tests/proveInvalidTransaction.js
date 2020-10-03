@@ -506,8 +506,6 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     header.properties.blockNumber().set(block.events[0].blockNumber);
     t.equalBig(await contract.blockTip(), 1, 'tip');
 
-
-
     // submit a withdrawal proof
     const proof = tx.TransactionProof({
       block: header,

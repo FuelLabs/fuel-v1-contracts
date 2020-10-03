@@ -112,7 +112,7 @@ module.exports = test('proveMalformedBlock', async t => { try {
       emptyTx, emptyTx, emptyTx, emptyTx, emptyTx, emptyTx ]);
 
     // valid 500 leafs
-    const leaves = (new Array(500))
+    const leaves = (new Array(150))
       .fill(0)
       .map(v => emptyTx);
 
@@ -120,7 +120,7 @@ module.exports = test('proveMalformedBlock', async t => { try {
     await state(leaves);
 
     // valid 500 leafs, should be 570 eventually
-    const maxValidLeafs = (new Array(560))
+    const maxValidLeafs = (new Array(300))
       .fill(0)
       .map(v => emptyTx);
 
@@ -131,7 +131,7 @@ module.exports = test('proveMalformedBlock', async t => { try {
     const smallChunk = new Leaf({ data: chunk(utils.hexlify(utils.randomBytes(minTransactionSize))) });
 
     // small chunk leaves
-    const smallChunkLeafs = (new Array(560))
+    const smallChunkLeafs = (new Array(320))
       .fill(0)
       .map(v => smallChunk);
 
@@ -142,7 +142,7 @@ module.exports = test('proveMalformedBlock', async t => { try {
     const bigChunk = new Leaf({ data: chunk(utils.hexlify(utils.randomBytes(maxTransactionSize))) });
 
     // state leaves
-    await state((new Array(60))
+    await state((new Array(30))
       .fill(0)
       .map(v => bigChunk));
 
@@ -162,7 +162,7 @@ module.exports = test('proveMalformedBlock', async t => { try {
         }));
 
       let totalLen = 0;
-      const maxLen = 57000;
+      const maxLen = 32000;
       let randomSelectedLeaves = [];
       for (const leaf of randomLeaves) {
         const len = leaf.properties.data().get().length

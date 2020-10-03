@@ -44,7 +44,7 @@ module.exports = test('constructor', async t => { try {
     t.equalBig(await contract.rootBlockNumberAt(utils.emptyBytes32), 0, 'empty root');
     t.equal(await contract.isWithdrawalProcessed(0, utils.emptyBytes32), false, 'empty withdrawal');
     t.equalBig(await contract.SUBMISSION_DELAY(), params[2], 'SUBMISSION_DELAY');
-    t.equalBig(await contract.MAX_ROOT_SIZE(), 57600, 'MAX_ROOT_SIZE');
+    t.equalBig(await contract.MAX_ROOT_SIZE(), 32000, 'MAX_ROOT_SIZE');
     t.equalBig(await contract.BOND_SIZE(), params[4], 'BOND_SIZE');
     t.equalBig(await contract.FINALIZATION_DELAY(), params[1], 'FINALIZATION_DELAY'); // 1 week
     t.equalBig(await contract.PENALTY_DELAY(), params[3], 'PENALTY_DELAY'); // 1 week
