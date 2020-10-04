@@ -252,17 +252,17 @@ module.exports = test('proveComplex', async t => {
         let defaultOuputs = [
             tx.OutputTransfer({
                 token: '0x01',
-                owner: '0x00',
+                owner: producer,
                 amount: utils.parseEther('10032.00'),
             }),
             tx.OutputWithdraw({
                 token: '0x01',
-                owner: '0x00',
+                owner: producer,
                 amount: utils.parseEther('10032.00'),
             }),
             tx.OutputTransfer({
                 token: '0x01',
-                owner: '0x00',
+                owner: producer,
                 amount: utils.parseEther('10032.00'),
             }),
             tx.OutputReturn({
@@ -270,7 +270,7 @@ module.exports = test('proveComplex', async t => {
             }),
             tx.OutputHTLC({
                 token: '0x01',
-                owner: '0x00',
+                owner: producer,
                 digest: utils.hexlify(utils.keccak256(defaultPreImage)),
                 returnOwner: '0x01',
                 expiry: 300,
@@ -278,17 +278,17 @@ module.exports = test('proveComplex', async t => {
             }),
             tx.OutputTransfer({
                 token: '0x01',
-                owner: '0x00',
+                owner: producer,
                 amount: utils.parseEther('10032.00'),
             }),
             tx.OutputTransfer({
                 token: '0x01',
-                owner: '0x00',
+                owner: producer,
                 amount: utils.parseEther('10032.00'),
             }),
             tx.OutputTransfer({
                 token: '0x01',
-                owner: '0x00',
+                owner: producer,
                 amount: utils.parseEther('10032.00'),
             }),
         ];
@@ -604,6 +604,30 @@ module.exports = test('proveComplex', async t => {
                 tx6.proof.encodePacked(),
             ],
         );
+
+        /*
+        proofMain.properties.inputOutputIndex().set(0);
+        proofMain.properties.token()
+            .set(producer);
+        proofMain.properties.selector()
+            .set(producer);
+        await commitFraudProof(
+            'proveInvalidWitness',
+            [
+                proofMain.encodePacked(),
+                chunkJoin([
+                    tx0.proof.encodePacked(),
+                    tx1.proof.encodePacked(),
+                    tx2.proof.encodePacked(),
+                    tx3.proof.encodePacked(),
+                    tx4.proof.encodePacked(),
+                    tx5.proof.encodePacked(),
+                    tx6.proof.encodePacked(), // root
+                    tx7.proof.encode(), // deposit
+                ]),
+            ],
+        );
+        */
 
     }
 
