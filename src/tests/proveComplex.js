@@ -117,12 +117,49 @@ module.exports = test('proveComplex', async t => {
                     t.wallets[0],
                 ],
                 metadata: [
-                    tx.Metadata(),
+                    tx.Metadata({
+                        rootIndex: 0,
+                    }),
+                    tx.Metadata({
+                        rootIndex: 1,
+                    }),
+                    tx.Metadata({
+                        rootIndex: 2,
+                    }),
+                    tx.Metadata({
+                        rootIndex: 3,
+                    }),
+                    tx.Metadata({
+                        rootIndex: 4,
+                    }),
+                    tx.Metadata({
+                        rootIndex: 5,
+                    }),
+                    tx.Metadata({
+                        rootIndex: 6,
+                    }),
+                    tx.Metadata({
+                        rootIndex: 7,
+                    }),
                 ],
                 data: [
                     utils.hexlify(utils.randomBytes(32)),
+                    utils.hexlify(utils.randomBytes(32)),
+                    utils.hexlify(utils.randomBytes(32)),
+                    utils.hexlify(utils.randomBytes(32)),
+                    utils.hexlify(utils.randomBytes(32)),
+                    utils.hexlify(utils.randomBytes(32)),
+                    utils.hexlify(utils.randomBytes(32)),
+                    utils.hexlify(utils.randomBytes(32)),
                 ],
                 inputs: [
+                    tx.Input(),
+                    tx.Input(),
+                    tx.Input(),
+                    tx.Input(),
+                    tx.Input(),
+                    tx.Input(),
+                    tx.Input(),
                     tx.Input(),
                 ],
                 outputs,
@@ -281,6 +318,21 @@ module.exports = test('proveComplex', async t => {
             outputIndex: 0,
             outputs: defaultOuputs,
         });
+        const tx6 = { // Root from tx4
+            metadata: tx.Metadata({
+                blockHeight: tx4.block.properties.height().get(),
+                rootIndex: 0,
+            }),
+            root: tx4.root,
+            proof: tx4.proof,
+        };
+        const tx7 = {  // Deposit
+            metadata: tx.MetadataDeposit({
+                blockNumber: deposit.properties.blockNumber().get(),
+                token: deposit.properties.token().get(),
+            }),
+            proof: deposit,
+        };
 
         // Produce a Root.
         let transactionMain = await tx.Transaction({
@@ -295,6 +347,8 @@ module.exports = test('proveComplex', async t => {
                 tx3.metadata,
                 tx4.metadata,
                 tx5.metadata,
+                tx6.metadata,
+                tx7.metadata,
             ],
             data: [
                 tx0.utxo.keccak256(),
@@ -303,6 +357,8 @@ module.exports = test('proveComplex', async t => {
                 tx3.utxo.keccak256(),
                 tx4.utxo.keccak256(),
                 tx5.utxo.keccak256(),
+                tx6.root.keccak256Packed(), // root
+                tx7.proof.keccak256(), // deposit
             ],
             inputs: [
                 tx.Input(),
@@ -313,6 +369,10 @@ module.exports = test('proveComplex', async t => {
                 tx.Input(),
                 tx.Input(),
                 tx.Input(),
+                tx.InputRoot(),
+                tx.InputDeposit({
+                    owner: producer,
+                }),
             ],
             outputs: [
                 tx.OutputTransfer({
@@ -397,7 +457,7 @@ module.exports = test('proveComplex', async t => {
             }), `prove ${fn} using valid tx`, errors);
             t.equalBig(await contract.blockTip(), blockTip, 'tip');
 
-            if (fraudTx.events.length) {
+            if (fraudTx && fraudTx.events.length) {
                 console.log(fraudTx.events[0].args);
             } 
         }
@@ -410,9 +470,16 @@ module.exports = test('proveComplex', async t => {
             ],
         );
 
-        // Prove invalid input.
+        // Try input 0.
         await commitFraudProof(
             'proveInvalidInput',
+            [
+                tx0.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+        await commitFraudProof(
+            'proveDoubleSpend',
             [
                 tx0.proof.encodePacked(),
                 proofMain.encodePacked(),
@@ -428,11 +495,25 @@ module.exports = test('proveComplex', async t => {
                 proofMain.encodePacked(),
             ],
         );
+        await commitFraudProof(
+            'proveDoubleSpend',
+            [
+                tx1.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
 
         // Try input 2.
         proofMain.properties.inputOutputIndex().set(2);
         await commitFraudProof(
             'proveInvalidInput',
+            [
+                tx2.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+        await commitFraudProof(
+            'proveDoubleSpend',
             [
                 tx2.proof.encodePacked(),
                 proofMain.encodePacked(),
@@ -448,11 +529,25 @@ module.exports = test('proveComplex', async t => {
                 proofMain.encodePacked(),
             ],
         );
+        await commitFraudProof(
+            'proveDoubleSpend',
+            [
+                tx3.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
 
         // Try input 4.
         proofMain.properties.inputOutputIndex().set(4);
         await commitFraudProof(
             'proveInvalidInput',
+            [
+                tx4.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+        await commitFraudProof(
+            'proveDoubleSpend',
             [
                 tx4.proof.encodePacked(),
                 proofMain.encodePacked(),
@@ -466,6 +561,47 @@ module.exports = test('proveComplex', async t => {
             [
                 tx5.proof.encodePacked(),
                 proofMain.encodePacked(),
+            ],
+        );
+        await commitFraudProof(
+            'proveDoubleSpend',
+            [
+                tx5.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+
+        // Try input 6.
+        proofMain.properties.inputOutputIndex().set(6);
+        await commitFraudProof(
+            'proveInvalidInput',
+            [
+                tx6.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+        await commitFraudProof(
+            'proveDoubleSpend',
+            [
+                tx6.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+
+        // Try input 7.
+        proofMain.properties.inputOutputIndex().set(7);
+        await commitFraudProof(
+            'proveInvalidInput',
+            [
+                tx7.proof.encode(), // deposit encode
+                proofMain.encodePacked(),
+            ],
+        );
+        await commitFraudProof(
+            'proveDoubleSpend',
+            [
+                tx3.proof.encodePacked(),
+                tx6.proof.encodePacked(),
             ],
         );
 
