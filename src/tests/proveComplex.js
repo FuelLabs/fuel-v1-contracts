@@ -19,7 +19,17 @@ module.exports = test('proveComplex', async t => {
     async function state (opts = {}) {
         // Deploy an instance of Fuel.
         const producer = t.wallets[0].address;
-        const contract = await t.deploy(abi, bytecode, defaults(producer));
+        const contract = await t.deploy(abi, bytecode, [
+            producer,
+            1000,
+            20,
+            20,
+            utils.parseEther('1.0'),
+            "Fuel",
+            "1.0.0",
+            1,
+            utils.emptyBytes32
+        ]);
 
         // Create a token.
         const totalSupply = utils.bigNumberify('0xFFFFFFFFF');
@@ -93,6 +103,8 @@ module.exports = test('proveComplex', async t => {
             // Sepcify the outputs.
             let outputs = opts.outputs || [
                 tx.OutputTransfer({
+                    token: '0x01',
+                    owner: '0x00',
                     amount: utils.parseEther('10032.00'),
                 }),
             ];
@@ -148,6 +160,7 @@ module.exports = test('proveComplex', async t => {
                 value: await contract.BOND_SIZE(),
             }), 'commit block', errors);
             header.properties.blockNumber().set(block.events[0].blockNumber);
+            header.properties.previousBlockHash().set(block.events[0].args.previousBlockHash);
 
             // Produce the proof for this transaction.
             let proof = tx.TransactionProof({
@@ -237,6 +250,7 @@ module.exports = test('proveComplex', async t => {
             ],
             outputs: [
                 tx.OutputTransfer({
+                    token: '0x01',
                     owner: utils.emptyAddress,
                     amount: utils.parseEther('1.0'),
                 }),
@@ -261,7 +275,7 @@ module.exports = test('proveComplex', async t => {
             'valid submit', errors);
 
         // The fuel block tip.
-        const blockTip = (await contract.blockTip()).add(1);
+        let blockTip = (await contract.blockTip()).add(1);
 
         // Produce a block header with this transaction.
         const headerMain = (new BlockHeader({
@@ -280,6 +294,7 @@ module.exports = test('proveComplex', async t => {
             value: await contract.BOND_SIZE(),
         }), 'commit block', errors);
         headerMain.properties.blockNumber().set(block.events[0].blockNumber);
+        headerMain.properties.previousBlockHash().set(block.events[0].args.previousBlockHash);
 
         // Produce the proof for this transaction.
         let proofMain = tx.TransactionProof({
@@ -290,6 +305,48 @@ module.exports = test('proveComplex', async t => {
             transactionIndex: 0,
             token,
         });
+
+        // A fraud commitment sequence.
+        async function commitFraudProof(fn = '', args = []) {
+            // Generate the fraud hash.
+            const fraudHash = utils.keccak256(contract.interface.functions[fn].encode(
+                args,
+            ));
+
+            // Commit the fraud hash.
+            await t.wait(contract.commitFraudHash(fraudHash, {
+            ...overrides,
+            }), 'commit fraud hash', errors);
+
+            // Wait 10 blocks for fraud finalization.
+            await t.increaseBlock(10);
+
+            // Get block tip before submission.
+            blockTip = await contract.blockTip();
+
+            // Submit a prove invalid transaction, ensure no tip has changed.
+            const fraudTx = await t.wait(contract[fn](
+                ...args, {
+                ...overrides,
+            }), `prove ${fn} using valid tx`, errors);
+            t.equalBig(await contract.blockTip(), blockTip, 'tip');
+
+            // console.log(fraudTx.events[0].args);
+        }
+
+        // Prove Invalid Tx is Valid.
+        await commitFraudProof(
+            'proveInvalidTransaction',
+            [
+                proofMain.encodePacked(),
+            ],
+        );
+        await commitFraudProof(
+            'proveInvalidTransaction',
+            [
+                proofMain.encodePacked(),
+            ],
+        );
     }
 
     // Empty state.
