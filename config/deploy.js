@@ -132,15 +132,10 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
       .getTransaction('0xd21eb619e2e7b1aa0268be9b231e3ff5ba5e732b53ce1525a8e653b503290507'))
       .data;
 
-    console.log(contractCode.length);
-
     // Code produced from deployment.
     const fuelInterface = new ethers.utils.Interface(abi);
     const producedBytecode = fuelInterface.deployFunction
       .encode(bytecode, deploymentParameters);
-
-    // Comparse the two.
-    console.log(contractCode === producedBytecode);
 
     // Assert the bytecode to be the same.
     utils.assert(contractCode === producedBytecode, 'bytecode-verified');

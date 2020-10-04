@@ -542,10 +542,9 @@ module.exports = test('proveInvalidTransaction', async t => { try {
     }
 
     // no fraud
-
-    console.log((await t.wait(contract.proveInvalidTransaction(proof.encodePacked(), {
+    await t.wait(contract.proveInvalidTransaction(proof.encodePacked(), {
       ...overrides,
-    }), 'submit valid input transaction', errors)).events[0]);
+    }), 'submit valid input transaction', errors);
     t.equalBig(await contract.blockTip(), 1, 'tip');
   }
 
