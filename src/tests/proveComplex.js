@@ -210,13 +210,77 @@ module.exports = test('proveComplex', async t => {
             };
         }
 
+        // These are the default outputs to use accross referenced txs.
+        let defaultPreImage = utils.hexZeroPad('0xdeadbeef', 32);
+        let defaultOuputs = [
+            tx.OutputTransfer({
+                token: '0x01',
+                owner: '0x00',
+                amount: utils.parseEther('10032.00'),
+            }),
+            tx.OutputWithdraw({
+                token: '0x01',
+                owner: '0x00',
+                amount: utils.parseEther('10032.00'),
+            }),
+            tx.OutputTransfer({
+                token: '0x01',
+                owner: '0x00',
+                amount: utils.parseEther('10032.00'),
+            }),
+            tx.OutputReturn({
+               data: '0xdeadbeef',
+            }),
+            tx.OutputHTLC({
+                token: '0x01',
+                owner: '0x00',
+                digest: utils.hexlify(utils.keccak256(defaultPreImage)),
+                returnOwner: '0x01',
+                expiry: 300,
+                amount: utils.parseEther('10032.00'),
+            }),
+            tx.OutputTransfer({
+                token: '0x01',
+                owner: '0x00',
+                amount: utils.parseEther('10032.00'),
+            }),
+            tx.OutputTransfer({
+                token: '0x01',
+                owner: '0x00',
+                amount: utils.parseEther('10032.00'),
+            }),
+            tx.OutputTransfer({
+                token: '0x01',
+                owner: '0x00',
+                amount: utils.parseEther('10032.00'),
+            }),
+        ];
+
         // Produce the 6 transactions to reference.
-        const tx0 = await make();
-        const tx1 = await make();
-        const tx2 = await make();
-        const tx3 = await make();
-        const tx4 = await make();
-        const tx5 = await make();
+        const tx0 = await make({
+            outputIndex: 2,
+            outputs: defaultOuputs,
+        });
+        const tx1 = await make({ // htlc
+            outputIndex: 4,
+            outputs: defaultOuputs,
+        });
+        const tx2 = await make({
+            outputIndex: 5,
+            outputs: defaultOuputs,
+        });
+        const tx3 = await make({
+            outputIndex: 6,
+            outputs: defaultOuputs,
+        });
+        const tx4 = await make({
+            outputIndex: 7,
+            outputs: defaultOuputs,
+        });
+        const tx5 = await make({
+            outputIndex: 0,
+            outputs: defaultOuputs,
+        });
 
         // Produce a Root.
         let transactionMain = await tx.Transaction({
@@ -242,7 +306,9 @@ module.exports = test('proveComplex', async t => {
             ],
             inputs: [
                 tx.Input(),
-                tx.Input(),
+                tx.InputHTLC({
+                    preImage: defaultPreImage,
+                }),
                 tx.Input(),
                 tx.Input(),
                 tx.Input(),
@@ -331,7 +397,9 @@ module.exports = test('proveComplex', async t => {
             }), `prove ${fn} using valid tx`, errors);
             t.equalBig(await contract.blockTip(), blockTip, 'tip');
 
-            // console.log(fraudTx.events[0].args);
+            if (fraudTx.events.length) {
+                console.log(fraudTx.events[0].args);
+            } 
         }
 
         // Prove Invalid Tx is Valid.
@@ -341,12 +409,66 @@ module.exports = test('proveComplex', async t => {
                 proofMain.encodePacked(),
             ],
         );
+
+        // Prove invalid input.
         await commitFraudProof(
-            'proveInvalidTransaction',
+            'proveInvalidInput',
             [
+                tx0.proof.encodePacked(),
                 proofMain.encodePacked(),
             ],
         );
+
+        // Try input 1.
+        proofMain.properties.inputOutputIndex().set(1);
+        await commitFraudProof(
+            'proveInvalidInput',
+            [
+                tx1.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+
+        // Try input 2.
+        proofMain.properties.inputOutputIndex().set(2);
+        await commitFraudProof(
+            'proveInvalidInput',
+            [
+                tx2.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+
+        // Try input 3.
+        proofMain.properties.inputOutputIndex().set(3);
+        await commitFraudProof(
+            'proveInvalidInput',
+            [
+                tx3.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+
+        // Try input 4.
+        proofMain.properties.inputOutputIndex().set(4);
+        await commitFraudProof(
+            'proveInvalidInput',
+            [
+                tx4.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+
+        // Try input 5.
+        proofMain.properties.inputOutputIndex().set(5);
+        await commitFraudProof(
+            'proveInvalidInput',
+            [
+                tx5.proof.encodePacked(),
+                proofMain.encodePacked(),
+            ],
+        );
+
     }
 
     // Empty state.

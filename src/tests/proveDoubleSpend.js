@@ -160,7 +160,6 @@ module.exports = test('proveDoubleSpend', async t => { try {
     t.equalBig(await contract.penalty(), (await contract.PENALTY_DELAY()).add(fraud.blockNumber), 'penalty')
   }
 
-
   await state ({ useErc20: false, attemptDoubleWithdraw: true });
   await state ({ useErc20: true, attemptDoubleWithdraw: true });
 
