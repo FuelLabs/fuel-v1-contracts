@@ -1,9 +1,42 @@
 import "./Block.yulp"
 import "./Utils.yulp"
+import "./Calldata.yulp"
 
 /// @title Fraud proof helper
-object "Fraud" is "Utils", "Block" {
+object "Fraud" is "Utils", "Block", "Calldata" {
   code {
+    /// @dev Fraud finalization period.
+    const FRAUD_FINALIZATION_PERIOD := 10
+
+    /// @notice This will commit a fraud hash in storage.
+    function commitFraudHash(fraudHash) {
+      // We store the caller / fraud hash 5 blocks into the future.
+      sstore(
+        mappingKey2(Storage.FraudCommitments, caller(), fraudHash),
+        number()
+      )
+    }
+
+    /// @notice Ensure that the calldata provided matches the fraud commitment hash.
+    function requireValidFraudCommitment() {
+      // Compute the fraud hash from calldata.
+      let fraudHash := keccak256(_calldata, calldatasize())
+
+      // Get the fraud commitment from block storage.
+      let commitmentBlockNumber := sload(
+        mappingKey2(Storage.FraudCommitments, caller(), fraudHash)
+      )
+
+      // Check the fraud commitment exists.
+      require(gt(commitmentBlockNumber, 0), error"fraud-commitment")
+
+      // Require that the commitment blockNumber + period >= current block number.
+      require(gte(
+        number(),
+        add(commitmentBlockNumber, FRAUD_FINALIZATION_PERIOD)
+      ), error"fraud-commitment-hash")
+    }
+
     /// @notice Either assertion must pass or process fraud proof
     function assertOrFraud(assertion, fraudCode, block) {
       // Assert or begin fraud state change sequence

@@ -368,6 +368,22 @@ module.exports = test('proveInvalidInput', async t => { try {
       token,
     });
 
+    // Generate the fraud hash
+    const fraudHash = utils.keccak256(contract.interface.functions.proveInvalidInput.encode(
+      [
+        proof,
+        proofB.encodePacked(),
+      ],
+    ));
+
+    // Commit the fraud hash.
+    await t.wait(contract.commitFraudHash(fraudHash, {
+      ...overrides,
+    }), 'commit fraud hash', errors);
+
+    // Wait 10 blocks for fraud finalization.
+    await t.increaseBlock(10);
+
     if (opts.revert) {
       await t.revert(contract.proveInvalidInput(proof, proofB.encodePacked(), {
         ...overrides,

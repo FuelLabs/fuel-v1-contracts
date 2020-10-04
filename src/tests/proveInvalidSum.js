@@ -146,6 +146,22 @@ module.exports = test('proveInvalidSum', async t => { try {
     const arg1 = proof.encodePacked();
     const arg2 = chunkJoin(outputs.map(v => v.encode()));
 
+    // Generate the fraud hash
+    const fraudHash = utils.keccak256(contract.interface.functions.proveInvalidSum.encode(
+      [
+        arg1,
+        arg2,
+      ],
+    ));
+
+    // Commit the fraud hash.
+    await t.wait(contract.commitFraudHash(fraudHash, {
+      ...overrides,
+    }), 'commit fraud hash', errors);
+
+    // Wait 10 blocks for fraud finalization.
+    await t.increaseBlock(10);
+
     if (!attemptSpendOverflow) {
       const invalidSum = await t.wait(contract.proveInvalidSum(arg1, arg2, {
         ...overrides,

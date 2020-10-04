@@ -6,6 +6,27 @@ import "./Fraud.yulp"
 /// @title Invalid sum prover
 object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud" {
   code {
+    /// @notice Fraudulant summing, incase of overflow, we conclude fraud.
+    /// @param x The first value to sum.
+    /// @param y The second value to sum.
+    /// @param transactionProof The fraudulant proof incase summing overflows.
+    /// @return z The sum of the two values.
+    function assertAddOrFraud(x, y, transactionProof) -> z {
+      z := add(x, y)
+      assertOrFraud(or(eq(z, x), gt(z, x)), error"summing-overflow", transactionProof)
+    }
+
+    /// @notice Fraudulant multiplying, incase of overflow, we conclude fraud.
+    /// @param x The first value to multiply.
+    /// @param y The second value to multiply.
+    /// @return z The multiple of the two values.
+    function assertMulOrFraud(x, y, transactionProof) -> z {
+      if gt(y, 0) {
+        z := mul(x, y)
+        assertOrFraud(eq(div(z, y), x), error"summing-mul-overflow", transactionProof)
+      }
+    }
+
     /// @notice Compute sum of inputs in token specified in transaction proof.
     /// @param transactionProof Position in memory of transaction proof.
     /// @param inputProofs Position in memory of inputs proofs.
@@ -19,7 +40,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
 
         case InputType.Transfer {
           if eq(token, UTXO.token(inputProofs)) {
-            sum := add(sum, UTXO.amount(inputProofs))
+            sum := assertAddOrFraud(sum, UTXO.amount(inputProofs), transactionProof)
           }
 
           inputProofs := add(inputProofs, UTXO.size(inputProofs))
@@ -27,7 +48,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
 
         case InputType.Deposit {
           if eq(token, Deposit.token(inputProofs)) {
-            sum := add(sum, Deposit.value(inputProofs))
+            sum := assertAddOrFraud(sum, Deposit.value(inputProofs), transactionProof)
           }
 
           inputProofs := add(inputProofs, Deposit.size(inputProofs))
@@ -35,7 +56,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
 
         case InputType.HTLC {
           if eq(token, UTXO.token(inputProofs)) {
-            sum := add(sum, UTXO.amount(inputProofs))
+            sum := assertAddOrFraud(sum, UTXO.amount(inputProofs), transactionProof)
           }
 
           inputProofs := add(inputProofs, UTXO.size(inputProofs))
@@ -43,7 +64,9 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
 
         case InputType.Root {
           if eq(token, TransactionProof.feeToken(inputProofs)) {
-            sum := add(sum, mul(TransactionProof.fee(inputProofs), TransactionProof.rootLength(inputProofs)))
+            sum := assertAddOrFraud(sum, 
+              assertMulOrFraud(TransactionProof.fee(inputProofs), TransactionProof.rootLength(inputProofs), transactionProof)
+              , transactionProof)
           }
 
           inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
@@ -69,7 +92,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
           lt(Output.type(pos), OutputType.Return),
           eq(token, Output.token.slice(pos))
         ) {
-          sum := add(sum, outputAmount(pos))
+          sum := assertAddOrFraud(sum, outputAmount(pos), transactionProof)
         }
 
         pos := add(pos, outputSize(pos))
@@ -81,7 +104,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     /// @param inputProofs Position in memory of inputs proofs.
     function proveSum(transactionProof, inputProofs) {
       let token := tokenId(TransactionProof.tokenAddress(transactionProof))
-      let outsum := add(rootFee(transactionProof, token), outs(token, transactionProof))
+      let outsum := assertAddOrFraud(rootFee(transactionProof, token), outs(token, transactionProof), transactionProof)
       let insum := ins(transactionProof, inputProofs)
 
       assertOrFraud(eq(outsum, insum), error"sum", transactionProof)
