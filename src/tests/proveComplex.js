@@ -12,6 +12,11 @@ const { defaults } = require('./harness');
 
 module.exports = test('proveComplex', async t => {
 
+    // Make a transaction in it's own root and block.
+    await function make (opts = {}) {
+        
+    }
+
     // Construct contract
     async function state (opts = {}) {
         const producer = t.wallets[0].address;
@@ -41,6 +46,8 @@ module.exports = test('proveComplex', async t => {
         });
         const etx = await t.wait(contract.deposit(producer, token, overrides),
             'ether deposit', errors);
+
+        
     }
 
     // Empty state.

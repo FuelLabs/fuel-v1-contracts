@@ -162,7 +162,7 @@ module.exports = test('proveMalformedBlock', async t => { try {
         }));
 
       let totalLen = 0;
-      const maxLen = 32000;
+      const maxLen = 30000;
       let randomSelectedLeaves = [];
       for (const leaf of randomLeaves) {
         const len = leaf.properties.data().get().length
