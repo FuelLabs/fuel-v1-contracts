@@ -220,7 +220,7 @@ module.exports = test('proveComplex', async t => {
                 transactionHashId: transaction.transactionHashId(),
                 outputIndex,
                 outputType: output.properties.type().get().toNumber(),
-                amount: output.properties.amount().get(),
+                amount: tx.decodeAmount(output),
                 token: output.properties.token().get(),
                 owner: resolveOwner(output.properties.owner().get()),
                 digest: isHTLC ? output.properties.digest().get() : utils.hexZeroPad('0x00', 32),
@@ -230,6 +230,11 @@ module.exports = test('proveComplex', async t => {
                     : utils.emptyAddress,
             });
 
+            console.log(
+                utxo.encode(),
+                utxo.keccak256(),
+            );
+
             // Return the proof, root, block, transaction etc.
             return {
                 metadata: tx.Metadata({
@@ -238,6 +243,7 @@ module.exports = test('proveComplex', async t => {
                     transactionIndex: 0,
                     outputIndex: outputIndex,
                 }),
+                output,
                 proof,
                 utxo,
                 root,
@@ -245,6 +251,18 @@ module.exports = test('proveComplex', async t => {
                 transaction,
                 transactions: txs,
             };
+        }
+
+        /// @notice This will transform a tx proof into a witness proof.
+        /// @dev Will change proof.token and proof.selector to utxo owner etc.
+        /// @return Will return the proof in question.
+        function setTxOwnerAndReturnOwner(tx) {
+            // Set proof to full address UTXO owner / return owner.
+            tx.proof.properties.token()
+                .set(tx.utxo.properties.owner().get());
+            tx.proof.properties.selector()
+                .set(tx.utxo.properties.returnOwner().get());
+            return tx.proof;
         }
 
         // These are the default outputs to use accross referenced txs.
@@ -335,6 +353,16 @@ module.exports = test('proveComplex', async t => {
         };
 
         // Produce a Root.
+        let txMainData = [
+            tx0.utxo.keccak256(),
+            tx1.utxo.keccak256(),
+            tx2.utxo.keccak256(),
+            tx3.utxo.keccak256(),
+            tx4.utxo.keccak256(),
+            tx5.utxo.keccak256(),
+            tx6.root.keccak256Packed(), // root
+            tx7.proof.keccak256(), // deposit
+        ];
         let transactionMain = await tx.Transaction({
             override: true,
             witnesses: [
@@ -350,16 +378,7 @@ module.exports = test('proveComplex', async t => {
                 tx6.metadata,
                 tx7.metadata,
             ],
-            data: [
-                tx0.utxo.keccak256(),
-                tx1.utxo.keccak256(),
-                tx2.utxo.keccak256(),
-                tx3.utxo.keccak256(),
-                tx4.utxo.keccak256(),
-                tx5.utxo.keccak256(),
-                tx6.root.keccak256Packed(), // root
-                tx7.proof.keccak256(), // deposit
-            ],
+            data: txMainData,
             inputs: [
                 tx.Input(),
                 tx.InputHTLC({
@@ -457,9 +476,14 @@ module.exports = test('proveComplex', async t => {
             }), `prove ${fn} using valid tx`, errors);
             t.equalBig(await contract.blockTip(), blockTip, 'tip');
 
+            // If any events, log them.
             if (fraudTx && fraudTx.events.length) {
-                console.log(fraudTx.events[0].args);
-            } 
+                console.log(fraudTx.events[0], fraudTx.events[0].args);
+
+                if (fraudTx.events[1]) {
+                    console.log(fraudTx.events[1]);
+                }
+            }
         }
 
         // Prove Invalid Tx is Valid.
@@ -605,7 +629,6 @@ module.exports = test('proveComplex', async t => {
             ],
         );
 
-        /*
         proofMain.properties.inputOutputIndex().set(0);
         proofMain.properties.token()
             .set(producer);
@@ -616,18 +639,17 @@ module.exports = test('proveComplex', async t => {
             [
                 proofMain.encodePacked(),
                 chunkJoin([
-                    tx0.proof.encodePacked(),
-                    tx1.proof.encodePacked(),
-                    tx2.proof.encodePacked(),
-                    tx3.proof.encodePacked(),
-                    tx4.proof.encodePacked(),
-                    tx5.proof.encodePacked(),
+                    setTxOwnerAndReturnOwner(tx0).encodePacked(),
+                    setTxOwnerAndReturnOwner(tx1).encodePacked(),
+                    setTxOwnerAndReturnOwner(tx2).encodePacked(),
+                    setTxOwnerAndReturnOwner(tx3).encodePacked(),
+                    setTxOwnerAndReturnOwner(tx4).encodePacked(),
+                    setTxOwnerAndReturnOwner(tx5).encodePacked(),
                     tx6.proof.encodePacked(), // root
                     tx7.proof.encode(), // deposit
                 ]),
             ],
         );
-        */
 
     }
 

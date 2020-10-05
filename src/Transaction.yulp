@@ -133,6 +133,9 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
         mstore(add(pos, 224), OutputHTLC.expiry(output))
         mstore(add(pos, 256), TransactionProof.returnOwner(proof))
       }
+
+      /// @dev Remove this later.
+      log1(pos, add(add(pos, 256), 32), 0)
     }
 
     /// @notice Hash a UTXO.
@@ -143,6 +146,9 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
 
       // Hash UTXO to get UTXO ID
       hash := UTXO.keccak256(0)
+
+      /// @dev remove this.
+      log1(0, 0, hash)
     }
 
     /// @notice Find the position of the start of the block substructure.
