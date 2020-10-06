@@ -230,11 +230,6 @@ module.exports = test('proveComplex', async t => {
                     : utils.emptyAddress,
             });
 
-            console.log(
-                utxo.encode(),
-                utxo.keccak256(),
-            );
-
             // Return the proof, root, block, transaction etc.
             return {
                 metadata: tx.Metadata({
@@ -243,6 +238,7 @@ module.exports = test('proveComplex', async t => {
                     transactionIndex: 0,
                     outputIndex: outputIndex,
                 }),
+                amount: utxo.properties.amount().get(),
                 output,
                 proof,
                 utxo,
@@ -343,6 +339,8 @@ module.exports = test('proveComplex', async t => {
             }),
             root: tx4.root,
             proof: tx4.proof,
+            amount: tx4.root.properties.fee().get()
+                .mul(tx4.root.properties.rootLength().get()),
         };
         const tx7 = {  // Deposit
             metadata: tx.MetadataDeposit({
@@ -350,6 +348,7 @@ module.exports = test('proveComplex', async t => {
                 token: deposit.properties.token().get(),
             }),
             proof: deposit,
+            amount: deposit.properties.value().get(),
         };
 
         // Produce a Root.
@@ -397,7 +396,42 @@ module.exports = test('proveComplex', async t => {
                 tx.OutputTransfer({
                     token: '0x01',
                     owner: utils.emptyAddress,
-                    amount: utils.parseEther('1.0'),
+                    amount: tx0.amount,
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: utils.emptyAddress,
+                    amount: tx1.amount,
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: utils.emptyAddress,
+                    amount: tx2.amount,
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: utils.emptyAddress,
+                    amount: tx3.amount,
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: utils.emptyAddress,
+                    amount: tx4.amount,
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: utils.emptyAddress,
+                    amount: tx5.amount,
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: utils.emptyAddress,
+                    amount: tx6.amount,
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: utils.emptyAddress,
+                    amount: tx7.amount,
                 }),
             ],
             contract,
@@ -629,23 +663,47 @@ module.exports = test('proveComplex', async t => {
             ],
         );
 
-        proofMain.properties.inputOutputIndex().set(0);
+        // Check witness for all inputs.
+        for (var inputIndex = 0; inputIndex < 8; inputIndex++) {
+            proofMain.properties.inputOutputIndex().set(inputIndex);
+            proofMain.properties.token()
+                .set(producer);
+            proofMain.properties.selector()
+                .set(producer);
+
+            await commitFraudProof(
+                'proveInvalidWitness',
+                [
+                    proofMain.encodePacked(),
+                    chunkJoin([
+                        setTxOwnerAndReturnOwner(tx0).encodePacked(),
+                        setTxOwnerAndReturnOwner(tx1).encodePacked(),
+                        setTxOwnerAndReturnOwner(tx2).encodePacked(),
+                        setTxOwnerAndReturnOwner(tx3).encodePacked(),
+                        setTxOwnerAndReturnOwner(tx4).encodePacked(),
+                        setTxOwnerAndReturnOwner(tx5).encodePacked(),
+                        tx6.proof.encodePacked(), // root
+                        tx7.proof.encode(), // deposit
+                    ]),
+                ],
+            );
+        }
+
+        // Check Invalid Sum for all inputs.
         proofMain.properties.token()
-            .set(producer);
-        proofMain.properties.selector()
-            .set(producer);
+            .set(erc20.address);
         await commitFraudProof(
-            'proveInvalidWitness',
+            'proveInvalidSum',
             [
                 proofMain.encodePacked(),
                 chunkJoin([
-                    setTxOwnerAndReturnOwner(tx0).encodePacked(),
-                    setTxOwnerAndReturnOwner(tx1).encodePacked(),
-                    setTxOwnerAndReturnOwner(tx2).encodePacked(),
-                    setTxOwnerAndReturnOwner(tx3).encodePacked(),
-                    setTxOwnerAndReturnOwner(tx4).encodePacked(),
-                    setTxOwnerAndReturnOwner(tx5).encodePacked(),
-                    tx6.proof.encodePacked(), // root
+                    tx0.utxo.encode(),
+                    tx1.utxo.encode(),
+                    tx2.utxo.encode(),
+                    tx3.utxo.encode(),
+                    tx4.utxo.encode(),
+                    tx5.utxo.encode(),
+                    tx6.root.encodePacked(), // root
                     tx7.proof.encode(), // deposit
                 ]),
             ],

@@ -26,14 +26,6 @@ object "VerifyInputs" is "Deposit", "TransactionProof" {
           require(eq(outputMetadata(inputProofs), TransactionLeaf.metadata(leaf, index)),
             error"output-id")
 
-          /// @dev remove this.
-          /*
-          if neq(TransactionProof.UTXO.keccak256(inputProofs),
-            TransactionProof.data(transactionProof, index)) {
-            stop()
-          }
-          */
-
           require(eq(TransactionProof.UTXO.keccak256(inputProofs),
             TransactionProof.data(transactionProof, index)), error"utxo-data")
 

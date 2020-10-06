@@ -12,7 +12,7 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     /// @param transactionProof The fraudulant proof incase summing overflows.
     /// @return z The sum of the two values.
     function assertAddOrFraud(x, y, transactionProof) -> z {
-      z := add(x, y)
+      z := unsafeAdd(x, y)
       assertOrFraud(or(eq(z, x), gt(z, x)), error"summing-overflow", transactionProof)
     }
 
@@ -22,7 +22,9 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     /// @return z The multiple of the two values.
     function assertMulOrFraud(x, y, transactionProof) -> z {
       if gt(y, 0) {
+        /// @dev this should be unsafeMul
         z := mul(x, y)
+        /// @dev should be unsave div?
         assertOrFraud(eq(div(z, y), x), error"summing-mul-overflow", transactionProof)
       }
     }
@@ -63,13 +65,13 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
         }
 
         case InputType.Root {
-          if eq(token, TransactionProof.feeToken(inputProofs)) {
+          if eq(token, RootHeader.feeToken(inputProofs)) {
             sum := assertAddOrFraud(sum, 
-              assertMulOrFraud(TransactionProof.fee(inputProofs), TransactionProof.rootLength(inputProofs), transactionProof)
+              assertMulOrFraud(RootHeader.fee(inputProofs), RootHeader.length(inputProofs), transactionProof)
               , transactionProof)
           }
 
-          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
+          inputProofs := add(inputProofs, RootHeader.size(inputProofs))
         }
 
         default { require(0, error"input-data-length") }
@@ -104,7 +106,10 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     /// @param inputProofs Position in memory of inputs proofs.
     function proveSum(transactionProof, inputProofs) {
       let token := tokenId(TransactionProof.tokenAddress(transactionProof))
-      let outsum := assertAddOrFraud(rootFee(transactionProof, token), outs(token, transactionProof), transactionProof)
+      let outsum := assertAddOrFraud(
+        rootFee(transactionProof, token),
+        outs(token, transactionProof),
+        transactionProof)
       let insum := ins(transactionProof, inputProofs)
 
       assertOrFraud(eq(outsum, insum), error"sum", transactionProof)
