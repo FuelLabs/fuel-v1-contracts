@@ -87,6 +87,8 @@ module.exports = test('proveInvalidSum', async t => { try {
         tx.InputTransfer({}),
         tx.InputTransfer({}),
       ],
+      signatureFeeToken: tokenId,
+      signatureFee: fee,
       outputs: [tx.OutputTransfer({
         amount: 100,
         token: tokenId,
@@ -113,7 +115,10 @@ module.exports = test('proveInvalidSum', async t => { try {
       feeToken: tokenId,
       fee,
     }));
-    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), tokenId, fee,
+    await t.wait(contract.commitRoot(
+      root.properties.merkleTreeRoot().get(),
+      tokenId,
+      fee,
       combine(txs), overrides),
       'valid submit', errors);
     const header = new BlockHeader({

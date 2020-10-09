@@ -265,6 +265,7 @@ module.exports = test('proveComplex', async t => {
         let defaultPreImage = utils.hexZeroPad('0xdeadbeef', 32);
         let defaultOuputs = [
             tx.OutputTransfer({
+                noshift: true,
                 token: '0x01',
                 owner: producer,
                 amount: utils.parseEther('10032.00'),
@@ -362,6 +363,7 @@ module.exports = test('proveComplex', async t => {
             tx6.root.keccak256Packed(), // root
             tx7.proof.keccak256(), // deposit
         ];
+        let txMainFee = utils.parseEther('0.0000012');
         let transactionMain = await tx.Transaction({
             override: true,
             witnesses: [
@@ -392,8 +394,12 @@ module.exports = test('proveComplex', async t => {
                     owner: producer,
                 }),
             ],
+            signatureFeeToken: 1,
+            signatureFee: txMainFee,
+            signatureFeeOutputIndex: 0,
             outputs: [
                 tx.OutputTransfer({
+                    noshift: true,
                     token: '0x01',
                     owner: utils.emptyAddress,
                     amount: tx0.amount,
@@ -444,11 +450,13 @@ module.exports = test('proveComplex', async t => {
             merkleTreeRoot: merkleTreeRoot(txsMain),
             commitmentHash: utils.keccak256(combine(txsMain)),
             rootLength: utils.hexDataLength(combine(txsMain)),
+            feeToken: 1,
+            fee: txMainFee,
         }));
         await t.wait(contract.commitRoot(
             rootMain.properties.merkleTreeRoot().get(),
-            0,
-            0,
+            1,
+            txMainFee,
             combine(txsMain),
             overrides),
             'valid submit', errors);
