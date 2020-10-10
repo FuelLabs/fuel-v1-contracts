@@ -1,6 +1,7 @@
 import "./Constructor.yulp"
 import "./Address.yulp"
 import "./Root.yulp"
+import "./Utils.yulp"
 
 /// @title Block object
 object "Block" is "Constructor", "Root", "Address" {
