@@ -13,7 +13,7 @@ const { defaults } = require('./harness');
 // The plan is to do 6 transactions, 1 deposit, 1 root.
 // Than we run this valid transaction through all the fraud proofs.
 // This ensures more execution correctness.
-module.exports = test('proveComplex', async t => {
+module.exports = test('correctnessChecks', async t => {
 
     // State a sequence for testing.
     async function state (opts = {}) {

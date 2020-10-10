@@ -16,6 +16,6 @@
   await require('./proveMalformedBlock');
   await require('./proveInvalidInput');
   await require('./ownedProxy');
-  await require('./proveComplex');
+  await require('./correctnessChecks');
 
 })();
