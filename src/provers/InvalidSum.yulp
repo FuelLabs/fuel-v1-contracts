@@ -23,9 +23,9 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     function assertMulOrFraud(x, y, transactionProof) -> z {
       if gt(y, 0) {
         /// @dev this should be unsafeMul
-        z := mul(x, y)
+        z := unsafeMul(x, y)
         /// @dev should be unsave div?
-        assertOrFraud(eq(div(z, y), x), error"summing-mul-overflow", transactionProof)
+        assertOrFraud(eq(unsafeDiv(z, y), x), error"summing-mul-overflow", transactionProof)
       }
     }
 
