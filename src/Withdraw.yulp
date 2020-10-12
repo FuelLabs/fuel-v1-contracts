@@ -33,7 +33,7 @@ object "Withdraw" is "Storage", "BlockHeader", "TransactionProof", "Transaction"
 
       // Get token address from the proof, and owner
       let tokenAddress := TransactionProof.tokenAddress(transactionProof)
-      let owner := caller()
+      let owner := TransactionProof.returnOwner(transactionProof)
 
       // Owner must match
       require(ownerEquates(output, owner), error"output-owner")

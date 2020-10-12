@@ -163,6 +163,7 @@ module.exports = test('correctnessChecks', async t => {
                     tx.Input(),
                 ],
                 outputs,
+                chainId: 1,
                 contract,
             });
 
@@ -440,6 +441,7 @@ module.exports = test('correctnessChecks', async t => {
                     amount: tx7.amount,
                 }),
             ],
+            chainId: 1,
             contract,
         });
 

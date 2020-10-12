@@ -54,7 +54,7 @@
     "@fuel-js/environment": "^0.1.4",
     "@fuel-js/refill": "^0.1.0",
     "@fuel-js/gasprice": "^0.1.1",
-    "@fuel-js/protocol": "^0.1.7",
+    "@fuel-js/protocol": "file:../fuel-js/packages/protocol",
     "@fuel-js/struct": "^0.1.6",
     "ethers": "^4.0.47",
     "fs-readfile-promise": "^3.0.1",

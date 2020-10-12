@@ -107,6 +107,7 @@ module.exports = test('proveInvalidWitness', async t => {
             metadata: [tx.MetadataDeposit(deposit)],
             data: [deposit.keccak256()],
             outputs: specifiedOutputs,
+            chainId: 1,
             contract,
           });
 
@@ -224,6 +225,7 @@ module.exports = test('proveInvalidWitness', async t => {
               token: tokenId,
               owner: producer,
             })],
+            chainId: 1,
             contract,
           });
 
@@ -372,6 +374,7 @@ module.exports = test('proveInvalidWitness', async t => {
                 token: tokenId,
                 owner: producer,
               })],
+              chainId: 1,
               contract,
             });
 

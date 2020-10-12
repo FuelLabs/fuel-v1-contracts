@@ -123,6 +123,7 @@ module.exports = test('withdraw', async t => { try {
       transactions: txs,
       transactionIndex: 0,
       token,
+      selector: producer,
     });
 
 
