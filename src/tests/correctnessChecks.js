@@ -167,8 +167,13 @@ module.exports = test('correctnessChecks', async t => {
                 contract,
             });
 
+            const fakeLeaf = Leaf({
+                data: utils.hexZeroPad('0xaa', 120),
+            });
+            const transactionIndex = 1;
+
             // Produce a seperate root with this transaction.
-            const txs = [transaction];
+            const txs = [fakeLeaf, transaction];
             const root = (new RootHeader({
                 rootProducer: producer,
                 merkleTreeRoot: merkleTreeRoot(txs),
@@ -206,7 +211,7 @@ module.exports = test('correctnessChecks', async t => {
                 root,
                 transactions: txs,
                 inputOutputIndex: outputIndex,
-                transactionIndex: 0,
+                transactionIndex: transactionIndex,
                 token,
             });
 
@@ -236,7 +241,7 @@ module.exports = test('correctnessChecks', async t => {
                 metadata: tx.Metadata({
                     blockHeight: header.properties.height().get(),
                     rootIndex: 0,
-                    transactionIndex: 0,
+                    transactionIndex: transactionIndex,
                     outputIndex: outputIndex,
                 }),
                 amount: utxo.properties.amount().get(),
