@@ -10,6 +10,11 @@ const tx = require('@fuel-js/protocol/src/transaction');
 const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('./harness');
 
+/// @notice Random number util.
+function rand(min, max) {
+    return Math.floor(Math.random() * max) + min;
+}
+
 // The plan is to do 6 transactions, 1 deposit, 1 root.
 // Than we run this valid transaction through all the fraud proofs.
 // This ensures more execution correctness.
@@ -167,13 +172,25 @@ module.exports = test('correctnessChecks', async t => {
                 contract,
             });
 
+            // Construct a fake leaf.
             const fakeLeaf = Leaf({
-                data: utils.hexZeroPad('0xaa', 120),
+                data: utils.hexZeroPad('0xaa', rand(120, 140)),
             });
-            const transactionIndex = 1;
+
+            // Max number of tx's per root.
+            const maxTx = 120;
+
+            // Select a transaction index between 0 and 195.
+            const transactionIndex = rand(0, maxTx);
+
+            // Produce a set of fake leafs based upon the transaction index.
+            const fakeLeafs = (new Array(transactionIndex))
+                .fill(fakeLeaf);
+            const fakeLeafsSuffix = (new Array(maxTx - transactionIndex))
+                .fill(fakeLeaf);
 
             // Produce a seperate root with this transaction.
-            const txs = [fakeLeaf, transaction];
+            const txs = [...fakeLeafs, transaction, ...fakeLeafsSuffix];
             const root = (new RootHeader({
                 rootProducer: producer,
                 merkleTreeRoot: merkleTreeRoot(txs),
@@ -183,8 +200,43 @@ module.exports = test('correctnessChecks', async t => {
             await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), 0, 0, combine(txs), overrides),
                 'valid submit', errors);
 
+            // Max roots.
+            const maxRoots = 128;
+            const rootIndex = rand(0, 17);
+
+            // Add a bunch of fake roots.
+            let fakeRoots = [];
+
+            // generate a set of fake roots.
+            for (let i = 0; i < rootIndex; i++) {
+                const fakeRootFee = i + 1;
+                const fakeRoot = (new RootHeader({
+                    rootProducer: producer,
+                    merkleTreeRoot: merkleTreeRoot(txs),
+                    commitmentHash: utils.keccak256(combine(txs)),
+                    rootLength: utils.hexDataLength(combine(txs)),
+                    fee: fakeRootFee,
+                }));
+                await t.wait(contract.commitRoot(
+                    root.properties.merkleTreeRoot().get(),
+                    0,
+                    fakeRootFee,
+                    combine(txs),
+                    overrides),
+                    'submit fake root', errors);
+
+                // Add to fake roots.
+                fakeRoots.push(fakeRoot.keccak256Packed());
+            }
+
+            // Await all roots.
+            // await Promise.all(fakeRootAwaits);
+
             // The fuel block tip.
             const blockTip = (await contract.blockTip()).add(1);
+
+            // Roots.
+            const roots = [...fakeRoots, root.keccak256Packed()];
 
             // Produce a block header with this transaction.
             const header = (new BlockHeader({
@@ -192,13 +244,13 @@ module.exports = test('correctnessChecks', async t => {
                 height: blockTip,
                 numTokens,
                 numAddresses: 3,
-                roots: [root.keccak256Packed()],
+                roots,
             }));
 
             // Produce a block with this transaction.
             const currentBlock = await t.provider.getBlockNumber();
             const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
-            const block = await t.wait(contract.commitBlock(currentBlock, currentBlockHash, blockTip, [root.keccak256Packed()], {
+            const block = await t.wait(contract.commitBlock(currentBlock, currentBlockHash, blockTip, roots, {
                 ...overrides,
                 value: await contract.BOND_SIZE(),
             }), 'commit block', errors);
@@ -240,10 +292,11 @@ module.exports = test('correctnessChecks', async t => {
             return {
                 metadata: tx.Metadata({
                     blockHeight: header.properties.height().get(),
-                    rootIndex: 0,
+                    rootIndex: rootIndex,
                     transactionIndex: transactionIndex,
                     outputIndex: outputIndex,
                 }),
+                rootIndex,
                 amount: utxo.properties.amount().get(),
                 output,
                 proof,
@@ -342,7 +395,7 @@ module.exports = test('correctnessChecks', async t => {
         const tx6 = { // Root from tx4
             metadata: tx.Metadata({
                 blockHeight: tx4.block.properties.height().get(),
-                rootIndex: 0,
+                rootIndex: tx4.rootIndex,
             }),
             root: tx4.root,
             proof: tx4.proof,
@@ -527,10 +580,10 @@ module.exports = test('correctnessChecks', async t => {
 
             // If any events, log them.
             if (fraudTx && fraudTx.events.length) {
-                console.log(fraudTx.events[0], fraudTx.events[0].args);
+                console.log(fn, fraudTx.events[0], fraudTx.events[0].args);
 
                 if (fraudTx.events[1]) {
-                    console.log(fraudTx.events[1]);
+                    console.log(fn, fraudTx.events[1]);
                 }
             }
         }
