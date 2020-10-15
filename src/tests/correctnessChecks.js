@@ -580,6 +580,9 @@ module.exports = test('correctnessChecks', async t => {
             roots: [rootMain.keccak256Packed()],
         }));
 
+        // Specify the main root index.
+        const mainRootIndex = 0;
+
         // Produce a block with this transaction.
         const currentBlock = await t.provider.getBlockNumber();
         const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
@@ -595,6 +598,7 @@ module.exports = test('correctnessChecks', async t => {
             block: headerMain,
             root: rootMain,
             transactions: txsMain,
+            rootIndex: mainRootIndex,
             inputOutputIndex: 0,
             transactionIndex: 0,
             token,
@@ -634,6 +638,17 @@ module.exports = test('correctnessChecks', async t => {
                 }
             }
         }
+
+        // Prove Malformed Block is Valid.
+        await commitFraudProof(
+            'proveMalformedBlock',
+            [
+                headerMain.encodePacked(),
+                rootMain.encodePacked(),
+                mainRootIndex,
+                combine(txsMain),
+            ],
+        );
 
         // Prove Invalid Tx is Valid.
         await commitFraudProof(
