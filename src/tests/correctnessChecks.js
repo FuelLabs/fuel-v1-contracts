@@ -120,6 +120,8 @@ module.exports = test('correctnessChecks', async t => {
                 override: true,
                 witnesses: [
                     t.wallets[0],
+                    { _caller: true },
+                    { _producer: true },
                 ],
                 metadata: [
                     tx.Metadata({
@@ -158,14 +160,30 @@ module.exports = test('correctnessChecks', async t => {
                     utils.hexlify(utils.randomBytes(32)),
                 ],
                 inputs: [
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
+                    tx.Input({
+                        witnessReference: 0,
+                    }),
+                    tx.Input({
+                        witnessReference: 1,
+                    }),
+                    tx.Input({
+                        witnessReference: 2,
+                    }),
+                    tx.Input({
+                        witnessReference: 0,
+                    }),
+                    tx.Input({
+                        witnessReference: 1,
+                    }),
+                    tx.Input({
+                        witnessReference: 2,
+                    }),
+                    tx.Input({
+                        witnessReference: 0,
+                    }),
+                    tx.Input({
+                        witnessReference: 1,
+                    }),
                 ],
                 outputs,
                 chainId: 1,
@@ -320,6 +338,21 @@ module.exports = test('correctnessChecks', async t => {
             return tx.proof;
         }
 
+        // Producer funnel address.
+        const producerFunnelAddress = await contract
+            .funnel(producer);
+
+        // Amount values for the outputs.
+        const defaultOutputAmounts = [
+            rand(0, 500000),
+            '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFF',
+            utils.hexlify(utils.randomBytes(20)),
+            utils.parseEther(String(rand(0, 800))),
+            utils.parseEther('2348972348.0918239871178'),
+            utils.parseEther('0'),
+            utils.parseEther('10032.00'),
+        ];
+
         // These are the default outputs to use accross referenced txs.
         let defaultPreImage = utils.hexZeroPad('0xdeadbeef', 32);
         let defaultOuputs = [
@@ -327,17 +360,17 @@ module.exports = test('correctnessChecks', async t => {
                 noshift: true,
                 token: '0x01',
                 owner: producer,
-                amount: utils.parseEther('10032.00'),
+                amount: defaultOutputAmounts[0],
             }),
             tx.OutputWithdraw({
                 token: '0x01',
-                owner: producer,
-                amount: utils.parseEther('10032.00'),
+                owner: producerFunnelAddress,
+                amount: defaultOutputAmounts[1],
             }),
             tx.OutputTransfer({
                 token: '0x01',
                 owner: producer,
-                amount: utils.parseEther('10032.00'),
+                amount: defaultOutputAmounts[2],
             }),
             tx.OutputReturn({
                data: '0xdeadbeef',
@@ -348,22 +381,22 @@ module.exports = test('correctnessChecks', async t => {
                 digest: utils.hexlify(utils.keccak256(defaultPreImage)),
                 returnOwner: '0x01',
                 expiry: 300,
-                amount: utils.parseEther('10032.00'),
+                amount: defaultOutputAmounts[3],
+            }),
+            tx.OutputTransfer({
+                token: '0x01',
+                owner: '0x01',
+                amount: defaultOutputAmounts[4],
+            }),
+            tx.OutputTransfer({
+                token: '0x01',
+                owner: '0x01',
+                amount: defaultOutputAmounts[5],
             }),
             tx.OutputTransfer({
                 token: '0x01',
                 owner: producer,
-                amount: utils.parseEther('10032.00'),
-            }),
-            tx.OutputTransfer({
-                token: '0x01',
-                owner: producer,
-                amount: utils.parseEther('10032.00'),
-            }),
-            tx.OutputTransfer({
-                token: '0x01',
-                owner: producer,
-                amount: utils.parseEther('10032.00'),
+                amount: defaultOutputAmounts[6],
             }),
         ];
 
@@ -422,11 +455,17 @@ module.exports = test('correctnessChecks', async t => {
             tx6.root.keccak256Packed(), // root
             tx7.proof.keccak256(), // deposit
         ];
+
+        // The signature and root fee for the target tx.
         let txMainFee = utils.parseEther('0.0000012');
+
+        // The main transaction.
         let transactionMain = await tx.Transaction({
             override: true,
             witnesses: [
                 t.wallets[0],
+                { _caller: true },
+                { _producer: true },
             ],
             metadata: [
                 tx0.metadata,
@@ -442,13 +481,20 @@ module.exports = test('correctnessChecks', async t => {
             inputs: [
                 tx.Input(),
                 tx.InputHTLC({
+                    witnessReference: 1,
                     preImage: defaultPreImage,
                 }),
                 tx.Input(),
+                tx.Input({
+                    witnessReference: 1,
+                }),
+                tx.Input({
+                    witnessReference: 2,
+                }),
                 tx.Input(),
-                tx.Input(),
-                tx.Input(),
-                tx.InputRoot(),
+                tx.InputRoot({
+                    witnessReference: 2,
+                }),
                 tx.InputDeposit({
                     owner: producer,
                 }),
@@ -463,39 +509,40 @@ module.exports = test('correctnessChecks', async t => {
                     owner: utils.emptyAddress,
                     amount: tx0.amount,
                 }),
-                tx.OutputTransfer({
+                tx.OutputWithdraw({
                     token: '0x01',
-                    owner: utils.emptyAddress,
+                    owner: producer,
                     amount: tx1.amount,
                 }),
-                tx.OutputTransfer({
+                tx.OutputHTLC({
                     token: '0x01',
-                    owner: utils.emptyAddress,
+                    owner: '0x00',
                     amount: tx2.amount,
+                    expiry: 45,
+                    digest: utils.keccak256('0xdeadbeaf'),
+                    returnOwner: utils.emptyAddress,
                 }),
                 tx.OutputTransfer({
                     token: '0x01',
-                    owner: utils.emptyAddress,
+                    owner: producer,
                     amount: tx3.amount,
                 }),
                 tx.OutputTransfer({
                     token: '0x01',
-                    owner: utils.emptyAddress,
+                    owner: '0x01',
                     amount: tx4.amount,
                 }),
                 tx.OutputTransfer({
                     token: '0x01',
-                    owner: utils.emptyAddress,
-                    amount: tx5.amount,
+                    owner: '0x02',
+                    amount: tx5.amount.add(tx6.amount),
+                }),
+                tx.OutputReturn({
+                    data: utils.randomBytes(45),
                 }),
                 tx.OutputTransfer({
                     token: '0x01',
-                    owner: utils.emptyAddress,
-                    amount: tx6.amount,
-                }),
-                tx.OutputTransfer({
-                    token: '0x01',
-                    owner: utils.emptyAddress,
+                    owner: producer,
                     amount: tx7.amount,
                 }),
             ],
