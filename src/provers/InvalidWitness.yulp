@@ -74,6 +74,20 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
         index := add(index, 1)
         pos := add(pos, inputSize(pos))
       }
+
+      // Assert fee token signed over is the fee in the root.
+      assertOrFraud(
+        eq(TransactionProof.signatureFeeToken(transactionProof), TransactionProof.feeToken(transactionProof)),
+        error"invalid-fee-token",
+        transactionProof
+      )
+
+      // Assert fee signed over is the fee in the root.
+      assertOrFraud(
+        eq(TransactionProof.signatureFee(transactionProof), TransactionProof.fee(transactionProof)),
+        error"invalid-fee",
+        transactionProof
+      )
     }
 
     /// @notice Prove a witness was invalid.

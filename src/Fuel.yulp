@@ -264,36 +264,6 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(calculateFunnelAddress(calldata.word(0)))
       }
 
-      /// @notice Verify a rollup block header.
-      /// @param blockHeader Block header.
-      /// @param root Root to verify.
-      /// @param rootIndex Index of root in block header.
-      /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
-      /// @return If block header passes verification.
-      /// @dev verifiers::BlockHeader::verifyHeader
-      case sig"verifyHeader(bytes blockHeader, bytes root, uint256 rootIndex, uint8 assertFinalized) external view returns (bool)" {
-        verifyHeader(
-          abi.offset(calldata.word(0)),
-          abi.offset(calldata.word(1)),
-          calldata.word(2),
-          calldata.word(3)
-        )
-        return.word(true)
-      }
-
-      /// @notice Verify a transaction.
-      /// @param proof Transcation proof.
-      /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
-      /// @return If transaction passes verification.
-      /// @dev verifiers::TransactionProof::verifyTransactionProof
-      case sig"verifyTransaction(bytes proof, uint8 assertFinalized) external view returns (bool)" {
-        verifyTransactionProof(
-          abi.offset(calldata.word(0)),
-          calldata.word(1)
-        )
-        return.word(true)
-      }
-
       /// @notice Get the operator address.
       /// @return The operator address.
       case sig"operator() external view returns (address operator)" {

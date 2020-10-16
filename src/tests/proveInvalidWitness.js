@@ -411,15 +411,31 @@ module.exports = test('proveInvalidWitness', async t => {
 
         const txs2 = [transactionB];
 
+        let signatureFee = 0;
+        let signatureFeeToken = 0;
+
+        if (opts.fraud === 'invalid-fee') {
+          signatureFee = 45;
+        }
+
+        if (opts.fraud === 'invalid-fee-token') {
+          signatureFeeToken = 1;
+        }
+
         const root2 = (new RootHeader({
           rootProducer: producer,
           merkleTreeRoot: merkleTreeRoot(txs2),
           commitmentHash: utils.keccak256(combine(txs2)),
           rootLength: utils.hexDataLength(combine(txs2)),
+          feeToken: signatureFeeToken,
+          fee: signatureFee,
         }));
         await t.wait(
             contract.commitRoot(
-                root2.properties.merkleTreeRoot().get(), 0, 0, combine(txs2),
+                root2.properties.merkleTreeRoot().get(),
+                signatureFeeToken,
+                signatureFee,
+                combine(txs2),
                 overrides),
             'valid submit', errors);
 
@@ -438,6 +454,8 @@ module.exports = test('proveInvalidWitness', async t => {
           transactions: txs2,
           inputOutputIndex: 0,
           transactionIndex: 0,
+          signatureFeeToken: 0,
+          signatureFee: 0,
           token: producer,
         });
       }
@@ -540,6 +558,8 @@ module.exports = test('proveInvalidWitness', async t => {
     await state(
         {useErc20: true, commitAddress: true, htlc: true, fraud: 'htlc-owner'});
 
+    await state({useErc20: true, root: true, fraud: 'invalid-fee'});
+    await state({useErc20: true, root: true, fraud: 'invalid-fee-token'});
     await state({useErc20: true, fraud: 'utxo-witness'});
     await state({useErc20: true, root: true, fraud: 'root-witness'});
     await state({useErc20: true, htlc: true, fraud: 'htlc-owner-return'});

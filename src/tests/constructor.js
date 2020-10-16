@@ -5,7 +5,7 @@ const { defaults } = require('./harness.js');
 
 module.exports = test('constructor', async t => { try {
 
-  t.ok(utils.hexDataLength(bytecode) < 24100, 'contract-bytecode-size-check');
+  t.ok(utils.hexDataLength(bytecode) < 24576, 'contract-bytecode-size-check');
 
   const state = async (contract, producer, params) => {
     let blockTip = utils.bigNumberify(0);
