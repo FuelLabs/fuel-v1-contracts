@@ -127,68 +127,58 @@ module.exports = test('verifyHeader', async t => { try {
 
 
     // verify header
-    t.equal(await contract.verifyHeader(
+    /*
+    t.equal(await contract.proveMalformedBlock(
       header.encodePacked(),
       root.encodePacked(),
       0,
-      0), true, 'not finalized');
+      combined, { gasLimit: 4000000 }), true, 'not finalized');
+*/
 
-    await t.catch(contract.verifyHeader(
+    await t.catch(contract.proveMalformedBlock(
       header.encodePacked(),
       header.encodePacked(),
       0,
-      0), 'invalid root');
+      '0x', { gasLimit: 4000000 }), 'invalid root');
 
-    await t.catch(contract.verifyHeader(
+    await t.catch(contract.proveMalformedBlock(
       root.encodePacked(),
       header.encodePacked(),
       0,
-      0), 'invalid block');
+      '0x', { gasLimit: 4000000 }), 'invalid block');
 
-    await t.catch(contract.verifyHeader(
+    await t.catch(contract.proveMalformedBlock(
       header.encodePacked(),
       root.encodePacked(),
       1,
-      0), 'invalid root index');
-
-    await t.catch(contract.verifyHeader(
-      header.encodePacked(),
-      root.encodePacked(),
-      0,
-      1), 'finalization');
+      '0x', { gasLimit: 4000000 }), 'invalid root index');
 
     // Increase block to finality
     await t.increaseBlock(await contract.FINALIZATION_DELAY());
 
-    t.equal(await contract.verifyHeader(
-      header.encodePacked(),
-      root.encodePacked(),
-      0,
-      1), true, 'not finalized');
-
-    await t.catch(contract.verifyHeader(
+    await t.catch(contract.proveMalformedBlock(
       header.encodePacked(),
       header.encodePacked(),
       0,
-      0), 'invalid root');
+      '0x', { gasLimit: 4000000 }), 'invalid root');
 
-    await t.catch(contract.verifyHeader(
+    await t.catch(contract.proveMalformedBlock(
       root.encodePacked(),
       header.encodePacked(),
       0,
-      0), 'invalid block');
+      '0x', { gasLimit: 4000000 }), 'invalid block');
 
-    await t.catch(contract.verifyHeader(
+    await t.catch(contract.proveMalformedBlock(
       header.encodePacked(),
       root.encodePacked(),
       1,
-      0), 'invalid root index');
+      '0x', { gasLimit: 4000000 }), 'invalid root index');
 
-    await t.catch(contract.verifyHeader(
+    await t.catch(contract.proveMalformedBlock(
       header.encodePacked(),
       root.encodePacked(),
       0,
-      0), 'finalization');
+      '0x', { gasLimit: 4000000 }), 'finalization');
   }
 
 
