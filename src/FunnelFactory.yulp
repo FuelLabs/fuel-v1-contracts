@@ -1,7 +1,10 @@
 object "FunnelFactory" {
   code {
+    // Produced from the Funnel.yulp contract.
     const FunnelContract0 := 0x604d600d600039604d6000f3fe60006020602d82393381511415602b57608036
     const FunnelContract1 := 0x14156028573681823780816044603c8485515af1505b33ff5b50000000000000
+    
+    // The Fixed salt.
     const FunnelSalt := 0xa46ff7e2eb85eecf4646f2c151221bcd9c079a3dcb63cb87962413cfaae53947
 
     function createFunnel(recipient) -> addr {

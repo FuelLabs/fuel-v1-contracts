@@ -17,5 +17,6 @@
   await require('./proveInvalidInput');
   await require('./ownedProxy');
   await require('./correctnessChecks');
+  await require('./simulation');
 
 })();
