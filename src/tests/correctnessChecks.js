@@ -247,9 +247,6 @@ module.exports = test('correctnessChecks', async t => {
                 fakeRoots.push(fakeRoot.keccak256Packed());
             }
 
-            // Await all roots.
-            // await Promise.all(fakeRootAwaits);
-
             // The fuel block tip.
             const blockTip = (await contract.blockTip()).add(1);
 
@@ -380,7 +377,7 @@ module.exports = test('correctnessChecks', async t => {
                 owner: producer,
                 digest: utils.hexlify(utils.keccak256(defaultPreImage)),
                 returnOwner: '0x01',
-                expiry: 300,
+                expiry: 30000,
                 amount: defaultOutputAmounts[3],
             }),
             tx.OutputTransfer({
@@ -443,6 +440,11 @@ module.exports = test('correctnessChecks', async t => {
             proof: deposit,
             amount: deposit.properties.value().get(),
         };
+
+        // Make inputs come from a finalized block.
+        if (opts.withFinalizedInputs) {
+            await t.increaseBlock(await contract.FINALIZATION_DELAY());
+        }
 
         // Produce a Root.
         let txMainData = [
@@ -518,7 +520,7 @@ module.exports = test('correctnessChecks', async t => {
                     token: '0x01',
                     owner: '0x00',
                     amount: tx2.amount,
-                    expiry: 45,
+                    expiry: 70000,
                     digest: utils.keccak256('0xdeadbeaf'),
                     returnOwner: utils.emptyAddress,
                 }),
@@ -785,13 +787,14 @@ module.exports = test('correctnessChecks', async t => {
                 proofMain.encodePacked(),
             ],
         );
+        /*
         await commitFraudProof(
             'proveDoubleSpend',
             [
                 tx3.proof.encodePacked(),
                 tx6.proof.encodePacked(),
             ],
-        );
+        );*/
 
         // Check witness for all inputs.
         for (var inputIndex = 0; inputIndex < 8; inputIndex++) {
@@ -843,5 +846,6 @@ module.exports = test('correctnessChecks', async t => {
 
     // Empty state.
     await state();
+    await state({ withFinalizedInputs: true });
     
 });

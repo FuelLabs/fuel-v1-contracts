@@ -207,6 +207,7 @@ module.exports = test('simualtion', async t => {
                 'commit block',
                 errors);
 
+            // Set header properly.
             header.properties.blockNumber().set(block.logs[0].blockNumber);
             header.properties.previousBlockHash().set(previousBlockHash);
             t.equalBig(await contract.blockTip(), blockTip, 'tip');
@@ -235,7 +236,7 @@ module.exports = test('simualtion', async t => {
         }
 
         // Make two blocks.
-        await makeBlock();
+        const firstBlock = await makeBlock();
         const secondBlock = await makeBlock();
 
         // Increase blocks to withdrawal period.
@@ -246,6 +247,41 @@ module.exports = test('simualtion', async t => {
             secondBlock.proof.encodePacked(),
             overrides,
         ), 'withdraw', errors);
+
+        // Withdraw block reward form both finalized blocks.
+        await t.wait(proxy.transact(
+            contract.address,
+            0,
+            contract.interface.functions.bondWithdraw.encode([
+                firstBlock.block.encodePacked(),
+            ]),
+            {
+                gasLimit: 4000000,
+            },
+        ), 'withdraw bond', errors);
+
+        // Some address.
+        const someAddress = utils.hexlify(utils.randomBytes(20));
+        t.equalBig(await t.getBalance(someAddress), 0, "balance"); 
+        
+        // Send bond back to another address.
+        await t.wait(proxy.transact(
+            someAddress,
+            await contract.BOND_SIZE(),
+            '0x',
+            {
+                gasLimit: 4000000,
+            },
+        ), 'move bond', errors);
+
+        // Check balance bond was moved from Proxy.
+        t.equalBig(
+            await t.getBalance(someAddress), 
+            await contract.BOND_SIZE(), 
+            "balance",
+        );
+
+            
     }
   
     // Produce State.
