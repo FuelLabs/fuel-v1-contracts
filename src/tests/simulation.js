@@ -96,6 +96,9 @@ module.exports = test('simualtion', async t => {
         let feeToken = 1;
         let fee = utils.parseEther('.000012');
 
+        // Previous block hash.
+        let previousBlockHash = genesisHash;
+
         // Make a block.
         async function makeBlock(opts = {}) {
             // Fake leafs.
@@ -103,8 +106,45 @@ module.exports = test('simualtion', async t => {
                 data: chunk(utils.hexlify(utils.randomBytes(120))),
             });
 
+            // Transaciton A.
+            const txa = await tx.Transaction({
+                inputs: [tx.InputDeposit({
+                    witnessReference: 0,
+                    owner: userA,
+                }), tx.InputDeposit({
+                    witnessReference: 0,
+                    owner: userA,
+                })],
+                witnesses: [ userAWallet ],
+                metadata: [
+                    tx.MetadataDeposit(userADepositEther),
+                    tx.MetadataDeposit(userADepositToken),
+                ],
+                data: [
+                    userADepositEther,
+                    userADepositToken,
+                ],
+                outputs: [tx.OutputTransfer({
+                    amount: utils.parseEther('100.00'),
+                    token: 0,
+                    owner: producer,
+                }), tx.OutputWithdraw({
+                    amount: utils.parseEther('100.00'),
+                    token: 1,
+                    owner: userA,
+                }), tx.OutputHTLC({
+                    amount: utils.parseEther('100.00'),
+                    token: 1,
+                    owner: userA,
+                    digest: utils.keccak256('0xdeadbeaf'),
+                    expiry: 100,
+                    returnOwner: userB,
+                })],
+                contract,
+            });
+
             // Produce Transactions.
-            const txs = [fakeLeaf];
+            const txs = [fakeLeaf, txa, fakeLeaf];
 
             // Produce Root.
             const root = (new RootHeader({
@@ -132,7 +172,7 @@ module.exports = test('simualtion', async t => {
             const header = (new BlockHeader({
                 producer: proxy.address,
                 height: blockTip,
-                numTokens: 1,
+                numTokens: 2,
                 numAddresses: 1,
                 roots: [root.keccak256Packed()],
             }));
@@ -168,19 +208,44 @@ module.exports = test('simualtion', async t => {
                 errors);
 
             header.properties.blockNumber().set(block.logs[0].blockNumber);
+            header.properties.previousBlockHash().set(previousBlockHash);
             t.equalBig(await contract.blockTip(), blockTip, 'tip');
+
+            // Previous block hash.
+            previousBlockHash = header.keccak256Packed();
+
+            // Transaciton proof.
+            const proof = tx.TransactionProof({
+                block: header,
+                root,
+                transactions: txs,
+                inputOutputIndex: 1,
+                transactionIndex: 1,
+                token: erc20.address,
+                selector: userA,
+            });
 
             // Return the headers and data.
             return {
                 block: header,
                 root,
                 txs,
+                proof,
             };
         }
 
         // Make two blocks.
         await makeBlock();
-        await makeBlock();
+        const secondBlock = await makeBlock();
+
+        // Increase blocks to withdrawal period.
+        await t.increaseBlock(await contract.FINALIZATION_DELAY());
+    
+        // Withdraw funds.
+        await t.wait(contract.withdraw(
+            secondBlock.proof.encodePacked(),
+            overrides,
+        ), 'withdraw', errors);
     }
   
     // Produce State.
