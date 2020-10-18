@@ -328,12 +328,43 @@ module.exports = test('simualtion', async t => {
         // Check block tip.
         t.equalBig(await contract.blockTip(), 2, 'tip');
 
+        // Set previous block back to second block.
+        previousBlockHash = secondBlock.block.keccak256Packed();
+
         // Third block that is invalid.
         const thirdBlockAgain = await makeBlock();
         
         // Check block tip.
         t.equalBig(await contract.blockTip(), 3, 'tip');
 
+        // Third block that is invalid.
+        const blockSomething = await makeBlock();
+        const blockSomething2 = await makeBlock();
+        
+        // Increase blocks to withdrawal period.
+        await t.increaseBlock(await contract.FINALIZATION_DELAY());
+    
+        // Withdraw block reward form both finalized blocks.
+        await t.wait(proxy.transact(
+            contract.address,
+            0,
+            contract.interface.functions.bondWithdraw.encode([
+                blockSomething.block.encodePacked(),
+            ]),
+            {
+                gasLimit: 4000000,
+            },
+        ), 'withdraw bond', errors);
+        await t.wait(proxy.transact(
+            contract.address,
+            0,
+            contract.interface.functions.bondWithdraw.encode([
+                blockSomething2.block.encodePacked(),
+            ]),
+            {
+                gasLimit: 4000000,
+            },
+        ), 'withdraw bond', errors);
     }
   
     // Produce State.
