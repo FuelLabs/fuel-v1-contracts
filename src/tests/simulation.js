@@ -281,7 +281,59 @@ module.exports = test('simualtion', async t => {
             "balance",
         );
 
-            
+        // Commit fraud sub-routine.
+        async function commitFraud(fn = '', args = []) {
+            // Generate the fraud hash
+            const fraudHash = utils.keccak256(contract.interface.functions
+                .proveDoubleSpend.encode(args));
+
+            // Commit the fraud hash.
+            await t.wait(contract.commitFraudHash(
+                fraudHash,
+                overrides,
+            ), 'commit fraud hash', errors);
+
+            // Wait 10 blocks for fraud finalization.
+            await t.increaseBlock(10);
+
+            // Commit fraud.
+            const fraud = await t.wait(contract.proveDoubleSpend(
+                ...args,
+                overrides,
+            ), 'double spend same deposit', errors);
+
+            // Check penalty.
+            t.equalBig(
+                await contract.penalty(),
+                (await contract.PENALTY_DELAY()).add(fraud.blockNumber),
+                'penalty'
+            );
+        }
+
+        // Third block that is invalid.
+        const thirdBlock = await makeBlock();
+
+        // Check block tip.
+        t.equalBig(await contract.blockTip(), 3, 'tip');
+
+        // Commit double spend fraud and revert block.
+        await commitFraud(
+            'proveDoubleSpend',
+            [
+                firstBlock.proof.encodePacked(),
+                thirdBlock.proof.encodePacked(),
+            ],
+        );
+
+        // Check block tip.
+        t.equalBig(await contract.blockTip(), 2, 'tip');
+
+        // Third block that is invalid.
+        const thirdBlockAgain = await makeBlock();
+        
+        // Check block tip.
+        t.equalBig(await contract.blockTip(), 3, 'tip');
+
     }
   
     // Produce State.
