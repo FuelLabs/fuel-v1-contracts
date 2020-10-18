@@ -119,8 +119,8 @@ module.exports = test('simualtion', async t => {
             // Root is committed from a different address than the Proxy.
             await t.wait(contract.commitRoot(
                 root.properties.merkleTreeRoot().get(),
-                0,
-                0,
+                feeToken,
+                fee,
                 combine(txs),
                 overrides,
             ), 'valid submit', errors);
@@ -160,13 +160,15 @@ module.exports = test('simualtion', async t => {
                     contract.address,
                     await contract.BOND_SIZE(),
                     commitTx,
-                    overrides,
+                    {
+                        gasLimit: 4000000,
+                    },
                 ),
                 'commit block',
                 errors);
 
             header.properties.blockNumber().set(block.logs[0].blockNumber);
-            t.equalBig(await contract.blockTip(), 1, 'tip');
+            t.equalBig(await contract.blockTip(), blockTip, 'tip');
 
             // Return the headers and data.
             return {
