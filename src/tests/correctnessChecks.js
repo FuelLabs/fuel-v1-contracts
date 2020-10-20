@@ -631,6 +631,9 @@ module.exports = test('correctnessChecks', async t => {
             }), `prove ${fn} using valid tx`, errors);
             t.equalBig(await contract.blockTip(), blockTip, 'tip');
 
+            // Ensure the gas per each fraud proof is less than 400k.
+            t.ok(fraudTx.cumulativeGasUsed.lte(3000000), 'fraud gas limit');
+
             // If any events, log them.
             if (fraudTx && fraudTx.events.length) {
                 console.log(fn, fraudTx.events[0], fraudTx.events[0].args);
