@@ -100,7 +100,7 @@ object "Block" is "Utils", "Constructor", "Root", "Address" {
           require(eq(caller(), producer), error"caller-producer")
         }
 
-        // Clear root from storage
+        // Clear root from storage.
         clearRoot(rootHash)
       }
 
