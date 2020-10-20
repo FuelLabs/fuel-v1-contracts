@@ -16,6 +16,7 @@
     "build-funnel": "mkdir -p src/builds && compile=Funnel node ./config/compile",
     "build-revert": "mkdir -p src/builds && compile=Revert node ./config/compile",
     "build-proxy": "mkdir -p src/builds && compile=Proxy node ./config/compile",
+    "build-block": "mkdir -p src/builds && compile=Block node ./config/compile",
     "build-owned-proxy": "mkdir -p src/builds && compile=OwnedProxy node ./config/compile",
     "build-htlc": "mkdir -p src/builds && compile=HTLC node ./config/compile",
     "deploy-all": "npm run deploy-ropsten && npm run deploy-rinkeby && npm run deploy-goerli && npm run deploy-kovan && npm run deploy-mainnet",
@@ -50,12 +51,11 @@
   },
   "homepage": "https://github.com/fuellabs/fuel#readme",
   "devDependencies": {
-    "@fuel-js/common": "^0.0.6",
-    "@fuel-js/environment": "^0.1.3",
+    "@fuel-js/environment": "^0.1.4",
     "@fuel-js/refill": "^0.1.0",
     "@fuel-js/gasprice": "^0.1.1",
-    "@fuel-js/protocol": "^0.1.7",
-    "@fuel-js/struct": "^0.1.1",
+    "@fuel-js/protocol": "^0.3.3",
+    "@fuel-js/struct": "^0.1.6",
     "ethers": "^4.0.47",
     "fs-readfile-promise": "^3.0.1",
     "write": "^2.0.0"

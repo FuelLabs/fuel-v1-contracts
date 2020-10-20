@@ -87,6 +87,8 @@ module.exports = test('proveInvalidSum', async t => { try {
         tx.InputTransfer({}),
         tx.InputTransfer({}),
       ],
+      signatureFeeToken: tokenId,
+      signatureFee: fee,
       outputs: [tx.OutputTransfer({
         amount: 100,
         token: tokenId,
@@ -100,6 +102,7 @@ module.exports = test('proveInvalidSum', async t => { try {
         token: tokenId,
         owner: producer,
       })],
+      chainId: 1,
       contract,
     });
 
@@ -113,7 +116,10 @@ module.exports = test('proveInvalidSum', async t => { try {
       feeToken: tokenId,
       fee,
     }));
-    await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), tokenId, fee,
+    await t.wait(contract.commitRoot(
+      root.properties.merkleTreeRoot().get(),
+      tokenId,
+      fee,
       combine(txs), overrides),
       'valid submit', errors);
     const header = new BlockHeader({
@@ -166,6 +172,11 @@ module.exports = test('proveInvalidSum', async t => { try {
       const invalidSum = await t.wait(contract.proveInvalidSum(arg1, arg2, {
         ...overrides,
       }), 'double spend same deposit not overflow', errors);
+
+      if (invalidSum.logs) {
+        console.log(invalidSum.logs[0]);
+      }
+
       t.equalBig(await contract.blockTip(), 1, 'tip');
       t.equal(invalidSum.logs.length, 0, 'no logs');
     }

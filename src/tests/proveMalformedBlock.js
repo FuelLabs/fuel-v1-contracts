@@ -182,7 +182,10 @@ module.exports = test('proveMalformedBlock', async t => { try {
     await state([overflowLeaf], { fraud: 'transaction-length-overflow' });
     await state([bigChunk, emptyTx, overflowLeaf, emptyTx], { fraud: 'transaction-length-overflow' });
 
-    const netLengthOverflow = new _Transaction({ length: '0x0100' + utils.hexZeroPad('0x00', 44).slice(2) });
+    const netLengthOverflow = new _Transaction({
+      length: '0x0100',
+      inputs: utils.hexZeroPad('0x00', 44),
+    });
     await state([netLengthOverflow], { fraud: 'net-length-overflow' });
     await state([bigChunk, emptyTx, netLengthOverflow, emptyTx], { fraud: 'net-length-overflow' });
 

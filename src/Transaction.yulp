@@ -296,7 +296,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     /// @return Input metadata as bytes8.
     function inputMetadata(proof) -> id {
       mstore(4, TransactionProof.inputOutputIndex(proof))
-      mstore(2, TransactionProof.transactionIndex(proof))
+      mstore(3, TransactionProof.transactionIndex(proof))
       mstore(1, TransactionProof.rootIndex(proof))
       mstore(0, TransactionProof.blockHeight(proof))
       id := mslice(28, 8)
@@ -306,7 +306,7 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     /// @return Output metadata as bytes8.
     function outputMetadata(proof) -> id {
       mstore(4, TransactionProof.inputOutputIndex(proof))
-      mstore(2, TransactionProof.transactionIndex(proof))
+      mstore(3, TransactionProof.transactionIndex(proof))
       mstore(1, TransactionProof.rootIndex(proof))
       mstore(0, TransactionProof.blockHeight(proof))
       id := mslice(28, 8)

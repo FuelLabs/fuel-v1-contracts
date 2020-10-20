@@ -1,9 +1,10 @@
 import "./Constructor.yulp"
 import "./Address.yulp"
 import "./Root.yulp"
+import "./Utils.yulp"
 
 /// @title Block object
-object "Block" is "Constructor", "Root", "Address" {
+object "Block" is "Utils", "Constructor", "Root", "Address" {
   code {
     const TRANSACTION_ROOTS_MAX := 128
 
@@ -99,7 +100,7 @@ object "Block" is "Constructor", "Root", "Address" {
           require(eq(caller(), producer), error"caller-producer")
         }
 
-        // Clear root from storage
+        // Clear root from storage.
         clearRoot(rootHash)
       }
 

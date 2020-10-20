@@ -10,10 +10,15 @@ const tx = require('@fuel-js/protocol/src/transaction');
 const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('./harness');
 
+/// @notice Random number util.
+function rand(min, max) {
+    return Math.floor(Math.random() * max) + min;
+}
+
 // The plan is to do 6 transactions, 1 deposit, 1 root.
 // Than we run this valid transaction through all the fraud proofs.
 // This ensures more execution correctness.
-module.exports = test('proveComplex', async t => {
+module.exports = test('correctnessChecks', async t => {
 
     // State a sequence for testing.
     async function state (opts = {}) {
@@ -115,6 +120,8 @@ module.exports = test('proveComplex', async t => {
                 override: true,
                 witnesses: [
                     t.wallets[0],
+                    { _caller: true },
+                    { _producer: true },
                 ],
                 metadata: [
                     tx.Metadata({
@@ -153,21 +160,55 @@ module.exports = test('proveComplex', async t => {
                     utils.hexlify(utils.randomBytes(32)),
                 ],
                 inputs: [
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
-                    tx.Input(),
+                    tx.Input({
+                        witnessReference: 0,
+                    }),
+                    tx.Input({
+                        witnessReference: 1,
+                    }),
+                    tx.Input({
+                        witnessReference: 2,
+                    }),
+                    tx.Input({
+                        witnessReference: 0,
+                    }),
+                    tx.Input({
+                        witnessReference: 1,
+                    }),
+                    tx.Input({
+                        witnessReference: 2,
+                    }),
+                    tx.Input({
+                        witnessReference: 0,
+                    }),
+                    tx.Input({
+                        witnessReference: 1,
+                    }),
                 ],
                 outputs,
+                chainId: 1,
                 contract,
             });
 
+            // Construct a fake leaf.
+            const fakeLeaf = Leaf({
+                data: utils.hexZeroPad('0xaa', rand(120, 140)),
+            });
+
+            // Max number of tx's per root.
+            const maxTx = 120;
+
+            // Select a transaction index between 0 and 195.
+            const transactionIndex = rand(0, maxTx);
+
+            // Produce a set of fake leafs based upon the transaction index.
+            const fakeLeafs = (new Array(transactionIndex))
+                .fill(fakeLeaf);
+            const fakeLeafsSuffix = (new Array(maxTx - transactionIndex))
+                .fill(fakeLeaf);
+
             // Produce a seperate root with this transaction.
-            const txs = [transaction];
+            const txs = [...fakeLeafs, transaction, ...fakeLeafsSuffix];
             const root = (new RootHeader({
                 rootProducer: producer,
                 merkleTreeRoot: merkleTreeRoot(txs),
@@ -177,8 +218,40 @@ module.exports = test('proveComplex', async t => {
             await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), 0, 0, combine(txs), overrides),
                 'valid submit', errors);
 
+            // Max roots.
+            const maxRoots = 128;
+            const rootIndex = rand(0, 17);
+
+            // Add a bunch of fake roots.
+            let fakeRoots = [];
+
+            // generate a set of fake roots.
+            for (let i = 0; i < rootIndex; i++) {
+                const fakeRootFee = i + 1;
+                const fakeRoot = (new RootHeader({
+                    rootProducer: producer,
+                    merkleTreeRoot: merkleTreeRoot(txs),
+                    commitmentHash: utils.keccak256(combine(txs)),
+                    rootLength: utils.hexDataLength(combine(txs)),
+                    fee: fakeRootFee,
+                }));
+                await t.wait(contract.commitRoot(
+                    root.properties.merkleTreeRoot().get(),
+                    0,
+                    fakeRootFee,
+                    combine(txs),
+                    overrides),
+                    'submit fake root', errors);
+
+                // Add to fake roots.
+                fakeRoots.push(fakeRoot.keccak256Packed());
+            }
+
             // The fuel block tip.
             const blockTip = (await contract.blockTip()).add(1);
+
+            // Roots.
+            const roots = [...fakeRoots, root.keccak256Packed()];
 
             // Produce a block header with this transaction.
             const header = (new BlockHeader({
@@ -186,13 +259,13 @@ module.exports = test('proveComplex', async t => {
                 height: blockTip,
                 numTokens,
                 numAddresses: 3,
-                roots: [root.keccak256Packed()],
+                roots,
             }));
 
             // Produce a block with this transaction.
             const currentBlock = await t.provider.getBlockNumber();
             const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
-            const block = await t.wait(contract.commitBlock(currentBlock, currentBlockHash, blockTip, [root.keccak256Packed()], {
+            const block = await t.wait(contract.commitBlock(currentBlock, currentBlockHash, blockTip, roots, {
                 ...overrides,
                 value: await contract.BOND_SIZE(),
             }), 'commit block', errors);
@@ -205,7 +278,7 @@ module.exports = test('proveComplex', async t => {
                 root,
                 transactions: txs,
                 inputOutputIndex: outputIndex,
-                transactionIndex: 0,
+                transactionIndex: transactionIndex,
                 token,
             });
 
@@ -220,7 +293,7 @@ module.exports = test('proveComplex', async t => {
                 transactionHashId: transaction.transactionHashId(),
                 outputIndex,
                 outputType: output.properties.type().get().toNumber(),
-                amount: output.properties.amount().get(),
+                amount: tx.decodeAmount(output),
                 token: output.properties.token().get(),
                 owner: resolveOwner(output.properties.owner().get()),
                 digest: isHTLC ? output.properties.digest().get() : utils.hexZeroPad('0x00', 32),
@@ -234,10 +307,13 @@ module.exports = test('proveComplex', async t => {
             return {
                 metadata: tx.Metadata({
                     blockHeight: header.properties.height().get(),
-                    rootIndex: 0,
-                    transactionIndex: 0,
+                    rootIndex: rootIndex,
+                    transactionIndex: transactionIndex,
                     outputIndex: outputIndex,
                 }),
+                rootIndex,
+                amount: utxo.properties.amount().get(),
+                output,
                 proof,
                 utxo,
                 root,
@@ -247,23 +323,51 @@ module.exports = test('proveComplex', async t => {
             };
         }
 
+        /// @notice This will transform a tx proof into a witness proof.
+        /// @dev Will change proof.token and proof.selector to utxo owner etc.
+        /// @return Will return the proof in question.
+        function setTxOwnerAndReturnOwner(tx) {
+            // Set proof to full address UTXO owner / return owner.
+            tx.proof.properties.token()
+                .set(tx.utxo.properties.owner().get());
+            tx.proof.properties.selector()
+                .set(tx.utxo.properties.returnOwner().get());
+            return tx.proof;
+        }
+
+        // Producer funnel address.
+        const producerFunnelAddress = await contract
+            .funnel(producer);
+
+        // Amount values for the outputs.
+        const defaultOutputAmounts = [
+            rand(0, 500000),
+            '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFF',
+            utils.hexlify(utils.randomBytes(20)),
+            utils.parseEther(String(rand(0, 800))),
+            utils.parseEther('2348972348.0918239871178'),
+            utils.parseEther('0'),
+            utils.parseEther('10032.00'),
+        ];
+
         // These are the default outputs to use accross referenced txs.
         let defaultPreImage = utils.hexZeroPad('0xdeadbeef', 32);
         let defaultOuputs = [
             tx.OutputTransfer({
+                noshift: true,
                 token: '0x01',
                 owner: producer,
-                amount: utils.parseEther('10032.00'),
+                amount: defaultOutputAmounts[0],
             }),
             tx.OutputWithdraw({
                 token: '0x01',
-                owner: producer,
-                amount: utils.parseEther('10032.00'),
+                owner: producerFunnelAddress,
+                amount: defaultOutputAmounts[1],
             }),
             tx.OutputTransfer({
                 token: '0x01',
                 owner: producer,
-                amount: utils.parseEther('10032.00'),
+                amount: defaultOutputAmounts[2],
             }),
             tx.OutputReturn({
                data: '0xdeadbeef',
@@ -273,23 +377,23 @@ module.exports = test('proveComplex', async t => {
                 owner: producer,
                 digest: utils.hexlify(utils.keccak256(defaultPreImage)),
                 returnOwner: '0x01',
-                expiry: 300,
-                amount: utils.parseEther('10032.00'),
+                expiry: 30000,
+                amount: defaultOutputAmounts[3],
+            }),
+            tx.OutputTransfer({
+                token: '0x01',
+                owner: '0x01',
+                amount: defaultOutputAmounts[4],
+            }),
+            tx.OutputTransfer({
+                token: '0x01',
+                owner: '0x01',
+                amount: defaultOutputAmounts[5],
             }),
             tx.OutputTransfer({
                 token: '0x01',
                 owner: producer,
-                amount: utils.parseEther('10032.00'),
-            }),
-            tx.OutputTransfer({
-                token: '0x01',
-                owner: producer,
-                amount: utils.parseEther('10032.00'),
-            }),
-            tx.OutputTransfer({
-                token: '0x01',
-                owner: producer,
-                amount: utils.parseEther('10032.00'),
+                amount: defaultOutputAmounts[6],
             }),
         ];
 
@@ -321,10 +425,12 @@ module.exports = test('proveComplex', async t => {
         const tx6 = { // Root from tx4
             metadata: tx.Metadata({
                 blockHeight: tx4.block.properties.height().get(),
-                rootIndex: 0,
+                rootIndex: tx4.rootIndex,
             }),
             root: tx4.root,
             proof: tx4.proof,
+            amount: tx4.root.properties.fee().get()
+                .mul(tx4.root.properties.rootLength().get()),
         };
         const tx7 = {  // Deposit
             metadata: tx.MetadataDeposit({
@@ -332,13 +438,36 @@ module.exports = test('proveComplex', async t => {
                 token: deposit.properties.token().get(),
             }),
             proof: deposit,
+            amount: deposit.properties.value().get(),
         };
 
+        // Make inputs come from a finalized block.
+        if (opts.withFinalizedInputs) {
+            await t.increaseBlock(await contract.FINALIZATION_DELAY());
+        }
+
         // Produce a Root.
+        let txMainData = [
+            tx0.utxo.keccak256(),
+            tx1.utxo.keccak256(),
+            tx2.utxo.keccak256(),
+            tx3.utxo.keccak256(),
+            tx4.utxo.keccak256(),
+            tx5.utxo.keccak256(),
+            tx6.root.keccak256Packed(), // root
+            tx7.proof.keccak256(), // deposit
+        ];
+
+        // The signature and root fee for the target tx.
+        let txMainFee = utils.parseEther('0.0000012');
+
+        // The main transaction.
         let transactionMain = await tx.Transaction({
             override: true,
             witnesses: [
                 t.wallets[0],
+                { _caller: true },
+                { _producer: true },
             ],
             metadata: [
                 tx0.metadata,
@@ -350,37 +479,76 @@ module.exports = test('proveComplex', async t => {
                 tx6.metadata,
                 tx7.metadata,
             ],
-            data: [
-                tx0.utxo.keccak256(),
-                tx1.utxo.keccak256(),
-                tx2.utxo.keccak256(),
-                tx3.utxo.keccak256(),
-                tx4.utxo.keccak256(),
-                tx5.utxo.keccak256(),
-                tx6.root.keccak256Packed(), // root
-                tx7.proof.keccak256(), // deposit
-            ],
+            data: txMainData,
             inputs: [
                 tx.Input(),
                 tx.InputHTLC({
+                    witnessReference: 1,
                     preImage: defaultPreImage,
                 }),
                 tx.Input(),
+                tx.Input({
+                    witnessReference: 1,
+                }),
+                tx.Input({
+                    witnessReference: 2,
+                }),
                 tx.Input(),
-                tx.Input(),
-                tx.Input(),
-                tx.InputRoot(),
+                tx.InputRoot({
+                    witnessReference: 2,
+                }),
                 tx.InputDeposit({
                     owner: producer,
                 }),
             ],
+            signatureFeeToken: 1,
+            signatureFee: txMainFee,
+            signatureFeeOutputIndex: 0,
             outputs: [
                 tx.OutputTransfer({
+                    noshift: true,
                     token: '0x01',
                     owner: utils.emptyAddress,
-                    amount: utils.parseEther('1.0'),
+                    amount: tx0.amount,
+                }),
+                tx.OutputWithdraw({
+                    token: '0x01',
+                    owner: producer,
+                    amount: tx1.amount,
+                }),
+                tx.OutputHTLC({
+                    token: '0x01',
+                    owner: '0x00',
+                    amount: tx2.amount,
+                    expiry: 70000,
+                    digest: utils.keccak256('0xdeadbeaf'),
+                    returnOwner: utils.emptyAddress,
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: producer,
+                    amount: tx3.amount,
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: '0x01',
+                    amount: tx4.amount,
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: '0x02',
+                    amount: tx5.amount.add(tx6.amount),
+                }),
+                tx.OutputReturn({
+                    data: utils.randomBytes(45),
+                }),
+                tx.OutputTransfer({
+                    token: '0x01',
+                    owner: producer,
+                    amount: tx7.amount,
                 }),
             ],
+            chainId: 1,
             contract,
         });
 
@@ -391,11 +559,13 @@ module.exports = test('proveComplex', async t => {
             merkleTreeRoot: merkleTreeRoot(txsMain),
             commitmentHash: utils.keccak256(combine(txsMain)),
             rootLength: utils.hexDataLength(combine(txsMain)),
+            feeToken: 1,
+            fee: txMainFee,
         }));
         await t.wait(contract.commitRoot(
             rootMain.properties.merkleTreeRoot().get(),
-            0,
-            0,
+            1,
+            txMainFee,
             combine(txsMain),
             overrides),
             'valid submit', errors);
@@ -412,6 +582,9 @@ module.exports = test('proveComplex', async t => {
             roots: [rootMain.keccak256Packed()],
         }));
 
+        // Specify the main root index.
+        const mainRootIndex = 0;
+
         // Produce a block with this transaction.
         const currentBlock = await t.provider.getBlockNumber();
         const currentBlockHash = (await t.provider.getBlock(currentBlock)).hash;
@@ -427,6 +600,7 @@ module.exports = test('proveComplex', async t => {
             block: headerMain,
             root: rootMain,
             transactions: txsMain,
+            rootIndex: mainRootIndex,
             inputOutputIndex: 0,
             transactionIndex: 0,
             token,
@@ -457,10 +631,26 @@ module.exports = test('proveComplex', async t => {
             }), `prove ${fn} using valid tx`, errors);
             t.equalBig(await contract.blockTip(), blockTip, 'tip');
 
+            // If any events, log them.
             if (fraudTx && fraudTx.events.length) {
-                console.log(fraudTx.events[0].args);
-            } 
+                console.log(fn, fraudTx.events[0], fraudTx.events[0].args);
+
+                if (fraudTx.events[1]) {
+                    console.log(fn, fraudTx.events[1]);
+                }
+            }
         }
+
+        // Prove Malformed Block is Valid.
+        await commitFraudProof(
+            'proveMalformedBlock',
+            [
+                headerMain.encodePacked(),
+                rootMain.encodePacked(),
+                mainRootIndex,
+                combine(txsMain),
+            ],
+        );
 
         // Prove Invalid Tx is Valid.
         await commitFraudProof(
@@ -597,41 +787,65 @@ module.exports = test('proveComplex', async t => {
                 proofMain.encodePacked(),
             ],
         );
+        /*
         await commitFraudProof(
             'proveDoubleSpend',
             [
                 tx3.proof.encodePacked(),
                 tx6.proof.encodePacked(),
             ],
-        );
+        );*/
 
-        /*
-        proofMain.properties.inputOutputIndex().set(0);
+        // Check witness for all inputs.
+        for (var inputIndex = 0; inputIndex < 8; inputIndex++) {
+            proofMain.properties.inputOutputIndex().set(inputIndex);
+            proofMain.properties.token()
+                .set(producer);
+            proofMain.properties.selector()
+                .set(producer);
+
+            await commitFraudProof(
+                'proveInvalidWitness',
+                [
+                    proofMain.encodePacked(),
+                    chunkJoin([
+                        setTxOwnerAndReturnOwner(tx0).encodePacked(),
+                        setTxOwnerAndReturnOwner(tx1).encodePacked(),
+                        setTxOwnerAndReturnOwner(tx2).encodePacked(),
+                        setTxOwnerAndReturnOwner(tx3).encodePacked(),
+                        setTxOwnerAndReturnOwner(tx4).encodePacked(),
+                        setTxOwnerAndReturnOwner(tx5).encodePacked(),
+                        tx6.proof.encodePacked(), // root
+                        tx7.proof.encode(), // deposit
+                    ]),
+                ],
+            );
+        }
+
+        // Check Invalid Sum for all inputs.
         proofMain.properties.token()
-            .set(producer);
-        proofMain.properties.selector()
-            .set(producer);
+            .set(erc20.address);
         await commitFraudProof(
-            'proveInvalidWitness',
+            'proveInvalidSum',
             [
                 proofMain.encodePacked(),
                 chunkJoin([
-                    tx0.proof.encodePacked(),
-                    tx1.proof.encodePacked(),
-                    tx2.proof.encodePacked(),
-                    tx3.proof.encodePacked(),
-                    tx4.proof.encodePacked(),
-                    tx5.proof.encodePacked(),
-                    tx6.proof.encodePacked(), // root
+                    tx0.utxo.encode(),
+                    tx1.utxo.encode(),
+                    tx2.utxo.encode(),
+                    tx3.utxo.encode(),
+                    tx4.utxo.encode(),
+                    tx5.utxo.encode(),
+                    tx6.root.encodePacked(), // root
                     tx7.proof.encode(), // deposit
                 ]),
             ],
         );
-        */
 
     }
 
     // Empty state.
     await state();
+    await state({ withFinalizedInputs: true });
     
 });

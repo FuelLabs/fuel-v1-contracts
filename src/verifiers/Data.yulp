@@ -43,9 +43,9 @@ object "VerifyData" is "Deposit", "Transaction" {
         case InputType.Root {
           // here we compare the provided data hash to the supplied root header hash to enforce proper proof construction
           require(eq(TransactionProof.data(transactionProof, index), RootHeader.keccak256(inputProofs)),
-            error"utxo-proof")
+            error"root-proof")
 
-          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
+          inputProofs := add(inputProofs, RootHeader.size(inputProofs))
         }
 
         default { require(0, error"input-data-length") }
