@@ -23,7 +23,6 @@ const { BlockHeader, RootHeader, Leaf,
     merkleTreeRoot, transactions, hashes } = require('@fuel-js/protocol/src/block');
 const tx = require('@fuel-js/protocol/src/transaction');
 const { Deposit } = require('@fuel-js/protocol/src/deposit');
-const { defaults } = require('./harness');
 
 module.exports = test('simualtion', async t => {
     // Setup Addresses

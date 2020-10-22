@@ -330,6 +330,18 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
         return.word(blockCommitment(calldata.word(0)))
       }
 
+      /// @notice Get a fraud commitment hash.
+      /// @param fraudHash The keccak256(proveFraud calldata)
+      /// @param caller The producer of the fraud hash.
+      /// @return The block number.
+      case sig"fraudCommitment(address caller, bytes32 fraudHash) external view returns (bytes32 blockNumber)" {
+        return.word(sload(mappingKey2(
+          Storage.FraudCommitments,
+          calldata.word(0),
+          calldata.word(1)
+        )))
+      }
+
       /// @notice Get Ethereum block number root was committed at.
       /// @param root Root.
       /// @return The Ethereum block number.
