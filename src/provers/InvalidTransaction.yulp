@@ -19,7 +19,7 @@ object "InvalidTransaction" is "TransactionProof", "Fraud" {
       )
       case 1 {
         // Root index overflow max now set to current Transaction index
-        assertOrFraud(lte(Metadata.transactionIndex(metadata), TransactionProof.transactionIndex(transactionProof)),
+        assertOrFraud(lt(Metadata.transactionIndex(metadata), TransactionProof.transactionIndex(transactionProof)),
           error"metadata-index-overflow", transactionProof)
       }
       case 0 {

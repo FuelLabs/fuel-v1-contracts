@@ -603,7 +603,4 @@ module.exports = test('proveInvalidTransaction', async t => { try {
 
   await state ({ useErc20: true, fraud: 'metadata-index-overflow', sameRoot: true });
 
-  await state ({ useErc20: true, fraud: 'metadata-output-overflow' });
-
-
 } catch (error) { t.error(error, errors); } });

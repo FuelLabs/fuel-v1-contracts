@@ -334,7 +334,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param fraudHash The keccak256(proveFraud calldata)
       /// @param caller The producer of the fraud hash.
       /// @return The block number.
-      case sig"fraudCommitment(address caller, bytes32 fraudHash) external view returns (bytes32 blockNumber)" {
+      case sig"fraudCommitment(address caller, bytes32 fraudHash) external view returns (uint256 blockNumber)" {
         return.word(sload(mappingKey2(
           Storage.FraudCommitments,
           calldata.word(0),
