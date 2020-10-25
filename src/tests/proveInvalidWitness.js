@@ -414,11 +414,11 @@ module.exports = test('proveInvalidWitness', async t => {
         let signatureFee = 0;
         let signatureFeeToken = 0;
 
-        if (opts.fraud === 'invalid-fee') {
+        if (opts.revert === 'invalid-fee') {
           signatureFee = 45;
         }
 
-        if (opts.fraud === 'invalid-fee-token') {
+        if (opts.revert === 'invalid-fee-token') {
           signatureFeeToken = 1;
         }
 
@@ -558,8 +558,8 @@ module.exports = test('proveInvalidWitness', async t => {
     await state(
         {useErc20: true, commitAddress: true, htlc: true, fraud: 'htlc-owner'});
 
-    await state({useErc20: true, root: true, fraud: 'invalid-fee'});
-    await state({useErc20: true, root: true, fraud: 'invalid-fee-token'});
+    await state({useErc20: true, root: true, revert: 'invalid-fee'});
+    await state({useErc20: true, root: true, revert: 'invalid-fee-token'});
     await state({useErc20: true, fraud: 'utxo-witness'});
     await state({useErc20: true, root: true, fraud: 'root-witness'});
     await state({useErc20: true, htlc: true, fraud: 'htlc-owner-return'});

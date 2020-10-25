@@ -8,6 +8,20 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
     /// @param transactionProof Position in memory of transaction proof.
     /// @param inputProofs Position in memory of inputs proofs.
     function proveWitness(transactionProof, inputProofs) {
+      // Assert fee token signed over is the fee in the root.
+      require(
+        eq(TransactionProof.signatureFeeToken(transactionProof),
+          TransactionProof.feeToken(transactionProof)),
+        error"invalid-fee-token"
+      )
+
+      // Assert fee signed over is the fee in the root.
+      require(
+        eq(TransactionProof.signatureFee(transactionProof),
+          TransactionProof.fee(transactionProof)),
+        error"invalid-fee"
+      )
+      
       // Get position in memory of start of leaf (i.e. transaction)
       let leaf := TransactionProof.transaction.position(transactionProof)
       // Get position in memory of start of transaction inputs
@@ -74,20 +88,6 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
         index := add(index, 1)
         pos := add(pos, inputSize(pos))
       }
-
-      // Assert fee token signed over is the fee in the root.
-      assertOrFraud(
-        eq(TransactionProof.signatureFeeToken(transactionProof), TransactionProof.feeToken(transactionProof)),
-        error"invalid-fee-token",
-        transactionProof
-      )
-
-      // Assert fee signed over is the fee in the root.
-      assertOrFraud(
-        eq(TransactionProof.signatureFee(transactionProof), TransactionProof.fee(transactionProof)),
-        error"invalid-fee",
-        transactionProof
-      )
     }
 
     /// @notice Prove a witness was invalid.
