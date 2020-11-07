@@ -8,9 +8,14 @@ const { defaults } = require('./harness');
 module.exports = test('owned proxy', async t => {
   // Construct proxy
   const cold = t.wallets[0].address;
+  const coldWallet = t.wallets[0];
   const hot = t.wallets[1].address;
   const hot2 = t.wallets[2].address;
   const proxy = await t.deploy(OwnedProxy.abi, OwnedProxy.bytecode, [hot, cold]);
+
+  const coldProxy = proxy.connect(coldWallet);
+  await t.wait(coldProxy.setTarget(utils.emptyAddress, overrides),
+    'set target', OwnedProxy.errors);
 
   await t.wait(proxy.transact(utils.emptyAddress, 0, '0x', overrides),
     'transact cold', OwnedProxy.errors);
@@ -20,6 +25,9 @@ module.exports = test('owned proxy', async t => {
     'transact hot', OwnedProxy.errors);
 
   await t.revert(hotContract.change(utils.emptyAddress, overrides),
+    OwnedProxy.errors['caller-cold'], 'caller-cold', OwnedProxy.errors);
+
+  await t.revert(hotContract.setTarget(utils.emptyAddress, overrides),
     OwnedProxy.errors['caller-cold'], 'caller-cold', OwnedProxy.errors);
 
   await t.wait(proxy.change(hot2, overrides),
@@ -32,6 +40,13 @@ module.exports = test('owned proxy', async t => {
   const producer = proxy.address;
   const contract = await t.deploy(abi, bytecode, defaults(proxy.address));
 
+  // Change hot back to 1.
+  await t.wait(proxy.change(hot, overrides),
+    'change hot', OwnedProxy.errors);
+
+  // Set target to contract Fuel.
+  await t.wait(coldProxy.setTarget(contract.address, overrides),
+    'set target', OwnedProxy.errors);
 
   // submit a valid root
   const merkleRootA = utils.emptyBytes32;
@@ -77,7 +92,7 @@ module.exports = test('owned proxy', async t => {
     currentBlock, currentBlockHash, 1, [aroot],
   ]);
 
-  const ctx = await t.wait(proxy.transact(contract.address, await contract.BOND_SIZE(), abiCode, overrides),
+  const ctx = await t.wait(hotContract.transact(contract.address, await contract.BOND_SIZE(), abiCode, overrides),
     'transact commitBlock', OwnedProxy.errors);
 
   header.properties.blockNumber().set(ctx.events[0].blockNumber);

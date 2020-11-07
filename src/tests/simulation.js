@@ -28,6 +28,7 @@ module.exports = test('simualtion', async t => {
     // Setup Addresses
     const producer = t.wallets[0].address;
     const cold = t.wallets[1].address;
+    const coldWallet = t.wallets[1];
     const userA = t.wallets[2].address;
     const userAWallet = t.wallets[2];
     const userB = t.wallets[2].address;
@@ -54,6 +55,10 @@ module.exports = test('simualtion', async t => {
             1,
             genesisHash,
         ]);
+
+        // Connect proxy target to Fuel contract.
+        const proxyCold = proxy.connect(coldWallet);
+        await proxyCold.setTarget(contract.address, overrides);
 
         // Produce the token.
         const totalSupply = utils.parseEther('100000000000000.00');
@@ -264,7 +269,7 @@ module.exports = test('simualtion', async t => {
         t.equalBig(await t.getBalance(someAddress), 0, "balance"); 
         
         // Send bond back to another address.
-        await t.wait(proxy.transact(
+        await t.wait(proxyCold.transact(
             someAddress,
             await contract.BOND_SIZE(),
             '0x',

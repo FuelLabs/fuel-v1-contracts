@@ -49,6 +49,12 @@ if (verify) {
   console.log('Verifying deployment');
 }
 
+// Deployment transaction hashes.
+const transactionHashes = {
+  'rinkeby': '0x712b3a2e6a79a639d74b849df2b48dd2c6be6055d8791662557275e01a33e0d2',
+  'ropsten': '',
+};
+
 // Deploy Fuel to Network
 module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => { try {
   // Check Network Specification
@@ -80,6 +86,7 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     : operator;
 
   // Faucet log
+  console.log('deployer address @ ', wallet.address);
   console.log('operator address @ ', operator);
   console.log('faucet address @ ', faucet);
 
@@ -129,7 +136,7 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
 
     // Get the contract code from the provider.
     const contractCode = (await t.getProvider()
-      .getTransaction('0xd21eb619e2e7b1aa0268be9b231e3ff5ba5e732b53ce1525a8e653b503290507'))
+      .getTransaction(transactionHashes[network_name]))
       .data;
 
     // Code produced from deployment.
@@ -139,6 +146,9 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
 
     // Assert the bytecode to be the same.
     utils.assert(contractCode === producedBytecode, 'bytecode-verified');
+
+    // Log verified.
+    console.log('Bytecode verified.');
 
     // Stop deployment sequence from progressing.
     return;

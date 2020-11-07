@@ -18,5 +18,6 @@
   await require('./ownedProxy');
   await require('./correctnessChecks');
   await require('./simulation');
+  await require('./merkleProof');
 
 })();
