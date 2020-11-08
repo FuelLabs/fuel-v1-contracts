@@ -96,8 +96,8 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     gasPrice: gasPrices.fast,
   });
 
-  // Genesis Block Hash
-  const genesis_hash = utils.emptyBytes32;
+  // Genesis Block Hash. Generated from genesis.js.
+  const genesis_hash = '0x9299da6c73e6dc03eeabcce242bb347de3f5f56cd1c70926d76526d7ed199b8b';
 
   // Set Deployment Parameters
   const deploymentParameters = [
@@ -105,13 +105,13 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     verify ? process.env['fuel_operator'] : operator,
 
     // finalizationDelay: uint256 | 2 weeks | Seconds: (14 * 24 * 60 * 60) / 13 = 93046
-    oneWeekInBlocks,
+    oneWeekInBlocks * 2,
 
     // submissionDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    oneDayInBlock,
+    oneDayInBlock * 7,
 
     // penaltyDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    0, // oneDayInBlock, no pentatly delay for testnet
+    6646 / 2, // oneDayInBlock, no pentatly delay for testnet
 
     // Bond Size
     utils.parseEther(process.env['bond_size'] || '.1'),

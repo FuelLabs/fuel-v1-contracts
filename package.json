@@ -25,7 +25,7 @@
     "deploy-rinkeby": "fuel_v1_network=rinkeby node ./config/deploy",
     "deploy-goerli": "fuel_v1_network=goerli node ./config/deploy",
     "deploy-kovan": "fuel_v1_network=kovan node ./config/deploy",
-    "deploy-mainnet": "fuel_v1_network=mainnet node ./config/deploy",
+    "deploy-mainnet": "fuel_v1_network=mainnet bond_size=1 node ./config/deploy",
     "verify-rinkeby": "fuel_operator=0x0ea6b5edc8905c85514b3676703f1bfe6ec260ad fuel_v1_network=rinkeby verify=1 node ./config/deploy",
     "test-erc20": "npm run build-erc20 && node src/tests/ERC20.test",
     "test-fuel": "npm run build-fuel && node src/tests/",
