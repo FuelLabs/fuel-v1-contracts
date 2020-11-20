@@ -1,7 +1,7 @@
 const { test, utils } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../src/builds/Fuel.json');
+const OwnedProxy = require('../src/builds/OwnedProxy.json');
 const ERC20 = require('../src/builds/ERC20.json');
-const { defaults } = require('../src/tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
 const write = require('write');
@@ -53,6 +53,7 @@ if (verify) {
 const transactionHashes = {
   'rinkeby': '0x712b3a2e6a79a639d74b849df2b48dd2c6be6055d8791662557275e01a33e0d2',
   'ropsten': '',
+  'mainnet': '0x8fb57c93bfaa578af174de240f8067b8bf2dc886d9e1f32ceb06a5953742984b',
 };
 
 // Deploy Fuel to Network
@@ -92,9 +93,38 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
 
   // set tx overrides object
   t.setOverrides({
-    gasLimit: 6000000,
-    gasPrice: gasPrices.fast,
+    gasLimit: 4000000,
+    gasPrice: gasPrices.median,
   });
+
+  // The operator for this wallet.
+  const operatorAddress = (verify
+    ? process.env['fuel_operator']
+    : operator);
+
+  // Cold wallet address.
+  const coldWallet = network_name === 'mainnet'
+    ? '0x3e947a271a37Ae7B59921c57be0a3246Ee0d887C'
+    : operatorAddress;
+
+  // Mainnet proxy.
+  let proxy = {
+   address: '0x416fd705858c247de79972112974e25bfabb83ca',
+  };
+
+   // Produce the Block Producer Proxy.
+   if (network_name !== 'mainnet') {
+    proxy = await t.deploy(
+      OwnedProxy.abi,
+      OwnedProxy.bytecode,
+      [
+         operatorAddress,
+         coldWallet,
+      ],
+      wallet,
+      t.getOverrides(),
+    );
+   }
 
   // Genesis Block Hash. Generated from genesis.js.
   const genesis_hash = '0x9299da6c73e6dc03eeabcce242bb347de3f5f56cd1c70926d76526d7ed199b8b';
@@ -102,7 +132,7 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
   // Set Deployment Parameters
   const deploymentParameters = [
     // Block Producer
-    verify ? process.env['fuel_operator'] : operator,
+    proxy.address,
 
     // finalizationDelay: uint256 | 2 weeks | Seconds: (14 * 24 * 60 * 60) / 13 = 93046
     oneWeekInBlocks * 2,
@@ -114,7 +144,10 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     6646 / 2, // oneDayInBlock, no pentatly delay for testnet
 
     // Bond Size
-    utils.parseEther(process.env['bond_size'] || '.1'),
+    utils.parseEther(
+      process.env['bond_size']
+      || '.1'
+    ),
 
     // Contract name
     "Fuel",
@@ -126,7 +159,7 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     network.chainId,
 
     // Contract Genesis
-    genesis_hash
+    genesis_hash,
   ];
 
   // If it's a verification, we stop it here
@@ -153,6 +186,12 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     // Stop deployment sequence from progressing.
     return;
   }
+
+   // set tx overrides object
+   t.setOverrides({
+    gasLimit: 3000000,
+    gasPrice: gasPrices.median,
+  });
 
   // Setup Contract for Deployment
   const contract = await t.deploy(abi, bytecode,

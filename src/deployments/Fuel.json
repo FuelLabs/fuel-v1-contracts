@@ -1,6 +1,8 @@
 {
   "v1": {
-    "ropsten": "0xC3cE90fFbcE58854D35CF4E70878015Ba46861fF",
-    "rinkeby": "0xB661ad8D230907F52C9C38900eE0F6935183a10C"
+    "mainnet": "0x7c5fcccd3c94faf14a3a9391a7c52b734ac9fbd2",
+    "ropsten": "0xB6A6412290f8A0d6B2E492E47DD82D010EC85c0a",
+    "rinkeby": "0x40e070e36c39763805e9d8e3770E8dcD146a0b5F",
+    "kovan": "0x7c5FCcCd3C94Faf14A3a9391a7C52B734Ac9Fbd2"
   }
 }
