@@ -53,7 +53,7 @@ if (verify) {
 const transactionHashes = {
   'rinkeby': '0x712b3a2e6a79a639d74b849df2b48dd2c6be6055d8791662557275e01a33e0d2',
   'ropsten': '',
-  'mainnet': '0x8fb57c93bfaa578af174de240f8067b8bf2dc886d9e1f32ceb06a5953742984b',
+  'mainnet': '0x8d8e2711dd4f22684597bb7ed99260ad3deba6ac5061ff1bbd9eadedb9a38be2',
 };
 
 // Deploy Fuel to Network
@@ -93,14 +93,12 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
 
   // set tx overrides object
   t.setOverrides({
-    gasLimit: 4000000,
+    gasLimit: 3000000,
     gasPrice: gasPrices.median,
   });
 
   // The operator for this wallet.
-  const operatorAddress = (verify
-    ? process.env['fuel_operator']
-    : operator);
+  const operatorAddress = process.env['fuel_operator'];
 
   // Cold wallet address.
   const coldWallet = network_name === 'mainnet'
@@ -109,11 +107,11 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
 
   // Mainnet proxy.
   let proxy = {
-   address: '0x416fd705858c247de79972112974e25bfabb83ca',
+    address: '0xb02b12bF1F2337D2E45554Aec474E4e25BDF8C76',
   };
 
    // Produce the Block Producer Proxy.
-   if (network_name !== 'mainnet') {
+   if (!verify) {
     proxy = await t.deploy(
       OwnedProxy.abi,
       OwnedProxy.bytecode,
@@ -124,7 +122,9 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
       wallet,
       t.getOverrides(),
     );
-   }
+  }
+
+  console.log('The proxy address is ', proxy.address);
 
   // Genesis Block Hash. Generated from genesis.js.
   const genesis_hash = '0x9299da6c73e6dc03eeabcce242bb347de3f5f56cd1c70926d76526d7ed199b8b';
@@ -138,7 +138,7 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     oneWeekInBlocks * 2,
 
     // submissionDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    oneDayInBlock * 7,
+    oneDayInBlock * 5,
 
     // penaltyDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
     6646 / 2, // oneDayInBlock, no pentatly delay for testnet
@@ -189,7 +189,7 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
 
    // set tx overrides object
    t.setOverrides({
-    gasLimit: 3000000,
+    gasLimit: 6000000,
     gasPrice: gasPrices.median,
   });
 
@@ -198,15 +198,17 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
       deploymentParameters, wallet, t.getOverrides());
 
   // Setup Fake Token for Deployment send to Faucet
-  const totalSupply = utils.bigNumberify('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
-  const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
-      [wallet.address, totalSupply], wallet, t.getOverrides());
+  if (network_name !== 'mainnet') {
+    const totalSupply = utils.bigNumberify('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
+        [wallet.address, totalSupply], wallet, t.getOverrides());
 
-  // Determine Contract Funnel
-  const funnela = await contract.funnel(faucet);
-  await t.wait(erc20.transfer(funnela, totalSupply, t.getOverrides()), 'erc20 transfer');
-  await t.wait(contract.deposit(faucet, erc20.address, t.getOverrides()),
-    'ether deposit', errors);
+    // Determine Contract Funnel
+    const funnela = await contract.funnel(faucet);
+    await t.wait(erc20.transfer(funnela, totalSupply, t.getOverrides()), 'erc20 transfer');
+    await t.wait(contract.deposit(faucet, erc20.address, t.getOverrides()),
+      'ether deposit', errors);
+  }
 
   // Write changes
   const out = './src/deployments/Fuel.json';

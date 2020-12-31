@@ -42,7 +42,7 @@ object "OwnedProxy" {
       /// @param data the bytes data of the transaction
       case sig"transact(address destination, uint256 value, bytes data)" {
         // Check calldataize underflow.
-        require(gte(calldatasize(), 68), error"calldata-size-underflow")
+        // require(gte(calldatasize(), 68), error"calldata-size-underflow")
         require(or(eq(caller(), hot), eq(caller(), cold)), error"caller")
         
         // Copy dest to mem.
@@ -64,7 +64,7 @@ object "OwnedProxy" {
       /// @param hot the address of the hot wallet
       case sig"setTarget(address target)" {
         // Check calldata size and enforce caller be only the cold wallet
-        require(eq(calldatasize(), 36), error"calldata-size-mismatch")
+        // require(eq(calldatasize(), 36), error"calldata-size-mismatch")
         require(eq(caller(), cold), error"caller-cold")
 
         // Copy new hot address from calldata, put it in storage
@@ -76,7 +76,7 @@ object "OwnedProxy" {
       /// @param hot the address of the hot wallet
       case sig"change(address hot)" {
         // Check calldata size and enforce caller be only the cold wallet
-        require(eq(calldatasize(), 36), error"calldata-size-mismatch")
+        // require(eq(calldatasize(), 36), error"calldata-size-mismatch")
         require(eq(caller(), cold), error"caller-cold")
 
         // Copy new hot address from calldata, put it in storage

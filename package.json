@@ -1,8 +1,8 @@
 {
-  "name": "fuel",
-  "version": "1.0.0",
+  "name": "@fuel-js/contracts",
+  "version": "0.0.6",
   "description": "Fuel protocol implemented in Yul+ for the Ethereum Virtual Machine",
-  "main": "./config/compile",
+  "main": "src/index.js",
   "engines": {
     "node": ">=10.16.0 <=12.18.2"
   },
@@ -22,12 +22,12 @@
     "deploy-all": "npm run deploy-ropsten && npm run deploy-rinkeby && npm run deploy-goerli && npm run deploy-kovan && npm run deploy-mainnet",
     "deploy-all-testnets": "npm run deploy-ropsten && npm run deploy-rinkeby && npm run deploy-goerli && npm run deploy-kovan",
     "deploy-ropsten": "fuel_v1_network=ropsten node ./config/deploy",
-    "deploy-rinkeby": "fuel_v1_network=rinkeby node ./config/deploy",
+    "deploy-rinkeby": "fuel_operator=0x0ea6b5edc8905c85514b3676703f1bfe6ec260ad fuel_v1_network=rinkeby node ./config/deploy",
     "deploy-goerli": "fuel_v1_network=goerli node ./config/deploy",
     "deploy-kovan": "fuel_v1_network=kovan node ./config/deploy",
-    "deploy-mainnet": "fuel_v1_network=mainnet bond_size=1 node ./config/deploy",
+    "deploy-mainnet": "fuel_operator=0x0ea6b5edc8905c85514b3676703f1bfe6ec260ad fuel_v1_network=mainnet bond_size=0.5 node ./config/deploy",
     "verify-rinkeby": "fuel_operator=0x0ea6b5edc8905c85514b3676703f1bfe6ec260ad fuel_v1_network=rinkeby verify=1 node ./config/deploy",
-    "verify-mainnet": "fuel_operator=0x0ea6b5edc8905c85514b3676703f1bfe6ec260ad bond_size=1 fuel_v1_network=mainnet verify=1 node ./config/deploy",
+    "verify-mainnet": "fuel_operator=0x0ea6b5edc8905c85514b3676703f1bfe6ec260ad bond_size=0.5 fuel_v1_network=mainnet verify=1 node ./config/deploy",
     "test-erc20": "npm run build-erc20 && node src/tests/ERC20.test",
     "test-fuel": "npm run build-fuel && node src/tests/",
     "benchmark": "node src/benchmarks/",

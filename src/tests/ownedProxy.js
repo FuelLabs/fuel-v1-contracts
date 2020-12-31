@@ -4,6 +4,9 @@ const { bytecode, abi, errors } = require('../builds/Fuel.json');
 const OwnedProxy = require('../builds/OwnedProxy.json');
 const { BlockHeader, RootHeader } = require('@fuel-js/protocol/src/block');
 const { defaults } = require('./harness');
+const ethers = require('ethers');
+const multisigAbi = require('./multisig.abi.json');
+const multisigBytecode = require('./multisig.bytecode.js');
 
 module.exports = test('owned proxy', async t => {
   // Construct proxy
@@ -97,4 +100,68 @@ module.exports = test('owned proxy', async t => {
 
   header.properties.blockNumber().set(ctx.events[0].blockNumber);
   t.equalBig(await contract.blockTip(), 1, 'tip');
+
+  // multisig tests.
+
+  const MultiSigFactory = new ethers.ContractFactory(
+    multisigAbi,
+    multisigBytecode,
+    t.wallets[1],
+  );
+
+    let multisig = await MultiSigFactory.deploy(
+      [t.wallets[1].address],
+      1,
+      utils.parseEther('1.0'),
+      t.getOverrides(),
+    );
+
+    multisig = multisig.connect(t.wallets[1]);
+
+    await multisig.deployTransaction.wait();
+
+    const proxy2 = await t.deploy(
+      OwnedProxy.abi,
+      OwnedProxy.bytecode,
+      [hot, multisig.address],
+    );
+
+    t.equalBig(await t.getProvider().getStorageAt(
+      proxy2.address, 
+      1,
+    ), 0, 'no target');
+
+    const tx = await multisig.submitTransaction(
+      proxy2.address,
+      '0',
+      '0x776d1a010000000000000000000000007c5fcccd3c94faf14a3a9391a7c52b734ac9fbd2',
+      t.getOverrides(),
+    );
+
+    await tx.wait();
+
+    t.equalBig(await t.getProvider().getStorageAt(
+      proxy2.address, 
+      1,
+    ), '0x7c5fcccd3c94faf14a3a9391a7c52b734ac9fbd2', 'no targettarget set');
+
+    t.equalBig(await t.getProvider().getStorageAt(
+      proxy2.address, 
+      0,
+    ), hot, 'hot before');
+
+    const tx2 = await multisig.submitTransaction(
+      proxy2.address,
+      '0',
+      '0x1e77933e0000000000000000000000003e947a271a37ae7b59921c57be0a3246ee0d887c',
+      t.getOverrides(),
+    );
+
+    await tx2.wait();
+
+    t.equalBig(await t.getProvider().getStorageAt(
+      proxy2.address, 
+      0,
+    ), '0x3e947a271a37ae7b59921c57be0a3246ee0d887c', 'hot after');
+    
 });
