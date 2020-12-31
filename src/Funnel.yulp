@@ -8,7 +8,7 @@ object "Funnel" {
   object "Runtime" {
     code {
       // Copy owner set in constructor to memory.
-      // 66 - 13 = 85
+      // 66 - 13 = 53
       codecopy(0, 53, 32)
 
       // Check owner is caller.
