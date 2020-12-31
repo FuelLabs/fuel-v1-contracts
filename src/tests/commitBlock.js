@@ -11,7 +11,6 @@ module.exports = test('commitBlock', async t => { try {
     const contract = await t.deploy(abi, bytecode, defaults(producer));
 
 
-
     // submit a valid root
     const merkleRootA = utils.emptyBytes32;
     const emptyTxs = utils.randomBytes(1000);

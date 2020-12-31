@@ -9,7 +9,9 @@ const tx = require('@fuel-js/protocol/src/transaction');
 const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('./harness');
 
-module.exports = test('withdraw', async t => { try {
+/// @dev try various valid and invalid merkle proofs.
+module.exports = test('merkleProof', async t => { try {
+  const maxTxs = 160;
 
   // Construct contract
   async function state (opts = {}) {
@@ -84,9 +86,20 @@ module.exports = test('withdraw', async t => { try {
       contract,
     });
 
+    // Fake leafs.
+    const fakeLeaf = new Leaf({
+      data: chunk(utils.hexlify(utils.randomBytes(120))),
+    });
+
+    const transactionIndex = opts.transactionIndex || 0;
+
+    const startFill = (new Array(transactionIndex))
+      .fill(fakeLeaf);
+    const endFill = (new Array(maxTxs - transactionIndex))
+      .fill(fakeLeaf);
 
     // produce it in a block
-    const txs = [transaction];
+    let txs = [...startFill, transaction, ...endFill];
     const combined = combine(txs);
     const root = (new RootHeader({
       rootProducer: producer,
@@ -97,7 +110,7 @@ module.exports = test('withdraw', async t => { try {
 
 
     await t.wait(contract.commitRoot(root.properties.merkleTreeRoot().get(), 0, 0, combine(txs), overrides),
-      'valid submit', errors);
+      'valid submit ' + transactionIndex, errors);
     const header = (new BlockHeader({
       producer,
       height: 1,
@@ -115,68 +128,80 @@ module.exports = test('withdraw', async t => { try {
     header.properties.blockNumber().set(block.events[0].blockNumber);
     t.equalBig(await contract.blockTip(), 1, 'tip');
 
+    // Forse some incorrect merkle construction, should revert.
+    if (opts.revert === 'invalid-merkle-root') {
+      // Place the wrong leafs with the right tx index.
+      const startFill = (new Array(transactionIndex))
+        .fill(new Leaf({
+          data: chunk(utils.hexlify(utils.randomBytes(120))),
+        }));
+      const endFill = (new Array(maxTxs - transactionIndex))
+        .fill(new Leaf({
+          data: chunk(utils.hexlify(utils.randomBytes(120))),
+        }));
+
+      txs = [
+        ...startFill,
+        transaction,
+        ...endFill,
+      ];
+    }
+
     // submit a withdrawal proof
     const proof = tx.TransactionProof({
       block: header,
       root,
       inputOutputIndex: 1,
       transactions: txs,
-      transactionIndex: 0,
+      transactionIndex,
       token,
       selector: producer,
     });
 
 
-
-
     // Increase block to finality
     await t.increaseBlock(await contract.FINALIZATION_DELAY());
 
-
-    if (opts.invalidOutputOwner) {
+    // If revert is present, go for it.
+    if (opts.revert) {
       await t.revert(contract.withdraw(proof.encodePacked(), {
         ...overrides,
-      }), errors['output-owner'], 'output owner check');
+      }), errors[opts.revert], opts.revert);
       return;
     }
-
-    if (opts.invalidTokenId) {
-      await t.revert(contract.withdraw(proof.encodePacked(), {
-        ...overrides,
-      }), errors['token-id'], 'token id');
-      return;
-    }
-
-    if (opts.invalidOutputType) {
-      await t.revert(contract.withdraw(proof.encodePacked(), {
-        ...overrides,
-      }), errors['output-type'], 'output type');
-      return;
-    }
-
 
     // withdraw
     const withdraw = await t.wait(contract.withdraw(proof.encodePacked(), {
       ...overrides,
-    }), 'withdraw ' + token, errors);
-
-
-
-    // double withdraw
-    if (attemptDoubleWithdraw) {
-      await t.revert(contract.withdraw(proof.encodePacked(), {
-        ...overrides,
-      }), errors['withdrawal-occured'], 'double withdraw prevented for ' + token);
-    }
+    }), 'withdraw ' + token + ' index: ' + transactionIndex, errors);
   }
 
-
-  await state ({ useErc20: false, attemptDoubleWithdraw: true });
-  await state ({ useErc20: true, attemptDoubleWithdraw: true });
-  await state ({ useErc20: true, invalidOutputOwner: true });
-  await state ({ useErc20: true, invalidTokenId: true });
-  await state ({ useErc20: true, invalidOutputType: true });
+  await state ({ useErc20: true });
   await state ({ useErc20: true, registeredAddress: true });
 
+  // 0 - 20
+  for (var i = 0; i < 20; i += 1) {
+    await state ({
+      useErc20: true,
+      transactionIndex: i,
+    });
+  }
+
+  // 0 - max; every even
+  for (var i = 0; i < maxTxs; i += 2) {
+    await state ({
+      useErc20: true,
+      transactionIndex: i,
+    });
+  }
+
+  // 0 - max, every odd
+  for (var i = 0; i < maxTxs; i += 3) {
+    await state ({
+      useErc20: true, 
+      transactionIndex: i,
+      revert: 'invalid-merkle-root',
+    });
+  }
 
 } catch (error) { t.error(error, errors); } });

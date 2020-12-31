@@ -17,8 +17,6 @@ module.exports = test('deposit', async t => { try {
 
     const revertToken = await t.deploy(Revert.abi, Revert.bytecode, []);
 
-
-
     // check invalid encoding and value underflow
     await t.revert(contract.deposit(producer, utils.emptyAddress, overrides),
       errors['value-underflow'], 'no ether');
@@ -44,6 +42,7 @@ module.exports = test('deposit', async t => { try {
     t.equalBig(await contract.depositAt(producer, 0, block), 0, 'empty deposit lookup');
     const etx = await t.wait(contract.deposit(producer, utils.emptyAddress, overrides),
       'ether deposit', errors);
+
     t.equalBig(await contract.depositAt(producer, 0, block), valuea, 'deposit lookup');
     await t.balanceEqual(funnela, 0, 'value');
     await t.balanceEqual(contract.address, valuea, 'value');
@@ -94,7 +93,7 @@ module.exports = test('deposit', async t => { try {
     t.equalBig(0, await provider.getCode(await contract.funnel(producer)), "code check");
 
     await t.revert(contract.deposit(producer, revertToken.address, overrides),
-      errors['balance-check'], 'revert transfer balance check', errors);
+      errors['transfer-call'], 'revert transfer balance check', errors);
 
     t.equalBig(0, await provider.getCode(await contract.funnel(producer)), "code check");
 

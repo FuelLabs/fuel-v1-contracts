@@ -1,11 +1,12 @@
 const { test, utils } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../src/builds/Fuel.json');
+const OwnedProxy = require('../src/builds/OwnedProxy.json');
 const ERC20 = require('../src/builds/ERC20.json');
-const { defaults } = require('../src/tests/harness');
 const ethers = require('ethers');
 const gasPrice = require('@fuel-js/gasprice');
 const write = require('write');
 const readFile = require('fs-readfile-promise');
+const deployments = require('../src/deployments/Fuel.json');
 
 // Network Specification
 const network_name = process.env['fuel_v1_network'];
@@ -35,6 +36,25 @@ function operatorsToWallets(operators = '') {
 
   return wallets;
 }
+
+// Is this just a deployment verification.
+const verify = process.env['verify'] === '1';
+
+// If it's just a verification, we use a fake operator.
+if (verify) {
+  // Specify a fo-operator.
+  process.env['fuel_v1_default_operators'] = utils.hexlify(utils.randomBytes(32));
+
+  // Log verifying deployment.
+  console.log('Verifying deployment');
+}
+
+// Deployment transaction hashes.
+const transactionHashes = {
+  'rinkeby': '0x712b3a2e6a79a639d74b849df2b48dd2c6be6055d8791662557275e01a33e0d2',
+  'ropsten': '',
+  'mainnet': '0x8d8e2711dd4f22684597bb7ed99260ad3deba6ac5061ff1bbd9eadedb9a38be2',
+};
 
 // Deploy Fuel to Network
 module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => { try {
@@ -67,34 +87,67 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     : operator;
 
   // Faucet log
+  console.log('deployer address @ ', wallet.address);
   console.log('operator address @ ', operator);
   console.log('faucet address @ ', faucet);
 
   // set tx overrides object
   t.setOverrides({
-    gasLimit: 6000000,
-    gasPrice: gasPrices.fast,
+    gasLimit: 3000000,
+    gasPrice: gasPrices.median,
   });
 
-  // Genesis Block Hash
-  const genesis_hash = utils.emptyBytes32;
+  // The operator for this wallet.
+  const operatorAddress = process.env['fuel_operator'];
+
+  // Cold wallet address.
+  const coldWallet = network_name === 'mainnet'
+    ? '0x3e947a271a37Ae7B59921c57be0a3246Ee0d887C'
+    : operatorAddress;
+
+  // Mainnet proxy.
+  let proxy = {
+    address: '0xb02b12bF1F2337D2E45554Aec474E4e25BDF8C76',
+  };
+
+   // Produce the Block Producer Proxy.
+   if (!verify) {
+    proxy = await t.deploy(
+      OwnedProxy.abi,
+      OwnedProxy.bytecode,
+      [
+         operatorAddress,
+         coldWallet,
+      ],
+      wallet,
+      t.getOverrides(),
+    );
+  }
+
+  console.log('The proxy address is ', proxy.address);
+
+  // Genesis Block Hash. Generated from genesis.js.
+  const genesis_hash = '0x9299da6c73e6dc03eeabcce242bb347de3f5f56cd1c70926d76526d7ed199b8b';
 
   // Set Deployment Parameters
   const deploymentParameters = [
     // Block Producer
-    operator,
+    proxy.address,
 
     // finalizationDelay: uint256 | 2 weeks | Seconds: (14 * 24 * 60 * 60) / 13 = 93046
-    oneWeekInBlocks,
+    oneWeekInBlocks * 2,
 
     // submissionDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    oneDayInBlock,
+    oneDayInBlock * 5,
 
     // penaltyDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    0, // oneDayInBlock, no pentatly delay for testnet
+    6646 / 2, // oneDayInBlock, no pentatly delay for testnet
 
     // Bond Size
-    utils.parseEther(process.env['bond_size'] || '.1'),
+    utils.parseEther(
+      process.env['bond_size']
+      || '.1'
+    ),
 
     // Contract name
     "Fuel",
@@ -106,23 +159,56 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     network.chainId,
 
     // Contract Genesis
-    genesis_hash
+    genesis_hash,
   ];
+
+  // If it's a verification, we stop it here
+  if (verify) {
+    // Assert there is a deployment to verify.
+    utils.assert(deployments.v1[network_name], 'there is no deployment for this network');
+
+    // Get the contract code from the provider.
+    const contractCode = (await t.getProvider()
+      .getTransaction(transactionHashes[network_name]))
+      .data;
+
+    // Code produced from deployment.
+    const fuelInterface = new ethers.utils.Interface(abi);
+    const producedBytecode = fuelInterface.deployFunction
+      .encode(bytecode, deploymentParameters);
+
+    // Assert the bytecode to be the same.
+    utils.assert(contractCode === producedBytecode, 'bytecode-verified');
+
+    // Log verified.
+    console.log('Bytecode verified.');
+
+    // Stop deployment sequence from progressing.
+    return;
+  }
+
+   // set tx overrides object
+   t.setOverrides({
+    gasLimit: 6000000,
+    gasPrice: gasPrices.median,
+  });
 
   // Setup Contract for Deployment
   const contract = await t.deploy(abi, bytecode,
       deploymentParameters, wallet, t.getOverrides());
 
   // Setup Fake Token for Deployment send to Faucet
-  const totalSupply = utils.bigNumberify('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
-  const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
-      [wallet.address, totalSupply], wallet, t.getOverrides());
+  if (network_name !== 'mainnet') {
+    const totalSupply = utils.bigNumberify('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+    const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
+        [wallet.address, totalSupply], wallet, t.getOverrides());
 
-  // Determine Contract Funnel
-  const funnela = await contract.funnel(faucet);
-  await t.wait(erc20.transfer(funnela, totalSupply, t.getOverrides()), 'erc20 transfer');
-  await t.wait(contract.deposit(faucet, erc20.address, t.getOverrides()),
-    'ether deposit', errors);
+    // Determine Contract Funnel
+    const funnela = await contract.funnel(faucet);
+    await t.wait(erc20.transfer(funnela, totalSupply, t.getOverrides()), 'erc20 transfer');
+    await t.wait(contract.deposit(faucet, erc20.address, t.getOverrides()),
+      'ether deposit', errors);
+  }
 
   // Write changes
   const out = './src/deployments/Fuel.json';

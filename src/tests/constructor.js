@@ -5,7 +5,7 @@ const { defaults } = require('./harness.js');
 
 module.exports = test('constructor', async t => { try {
 
-  t.ok(utils.hexDataLength(bytecode) < 24100, 'contract-bytecode-size-check');
+  t.ok(utils.hexDataLength(bytecode) < 24576, 'contract-bytecode-size-check');
 
   const state = async (contract, producer, params) => {
     let blockTip = utils.bigNumberify(0);
@@ -44,12 +44,29 @@ module.exports = test('constructor', async t => { try {
     t.equalBig(await contract.rootBlockNumberAt(utils.emptyBytes32), 0, 'empty root');
     t.equal(await contract.isWithdrawalProcessed(0, utils.emptyBytes32), false, 'empty withdrawal');
     t.equalBig(await contract.SUBMISSION_DELAY(), params[2], 'SUBMISSION_DELAY');
-    t.equalBig(await contract.MAX_ROOT_SIZE(), 57600, 'MAX_ROOT_SIZE');
+    t.equalBig(await contract.MAX_ROOT_SIZE(), 32000, 'MAX_ROOT_SIZE');
     t.equalBig(await contract.BOND_SIZE(), params[4], 'BOND_SIZE');
     t.equalBig(await contract.FINALIZATION_DELAY(), params[1], 'FINALIZATION_DELAY'); // 1 week
     t.equalBig(await contract.PENALTY_DELAY(), params[3], 'PENALTY_DELAY'); // 1 week
     t.equal(await contract.name(), params[5], 'name');
     t.equal(await contract.version(), params[6], 'version');
+
+    // Fallback
+    await t.revert(t.wallets[0].sendTransaction({
+      to: contract.address,
+      value: 0,
+      gasLimit: 100000,
+    }),
+    errors['fallback'],
+    'fallback no value');
+
+    await t.revert(t.wallets[0].sendTransaction({
+      to: contract.address,
+      value: 1,
+      gasLimit: 100000,
+    }), 
+    errors['fallback'],
+    'fallback with value');
 
     await t.revert(t.wallets[0].sendTransaction({ to: contract.address, data: '0xaa' }),
       errors['invalid-signature'], 'invalid signature');

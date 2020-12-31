@@ -1,9 +1,10 @@
 /// @title a simple OwnedProxy, if the hot key is compromised,
 ///        the fixed cold key (likely a MultiSig) can switch out the hot at any time
+/// @dev the Target in this case is the destination Fuel contract.
 object "OwnedProxy" {
   code {
     // Storage indexes
-    enum Storage (hot)
+    enum Storage (hot,target)
 
     // Register constructor with compiler
     let _constructor := sig"constructor(address hot, address cold)"
@@ -22,7 +23,7 @@ object "OwnedProxy" {
       if iszero(calldatasize()) { stop() }
 
       // Storage indexes
-      enum Storage (hot)
+      enum Storage (hot,target)
 
       // Copy cold key from contract bytes to memory, than to stack
       codecopy(0, sub(codesize(), 32), 32)
@@ -40,26 +41,52 @@ object "OwnedProxy" {
       /// @param value the value of the transaction
       /// @param data the bytes data of the transaction
       case sig"transact(address destination, uint256 value, bytes data)" {
-        // Check calldataize underflow
-        require(gte(calldatasize(), 68), error"calldata-size-underflow")
+        // Check calldataize underflow.
+        // require(gte(calldatasize(), 68), error"calldata-size-underflow")
         require(or(eq(caller(), hot), eq(caller(), cold)), error"caller")
-
-        // Copy transaction data to memory except the 4 byte sig, make call
+        
+        // Copy dest to mem.
         calldatacopy(0, 4, calldatasize())
+
+        // Caller must be cold, otherwise dest must be target.
+        // Re-entrancy protection for hot wallet.
+        require(or(
+          eq(caller(), cold),
+          eq(mload(0), sload(Storage.target))
+        ), error"target")
+
+        // Copy transaction data to memory except the 4 byte sig, make call.
         require(call(gas(), mload(0), mload(32), add(mload(64), 32), mload(96), 0, 0),
           error"call")
       }
 
       /// @notice Only the cold wallet may change the hot wallet address
       /// @param hot the address of the hot wallet
+      case sig"setTarget(address target)" {
+        // Check calldata size and enforce caller be only the cold wallet
+        // require(eq(calldatasize(), 36), error"calldata-size-mismatch")
+        require(eq(caller(), cold), error"caller-cold")
+
+        // Copy new hot address from calldata, put it in storage
+        calldatacopy(0, 4, 32)
+        sstore(Storage.target, mload(0))
+      }
+
+      /// @notice Only the cold wallet may change the hot wallet address
+      /// @param hot the address of the hot wallet
       case sig"change(address hot)" {
         // Check calldata size and enforce caller be only the cold wallet
-        require(eq(calldatasize(), 36), error"calldata-size-mismatch")
+        // require(eq(calldatasize(), 36), error"calldata-size-mismatch")
         require(eq(caller(), cold), error"caller-cold")
 
         // Copy new hot address from calldata, put it in storage
         calldatacopy(0, 4, 32)
         sstore(Storage.hot, mload(0))
+      }
+
+      // Revert on no valid signature.
+      default {
+        revert(0, 0)
       }
 
       // Stop all execution

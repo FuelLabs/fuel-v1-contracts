@@ -22,6 +22,10 @@ object "TransactionProof" is "BlockHeader", "MerkleProof" {
       // Transaction must be at least one byte long
       require(gt(TransactionProof.transaction.length(transactionProof), 0),
         error"empty-transaction")
+
+      // Ensure the selector index is less than 8.
+      require(lt(TransactionProof.inputOutputIndex(transactionProof), 8),
+        error"index-overflow")
     }
   }
 }

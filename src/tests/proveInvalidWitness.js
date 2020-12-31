@@ -107,6 +107,7 @@ module.exports = test('proveInvalidWitness', async t => {
             metadata: [tx.MetadataDeposit(deposit)],
             data: [deposit.keccak256()],
             outputs: specifiedOutputs,
+            chainId: 1,
             contract,
           });
 
@@ -224,6 +225,7 @@ module.exports = test('proveInvalidWitness', async t => {
               token: tokenId,
               owner: producer,
             })],
+            chainId: 1,
             contract,
           });
 
@@ -372,6 +374,7 @@ module.exports = test('proveInvalidWitness', async t => {
                 token: tokenId,
                 owner: producer,
               })],
+              chainId: 1,
               contract,
             });
 
@@ -408,15 +411,31 @@ module.exports = test('proveInvalidWitness', async t => {
 
         const txs2 = [transactionB];
 
+        let signatureFee = 0;
+        let signatureFeeToken = 0;
+
+        if (opts.revert === 'invalid-fee') {
+          signatureFee = 45;
+        }
+
+        if (opts.revert === 'invalid-fee-token') {
+          signatureFeeToken = 1;
+        }
+
         const root2 = (new RootHeader({
           rootProducer: producer,
           merkleTreeRoot: merkleTreeRoot(txs2),
           commitmentHash: utils.keccak256(combine(txs2)),
           rootLength: utils.hexDataLength(combine(txs2)),
+          feeToken: signatureFeeToken,
+          fee: signatureFee,
         }));
         await t.wait(
             contract.commitRoot(
-                root2.properties.merkleTreeRoot().get(), 0, 0, combine(txs2),
+                root2.properties.merkleTreeRoot().get(),
+                signatureFeeToken,
+                signatureFee,
+                combine(txs2),
                 overrides),
             'valid submit', errors);
 
@@ -435,9 +454,27 @@ module.exports = test('proveInvalidWitness', async t => {
           transactions: txs2,
           inputOutputIndex: 0,
           transactionIndex: 0,
+          signatureFeeToken: 0,
+          signatureFee: 0,
           token: producer,
         });
       }
+
+      // Generate the fraud hash
+      const fraudHash = utils.keccak256(contract.interface.functions.proveInvalidWitness.encode(
+        [
+          proof.encodePacked(),
+          inputs
+        ],
+      ));
+
+      // Commit the fraud hash.
+      await t.wait(contract.commitFraudHash(fraudHash, {
+        ...overrides,
+      }), 'commit fraud hash', errors);
+
+      // Wait 10 blocks for fraud finalization.
+      await t.increaseBlock(10);
 
       if (opts.fraud) {
         const fraudTx = await t.wait(
@@ -521,6 +558,8 @@ module.exports = test('proveInvalidWitness', async t => {
     await state(
         {useErc20: true, commitAddress: true, htlc: true, fraud: 'htlc-owner'});
 
+    await state({useErc20: true, root: true, revert: 'invalid-fee'});
+    await state({useErc20: true, root: true, revert: 'invalid-fee-token'});
     await state({useErc20: true, fraud: 'utxo-witness'});
     await state({useErc20: true, root: true, fraud: 'root-witness'});
     await state({useErc20: true, htlc: true, fraud: 'htlc-owner-return'});
