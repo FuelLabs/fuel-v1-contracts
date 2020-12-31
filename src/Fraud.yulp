@@ -5,7 +5,7 @@ import "./Calldata.yulp"
 /// @title Fraud proof helper
 object "Fraud" is "Utils", "Block", "Calldata" {
   code {
-    /// @dev Fraud finalization period.
+    /// @dev Fraud finalization period. Mitigates miner frontrunning of fraud proofs.
     const FRAUD_FINALIZATION_PERIOD := 10
 
     /// @notice This will commit a fraud hash in storage.
