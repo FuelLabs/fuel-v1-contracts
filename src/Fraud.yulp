@@ -10,7 +10,7 @@ object "Fraud" is "Utils", "Block", "Calldata" {
 
     /// @notice This will commit a fraud hash in storage.
     function commitFraudHash(fraudHash) {
-      // We store the caller / fraud hash 5 blocks into the future.
+      // Store the caller and fraud hash.
       sstore(
         mappingKey2(Storage.FraudCommitments, caller(), fraudHash),
         number()
