@@ -116,7 +116,7 @@ object "InvalidInput" is "Deposit", "TransactionProof", "Fraud" {
           OutputHTLC.expiry(output)) {
           // The hash of the preimage in the transaction proof must match the digest in the input proof
           assertOrFraud(eq(OutputHTLC.digest(output),
-            InputHTLC.preImage.keccak256(input)), error"htlc-preimage", transactionProof)
+            sha256(InputHTLC.preImage.position(input))), error"htlc-preimage", transactionProof)
         }
       }
     }

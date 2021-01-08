@@ -1,4 +1,5 @@
 import "./Storage.yulp"
+import "./Utils.yulp"
 
 /// @title HTLC, a simplisitic generic multi-use hash-time-lock-contract for ERC20's and Ether
 object "HTLC" {
@@ -10,7 +11,7 @@ object "HTLC" {
     datacopy(0, dataoffset("Runtime"), add(datasize("Runtime"), 32))
     return(0, add(datasize("Runtime"), 32))
   }
-  object "Runtime" is "Storage" {
+  object "Runtime" is "Storage", "Utils" {
     code {
       // We use the zero value to represent the Ether token
       const ETHER_TOKEN_ADDRESS := 0
@@ -115,7 +116,7 @@ object "HTLC" {
 
         // Build cases of is HTLC expired or preimage provded correct
         let expired := gt(number(), mload(128))
-        let correct := eq(keccak256(160, 32), mload(64))
+        let correct := eq(sha256(160), mload(64))
 
         // Move aspects of calldata to stack
         let owner := mload(0)

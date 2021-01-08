@@ -51,7 +51,6 @@ module.exports = test('proveInvalidInput', async t => { try {
       'ether deposit', errors);
 
 
-
     // build a transaction
     const transaction = await tx.Transaction({
       inputs: [ tx.InputDeposit({
@@ -76,7 +75,7 @@ module.exports = test('proveInvalidInput', async t => { try {
         token: tokenId,
         owner: producer,
         expiry: 100000,
-        digest: utils.keccak256(utils.emptyBytes32),
+        digest: utils.sha256(utils.emptyBytes32),
         returnOwner: producer,
       }) ],
       contract,

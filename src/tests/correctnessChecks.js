@@ -286,7 +286,8 @@ module.exports = test('correctnessChecks', async t => {
             let output = outputs[outputIndex];
 
             // Is HTLC.
-            const isHTLC = output.properties.type().get().eq(tx.OutputTypes.HTLC);
+            const isHTLC = output.properties.type().get()
+                .eq(tx.OutputTypes.HTLC);
 
             // UTXO Proof.
             let utxo = tx.UTXO({
@@ -375,7 +376,7 @@ module.exports = test('correctnessChecks', async t => {
             tx.OutputHTLC({
                 token: '0x01',
                 owner: producer,
-                digest: utils.hexlify(utils.keccak256(defaultPreImage)),
+                digest: utils.hexlify(utils.sha256(defaultPreImage)),
                 returnOwner: '0x01',
                 expiry: 30000,
                 amount: defaultOutputAmounts[3],
@@ -521,7 +522,7 @@ module.exports = test('correctnessChecks', async t => {
                     owner: '0x00',
                     amount: tx2.amount,
                     expiry: 70000,
-                    digest: utils.keccak256('0xdeadbeaf'),
+                    digest: utils.sha256('0xdeadbeaf'),
                     returnOwner: utils.emptyAddress,
                 }),
                 tx.OutputTransfer({
@@ -790,15 +791,7 @@ module.exports = test('correctnessChecks', async t => {
                 proofMain.encodePacked(),
             ],
         );
-        /*
-        await commitFraudProof(
-            'proveDoubleSpend',
-            [
-                tx3.proof.encodePacked(),
-                tx6.proof.encodePacked(),
-            ],
-        );*/
-
+        
         // Check witness for all inputs.
         for (var inputIndex = 0; inputIndex < 8; inputIndex++) {
             proofMain.properties.inputOutputIndex().set(inputIndex);

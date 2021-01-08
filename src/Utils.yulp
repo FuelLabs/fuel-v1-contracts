@@ -1,15 +1,20 @@
+/// @dev The core utility module for Fuel.
 object "Utils" {
   code {
+    /// @dev Used as a constant Ether value.
     const Ether := 0
 
+    /// @dev Used as a multiply by 32 simple.
     function mul32(x) -> result {
       result := mul(x, 32)
     }
 
+    /// @dev Simple equal or.
     function eqor(x, y, z) -> result {
       result := or(eq(x, y), eq(x, z))
     }
 
+    // Round value down to 32.
     function round32(x) -> result {
       result := mul(div(x, 32), 32)
 
@@ -18,6 +23,13 @@ object "Utils" {
       }
     }
 
+    /// @dev Sha256 hash 1 word as memory position `start`.
+    function sha256(start) -> res {
+      pop(staticcall(gas(), 2, start, 32, 0, 32))
+      res := mload(0)
+    }
+
+    /// @dev Transfer amount either Ether or ERC20.
     function transfer(amount, token, owner) {
       require(gt(amount, 0), error"amount")
       require(gt(owner, 0), error"owner")
@@ -25,10 +37,12 @@ object "Utils" {
 
       switch token
 
+      // Handle case with Ether.
       case Ether {
         require(call(gas(), owner, amount, 0, 0, 0, 0), error"ether-transfer")
       }
 
+      // Handle ERC20 case.
       default {
         mstore(0, sig"transfer(address,uint256)", owner, amount)
         require(call(gas(), token, 0, 28, 68, 0, 32), error"erc20-call-transfer")

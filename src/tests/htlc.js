@@ -16,11 +16,10 @@ module.exports = test('htlc', async t => {
   const amount = 500;
   const etherToken = utils.emptyAddress;
   const preImage = utils.emptyBytes32;
-  const digest = utils.keccak256(preImage);
+  const digest = utils.sha256(preImage);
   const expiry = (await t.provider.getBlockNumber()) + 50000;
 
   // tx send liquidity
-
   await t.balanceEqual(contract.address, 0, 'value');
   await t.wait(t.wallets[0].sendTransaction({
     ...overrides,

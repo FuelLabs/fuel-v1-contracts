@@ -140,7 +140,7 @@ module.exports = test('simualtion', async t => {
                     amount: utils.parseEther('100.00'),
                     token: 1,
                     owner: userA,
-                    digest: utils.keccak256('0xdeadbeaf'),
+                    digest: utils.sha256('0xdeadbeaf'),
                     expiry: 100,
                     returnOwner: userB,
                 })],
