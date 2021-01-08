@@ -75,7 +75,7 @@ module.exports = test('proveInvalidInput', async t => { try {
         token: tokenId,
         owner: producer,
         expiry: 100000,
-        digest: utils.sha256(utils.emptyBytes32),
+        digest: utils.sha256(opts.preImage || utils.emptyBytes32),
         returnOwner: producer,
       }) ],
       contract,
@@ -211,7 +211,7 @@ module.exports = test('proveInvalidInput', async t => { try {
         outputIndex: 3,
       })];
       inputs = [tx.InputHTLC({
-        preImage: utils.emptyBytes32,
+        preImage: opts.preImage || utils.emptyBytes32,
       })];
     }
 
@@ -230,6 +230,30 @@ module.exports = test('proveInvalidInput', async t => { try {
     if (opts.fraud === "htlc-preimage") {
       inputs = [tx.InputHTLC({
         preImage: utils.hexZeroPad('0xaa', 32),
+      })];
+      metadata = [tx.Metadata({
+        blockHeight: 1,
+        rootIndex: 0,
+        transactionIndex: 0,
+        outputIndex: 3,
+      })];
+    }
+
+    if (opts.fraud === "htlc-preimage") {
+      inputs = [tx.InputHTLC({
+        preImage: '0xe71f5da4fcc40c6ea0d15a6b3f5d8e4fc5ca49f614b4ca0f35627a83598224b0',
+      })];
+      metadata = [tx.Metadata({
+        blockHeight: 1,
+        rootIndex: 0,
+        transactionIndex: 0,
+        outputIndex: 3,
+      })];
+    }
+
+    if (opts.fraud === "htlc-preimage") {
+      inputs = [tx.InputHTLC({
+        preImage: '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE',
       })];
       metadata = [tx.Metadata({
         blockHeight: 1,
@@ -426,6 +450,15 @@ module.exports = test('proveInvalidInput', async t => { try {
   await state ({ useErc20: false, fraud: "input-utxo-type" });
   await state ({ useErc20: false, fraud: "input-htlc-type" });
   await state ({ useErc20: false, fraud: "htlc-preimage" });
-
+  await state ({
+    useErc20: false,
+    fraud: "htlc-preimage",
+    preImage: '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF',
+  });
+  await state ({
+    useErc20: true,
+    htlc: true,
+    preImage: '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF',
+  });
 
 } catch (error) { t.error(error, errors); } });
