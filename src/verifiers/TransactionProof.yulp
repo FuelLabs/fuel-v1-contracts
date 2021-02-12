@@ -1,14 +1,15 @@
 import "./verifiers/BlockHeader.yulp"
 import "./verifiers/MerkleProof.yulp"
+import "./verifiers/Witness.yulp"
 
-/// @title Transaction proof verifier
-object "TransactionProof" is "BlockHeader", "MerkleProof" {
+/// @title Transaction proof verifier.
+object "TransactionProof" is "BlockHeader", "MerkleProof", "VerifyWitness" {
   code {
     /// @notice Verify a transaction proof.
     /// @param transactionProof Position in memory of transaction proof.
     /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
     function verifyTransactionProof(transactionProof, assertFinalized) {
-      // Verify the block header
+      // Verify the block header.
       verifyHeader(
         TransactionProof.block(transactionProof),
         TransactionProof.root(transactionProof),
@@ -16,16 +17,40 @@ object "TransactionProof" is "BlockHeader", "MerkleProof" {
         assertFinalized
       )
 
-      // Verify the Merkle inclusion proof
+      // Verify the Merkle inclusion proof (will revert if invalid). We pop leftish return off.
       pop(verifyMerkleProof(transactionProof))
 
-      // Transaction must be at least one byte long
-      require(gt(TransactionProof.transaction.length(transactionProof), 0),
-        error"empty-transaction")
+      // Transaction must be at least one byte long.
+      require(
+        gte(
+          TransactionProof.transaction.length(transactionProof),
+          TRANSACTION_SIZE_MIN
+        ),
+        error"transaction-size-minimum"
+      )
 
-      // Ensure the selector index is less than 8.
-      require(lt(TransactionProof.inputOutputIndex(transactionProof), 8),
-        error"index-overflow")
+      // Require this is a valid index selection (i.e. 0 - 7)
+      requireIndexValid(
+        TransactionProof.inputOutputIndex(transactionProof)
+      )
+
+      // Assert fee token signed over is the fee in the root.
+      require(
+        eq(
+          TransactionProof.signatureFeeToken(transactionProof),
+          TransactionProof.feeToken(transactionProof)
+        ),
+        error"invalid-fee-token"
+      )
+
+      // Assert fee signed over is the fee in the root.
+      require(
+        eq(
+          TransactionProof.signatureFee(transactionProof),
+          TransactionProof.fee(transactionProof)
+        ),
+        error"invalid-fee"
+      )
     }
   }
 }

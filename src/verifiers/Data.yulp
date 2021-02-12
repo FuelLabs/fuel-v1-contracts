@@ -1,56 +1,121 @@
 import "./Transaction.yulp"
 import "./Deposit.yulp"
 
-/// @title Data verifier
+/// @title Data verifier.
 object "VerifyData" is "Deposit", "Transaction" {
   code {
     /// @notice Verify proof of data.
     /// @param transactionProof Position in memory of transaction proof.
     /// @param inputProofs Position in memory of input proofs.
-    function verifyData(transactionProof, inputProofs) {
-      // Get starting position in memory of input in transaction proof
-      let pos := TransactionLeaf.inputs.position(TransactionProof.transaction.position(transactionProof))
+    /// @param maxIndex The max index to validate to.
+    function verifyData(transactionProof, inputProofs, maxIndex) {
+      // Ensure the number of data elements is equal to number of metadata/inputs.
+      require(
+        eq(
+          TransactionProof.data.length(transactionProof),
+          TransactionProof.metadata.length(transactionProof)
+        ),
+        error"data-length-alignment"
+      )
+
+      // Get starting position in memory of input in transaction proof.
+      let pos := TransactionLeaf.inputs.position(
+        TransactionProof.transaction.position(transactionProof)
+      )
+
+      // The input index.
       let index := 0
 
-      // Loop through each input until we've reached the end of the inputs in transaction proof
-      for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(transactionProof))) {} {
+      // Loop through each input until we've reached the end of the inputs in transaction proof.
+      for {} and(
+        lt(
+          index,
+          maxIndex
+        ),
+        lt(
+          pos,
+          TransactionLeaf.inputs.offset(
+            TransactionProof.transaction.position(transactionProof)
+          )
+        )) {} {
+        // The type of input being verified.
         switch Input.type(pos)
 
+        // In the case of a Transfer input.
         case InputType.Transfer {
-          // here we compare the provided data hash to the supplied utxo hash to enforce proper proof construction
-          require(eq(TransactionProof.data(transactionProof, index), UTXO.keccak256(inputProofs)),
-            error"utxo-proof")
+          // Here we compare the provided data hash to the supplied utxo hash to enforce proper proof construction.
+          require(
+            eq(
+              TransactionProof.data(transactionProof, index),
+              UTXO.keccak256(inputProofs)
+            ),
+            error"utxo-proof"
+          )
 
+          // Increase proof memory position of the input proofs.
           inputProofs := add(inputProofs, UTXO.size(inputProofs))
         }
 
+        // In the case of a Deposit input.
         case InputType.Deposit {
-          // here we compare the provided data hash to the supplied deposit hash to enforce proper proof construction
-          require(eq(TransactionProof.data(transactionProof, index), Deposit.keccak256(inputProofs)),
-            error"deposit-proof")
+          // Gere we compare the provided data hash to the supplied deposit hash to enforce proper proof construction.
+          require(
+            eq(
+              TransactionProof.data(transactionProof, index),
+              Deposit.keccak256(inputProofs)
+            ),
+            error"deposit-proof"
+          )
 
+          // Increase proof memory position of the input proofs.
           inputProofs := add(inputProofs, Deposit.size(inputProofs))
         }
 
+        // In the case of an HTLC input.
         case InputType.HTLC {
-          // here we compare the provided data hash to the supplied utxo hash to enforce proper proof construction
-          require(eq(TransactionProof.data(transactionProof, index), UTXO.keccak256(inputProofs)),
-            error"utxo-proof")
+          // Gere we compare the provided data hash to the supplied utxo hash to enforce proper proof construction.
+          require(
+            eq(
+              TransactionProof.data(transactionProof, index),
+              UTXO.keccak256(inputProofs)
+            ),
+            error"htlc-proof"
+          )
 
+          // Increase proof memory position of the input proofs.
           inputProofs := add(inputProofs, UTXO.size(inputProofs))
         }
 
+        // In the case of an Root input.
         case InputType.Root {
-          // here we compare the provided data hash to the supplied root header hash to enforce proper proof construction
-          require(eq(TransactionProof.data(transactionProof, index), RootHeader.keccak256(inputProofs)),
-            error"root-proof")
+          // Additional header check for root proof.
+          verifyTransactionProof(inputProofs, AssertFinalized.None)
 
-          inputProofs := add(inputProofs, RootHeader.size(inputProofs))
+          // Here we compare the provided data hash to the supplied root header hash to enforce proper proof construction.
+          require(
+            eq(
+              TransactionProof.data(transactionProof, index),
+              RootHeader.keccak256(TransactionProof.rootProducer.position(inputProofs))
+            ),
+            error"root-proof"
+          )
+
+          // Increase proof memory position of the input proofs.
+          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
-        default { require(0, error"input-data-length") }
+        // If the input type is invalid, revert.
+        default {
+          require(
+            0,
+            error"invalid-type"
+          )
+        }
 
+        // Increase the position of the input memory selector by the input size.
         pos := add(pos, inputSize(pos))
+
+        // Increase the input index by 1.
         index := add(index, 1)
       }
     }

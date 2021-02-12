@@ -8,22 +8,22 @@ const write = require('write');
 const readFile = require('fs-readfile-promise');
 const deployments = require('../src/deployments/Fuel.json');
 
-// Network Specification
+// Network Specification.
 const network_name = process.env['fuel_v1_network'];
 
-// One week in seconds
+// One week in seconds.
 const oneWeek = 604800;
 
-// One day in seconds
+// One day in seconds.
 const oneDay = 86400;
 
-// One week in eth block times
+// One week in eth block times.
 const oneWeekInBlocks = Math.round(oneWeek / 13);
 
-// One day in eth block times
+// One day in eth block times.
 const oneDayInBlock = Math.round(oneDay / 13);
 
-// Convert Seed / Operators to Wallets
+// Convert Seed / Operators to Wallets.
 function operatorsToWallets(operators = '') {
   let wallets = [];
 
@@ -43,7 +43,9 @@ const verify = process.env['verify'] === '1';
 // If it's just a verification, we use a fake operator.
 if (verify) {
   // Specify a fo-operator.
-  process.env['fuel_v1_default_operators'] = utils.hexlify(utils.randomBytes(32));
+  process.env['fuel_v1_default_operators'] = utils.hexlify(
+    utils.randomBytes(32),
+  );
 
   // Log verifying deployment.
   console.log('Verifying deployment');
@@ -56,49 +58,49 @@ const transactionHashes = {
   'mainnet': '0x8d8e2711dd4f22684597bb7ed99260ad3deba6ac5061ff1bbd9eadedb9a38be2',
 };
 
-// Deploy Fuel to Network
-module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => { try {
-  // Check Network Specification
+// Deploy Fuel to Network.
+module.exports = test(`Deploy Fuel Version 1.1 to ${network_name}`, async t => { try {
+  // Check Network Specification.
   utils.assert(network_name, 'fuel_v1_network not specified in environment variables');
   utils.assert(process.env['fuel_v1_default_infura'], 'fuel_v1_default_infura not specified in environment variables');
   utils.assert(process.env['fuel_v1_default_operators'], 'fuel_v1_default_operators not specified in environment variables');
 
-  // Network
+  // Network.
   const network = ethers.utils.getNetwork(network_name);
 
-  // Get Default Provider for Infura
+  // Get Default Provider for Infura.
   t.setProvider(ethers.getDefaultProvider(network.name, {
     infrua: process.env['fuel_v1_default_infura'],
   }));
   t.setPrivateKey(process.env['fuel_v1_default_operators'].split(',')[0]);
 
-  // Primary Wallet 0 Operator
+  // Primary Wallet 0 Operator.
   const wallet = t.getWallets()[0];
 
-  // Setup
+  // Setup.
   const operator = process.env['fuel_v1_default_seed']
     ? operatorsToWallets(process.env['fuel_v1_default_seed'])[0].address
     : wallet.address;
   const gasPrices = (await gasPrice(t.getProvider()));
 
-  // Faucet Address
+  // Faucet Address.
   const faucet = process.env['fuel_v1_default_faucet']
-    ? (new ethers.Wallet(process.env['fuel_v1_default_faucet'])).address
+    ? process.env['fuel_v1_default_faucet']
     : operator;
 
-  // Faucet log
+  // The operator for this wallet.
+  const operatorAddress = process.env['fuel_operator'];
+
+  // Faucet log.
   console.log('deployer address @ ', wallet.address);
-  console.log('operator address @ ', operator);
+  console.log('operator address @ ', operatorAddress);
   console.log('faucet address @ ', faucet);
 
-  // set tx overrides object
+  // set tx overrides object.
   t.setOverrides({
     gasLimit: 3000000,
     gasPrice: gasPrices.median,
   });
-
-  // The operator for this wallet.
-  const operatorAddress = process.env['fuel_operator'];
 
   // Cold wallet address.
   const coldWallet = network_name === 'mainnet'
@@ -129,40 +131,40 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
   // Genesis Block Hash. Generated from genesis.js.
   const genesis_hash = '0x9299da6c73e6dc03eeabcce242bb347de3f5f56cd1c70926d76526d7ed199b8b';
 
-  // Set Deployment Parameters
+  // Set Deployment Parameters.
   const deploymentParameters = [
-    // Block Producer
+    // Block Producer.
     proxy.address,
 
-    // finalizationDelay: uint256 | 2 weeks | Seconds: (14 * 24 * 60 * 60) / 13 = 93046
+    // finalizationDelay: uint256 | 2 weeks | Seconds: (14 * 24 * 60 * 60) / 13 = 93046.
     oneWeekInBlocks * 2,
 
-    // submissionDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
+    // submissionDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646.
     oneDayInBlock * 5,
 
-    // penaltyDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646
-    6646 / 2, // oneDayInBlock, no pentatly delay for testnet
+    // penaltyDelay: uint256, | 1 day | Seconds: (1 * 24 * 60 * 60) / 13 = 6646.
+    6646 / 2, // oneDayInBlock, no pentatly delay for testnet.
 
-    // Bond Size
+    // Bond Size.
     utils.parseEther(
       process.env['bond_size']
       || '.1'
     ),
 
-    // Contract name
+    // Contract name.
     "Fuel",
 
-    // Contract version
-    "1.0.0",
+    // Contract version.
+    "1.1.0",
 
-    // Contract
+    // Contract.
     network.chainId,
 
-    // Contract Genesis
+    // Contract Genesis.
     genesis_hash,
   ];
 
-  // If it's a verification, we stop it here
+  // If it's a verification, we stop it here.
   if (verify) {
     // Assert there is a deployment to verify.
     utils.assert(deployments.v1[network_name], 'there is no deployment for this network');
@@ -187,17 +189,17 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     return;
   }
 
-   // set tx overrides object
+   // set tx overrides object.
    t.setOverrides({
     gasLimit: 6000000,
     gasPrice: gasPrices.median,
   });
 
-  // Setup Contract for Deployment
+  // Setup Contract for Deployment.
   const contract = await t.deploy(abi, bytecode,
       deploymentParameters, wallet, t.getOverrides());
 
-  // Setup Fake Token for Deployment send to Faucet
+  // Setup Fake Token for Deployment send to Faucet.
   if (network_name !== 'mainnet') {
     const totalSupply = utils.bigNumberify('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
     const erc20 = await t.deploy(ERC20.abi, ERC20.bytecode,
@@ -210,16 +212,16 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
       'ether deposit', errors);
   }
 
-  // Write changes
+  // Write changes.
   const out = './src/deployments/Fuel.json';
 
-  // Read old JSON if ANy
+  // Read old JSON if ANy.
   let FuelDeployments = {};
   try {
     FuelDeployments = JSON.parse(await readFile(out, 'utf8'));
   } catch (error) {}
 
-  // Set new deployments
+  // Set new deployments.
   FuelDeployments = {
     ...(FuelDeployments || {}),
     v1: {
@@ -228,11 +230,11 @@ module.exports = test(`Deploy Fuel Version 1.0 to ${network_name}`, async t => {
     },
   };
 
-  // Write new File
+  // Write new File.
   await write(out, JSON.stringify(FuelDeployments, null, 2), { overwrite: true });
 
-  // End
-  console.log(`Fuel Version 1.0 deployed to ${network_name} @ address ${contract.address} in file ${out}`);
+  // End.
+  console.log(`Fuel Version 1.1 deployed to ${network_name} @ address ${contract.address} in file ${out}`);
 
   } catch (error) { console.error(error); }
 });

@@ -1,27 +1,43 @@
 import "./Storage.yulp"
 
-/// @title Address registry
+/// @title Address registry.
 /// @notice Assigns a unique ID for registered addresses.
 object "Address" is "Storage" {
   code {
     const ZERO_ADDRESS := 0
 
     /// @notice Get number of registered addresses.
-    /// @return Number of addresses as uint256
+    /// @return Number of addresses as uint256.
     function numAddresses() -> num {
       num := sload(Storage.NumAddresses)
     }
 
     /// @notice Get ID of registered address.
-    /// @return ID of address as uint256
+    /// @return ID of address as uint256.
     function addressId(addr) -> id {
       id := sload(mappingKey(Storage.Address, addr))
     }
 
     /// @notice Register a new address with a sequentially assigned ID.
+    /// @param addr The ERC20 token address to register.
+    /// @param id The id to register this token at.
     function indexAddress(addr, id) {
-      sstore(mappingKey(Storage.Address, addr), id)
-      sstore(Storage.NumAddresses, add(id, 1))
+      // Map the address to the token id.
+      sstore(
+        mappingKey(
+          Storage.Address,
+          addr
+        ),
+        id
+      )
+
+      // Increase the total number of tokens.
+      sstore(
+        Storage.NumAddresses,
+        add(id, 1)
+      )
+
+      // Emit the AddressIndexed event.
       log3(0, 0,
           topic"event AddressIndexed(address indexed owner, uint256 indexed id)",
           addr,
@@ -29,10 +45,12 @@ object "Address" is "Storage" {
     }
 
     /// @notice Return ID of address, assigning a new one if necessary.
-    /// @return ID of address as uint256
+    /// @return ID of address as uint256.
     function commitAddress(addr) -> id {
+      // Get the address Id of the provided address.
       id := addressId(addr)
 
+      // Ensure the ID is not registered.
       if and(neq(addr, 0), iszero(id)) {
         id := numAddresses()
         indexAddress(addr, id)

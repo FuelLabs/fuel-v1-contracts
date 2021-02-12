@@ -1,6 +1,6 @@
 import "./Storage.yulp"
 
-/// @title Token registry
+/// @title Token registry.
 /// @notice Assigns a unique ID for registered tokens.
 object "Tokens" is "Storage" {
   code {
@@ -8,13 +8,13 @@ object "Tokens" is "Storage" {
     const MAX_TOKEN_ID := 0xFFFFFFFF
 
     /// @notice Get number of registered tokens.
-    /// @return Number of tokens as uint256
+    /// @return Number of tokens as uint256.
     function numTokens() -> num {
       num := sload(Storage.NumTokens)
     }
 
     /// @notice Get ID of registered token.
-    /// @return ID of token as uint256
+    /// @return ID of token as uint256.
     function tokenId(addr) -> id {
       id := sload(mappingKey(Storage.Token, addr))
     }
@@ -30,15 +30,20 @@ object "Tokens" is "Storage" {
     }
 
     /// @notice Return ID of token, assigning a new one if necessary.
-    /// @return ID of token as uint256
+    /// @return ID of token as uint256.
     function commitToken(addr) -> id {
+      // Get the token id of this Contract address.
       id := tokenId(addr)
 
+      // If the address is not zero (i.e. ether or empty) and the id is not Ether (i.e. zero), continue.
       if and(neq(addr, 0), iszero(id)) {
+        // Get the total number of tokens from state.
         id := numTokens()
 
-        // here we enforce the token ID maximum, keeping token ID's under 4 bytes in length
+        // Here we enforce the token ID maximum, keeping token ID's under 4 bytes in length. Theory check.
         require(lt(id, MAX_TOKEN_ID), error"token-id-max")
+
+        // Index token address to id.
         indexToken(addr, id)
       }
     }

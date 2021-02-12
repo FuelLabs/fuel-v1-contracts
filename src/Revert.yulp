@@ -9,15 +9,47 @@ object "Revert" {
 
       switch mslice(0, 4)
 
+      /// @notice Return a valid balance.
       case sig"balanceOf(address owner) public view returns (uint256 balance)" {
         mstore(0, 5000)
         return (0, 32)
       }
 
+      /// @notice Revert on transfer.
       case sig"transfer(address owner, uint256 amount) public returns (bool success)" {
         require(0, error"transfer")
       }
 
+      /// @notice Attempt double deposit (i.e. same block.).
+      case sig"doubleDeposit(address fuel, address owner, address token)" {
+        calldatacopy(0, 4, calldatasize())
+        let fuelAddress := mload(0)
+        let ownerAddress := mload(32)
+        let tokenAddress := mload(64)
+
+        // We commit our first witness.
+        mstore(0, sig"deposit(address owner, address token)", ownerAddress, tokenAddress)
+        require(call(gas(), fuelAddress, 0, 28, 68, 0, 0), error"call")
+
+        // Attempt same deposit in the same block. should throw.
+        require(call(gas(), fuelAddress, 0, 28, 68, 0, 0), error"per-block")
+      }
+
+      /// @notice Attempt double witness commitment (i.e. same block, same data, same caller).
+      case sig"doubleCommitWitnesss(address fuel, bytes32 witness)" {
+        calldatacopy(0, 4, calldatasize())
+        let fuelAddress := mload(0)
+        let witness := mload(32)
+
+        // We commit our first witness.
+        mstore(0, sig"commitWitness(bytes32)", witness)
+        require(call(gas(), fuelAddress, 0, 28, 36, 0, 0), error"call")
+
+        // In the same block we commit the same witness, this should fail, we flag: already-committed.
+        require(call(gas(), fuelAddress, 0, 28, 36, 0, 0), error"already-witnessed")
+      }
+
+      /// @dev Invaid Signature.
       default {
         require(0, error"invalid-sig")
       }

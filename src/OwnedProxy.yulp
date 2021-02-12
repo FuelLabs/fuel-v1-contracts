@@ -3,46 +3,45 @@
 /// @dev the Target in this case is the destination Fuel contract.
 object "OwnedProxy" {
   code {
-    // Storage indexes
+    // Storage indexes.
     enum Storage (hot,target)
 
-    // Register constructor with compiler
+    // Register constructor with compiler.
     let _constructor := sig"constructor(address hot, address cold)"
 
-    // Store hot address in state
+    // Store hot address in state.
     codecopy(0, sub(codesize(), 64), 32)
     sstore(0, mload(0))
 
-    // To Runtime (32 additional for the constructor argument operator)
+    // To Runtime (32 additional for the constructor argument operator).
     datacopy(0, dataoffset("Runtime"), add(datasize("Runtime"), 64))
     return(0, add(datasize("Runtime"), 64))
   }
   object "Runtime" {
     code {
-      // if no calldata stop
+      // If no calldata stop.
       if iszero(calldatasize()) { stop() }
 
-      // Storage indexes
+      // Storage indexes.
       enum Storage (hot,target)
 
-      // Copy cold key from contract bytes to memory, than to stack
+      // Copy cold key from contract bytes to memory, than to stack.
       codecopy(0, sub(codesize(), 32), 32)
       let cold := mload(0)
 
-      // Load hot key from storage into stack
+      // Load hot key from storage into stack.
       let hot := sload(Storage.hot)
 
-      // Copy calldata signature to memory
+      // Copy calldata signature to memory.
       calldatacopy(0, 0, 4)
       switch mslice(0, 4)
 
-      /// @notice Hot wallet may use transact to make transactions
-      /// @param destination the destination address of the transaction
-      /// @param value the value of the transaction
-      /// @param data the bytes data of the transaction
+      /// @notice Hot wallet may use transact to make transactions.
+      /// @param destination the destination address of the transaction.
+      /// @param value the value of the transaction.
+      /// @param data the bytes data of the transaction.
       case sig"transact(address destination, uint256 value, bytes data)" {
         // Check calldataize underflow.
-        // require(gte(calldatasize(), 68), error"calldata-size-underflow")
         require(or(eq(caller(), hot), eq(caller(), cold)), error"caller")
         
         // Copy dest to mem.
@@ -60,26 +59,24 @@ object "OwnedProxy" {
           error"call")
       }
 
-      /// @notice Only the cold wallet may change the hot wallet address
-      /// @param hot the address of the hot wallet
+      /// @notice Only the cold wallet may change the hot wallet address.
+      /// @param hot the address of the hot wallet.
       case sig"setTarget(address target)" {
-        // Check calldata size and enforce caller be only the cold wallet
-        // require(eq(calldatasize(), 36), error"calldata-size-mismatch")
+        // Check calldata size and enforce caller be only the cold wallet.
         require(eq(caller(), cold), error"caller-cold")
 
-        // Copy new hot address from calldata, put it in storage
+        // Copy new hot address from calldata, put it in storage.
         calldatacopy(0, 4, 32)
         sstore(Storage.target, mload(0))
       }
 
-      /// @notice Only the cold wallet may change the hot wallet address
-      /// @param hot the address of the hot wallet
+      /// @notice Only the cold wallet may change the hot wallet address.
+      /// @param hot the address of the hot wallet.
       case sig"change(address hot)" {
-        // Check calldata size and enforce caller be only the cold wallet
-        // require(eq(calldatasize(), 36), error"calldata-size-mismatch")
+        // Check calldata size and enforce caller be only the cold wallet.
         require(eq(caller(), cold), error"caller-cold")
 
-        // Copy new hot address from calldata, put it in storage
+        // Copy new hot address from calldata, put it in storage.
         calldatacopy(0, 4, 32)
         sstore(Storage.hot, mload(0))
       }
@@ -89,7 +86,7 @@ object "OwnedProxy" {
         revert(0, 0)
       }
 
-      // Stop all execution
+      // Stop all execution.
       stop()
     }
   }

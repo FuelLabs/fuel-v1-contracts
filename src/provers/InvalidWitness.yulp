@@ -1,91 +1,143 @@
 import "./Fraud.yulp"
 import "./verifiers/Inputs.yulp"
 
-/// @title Invalid witness prover
+/// @title The InvalidWitness prover module.
 object "InvalidWitness" is "VerifyInputs", "Fraud" {
   code {
     /// @notice Helper: prove a witness is invalid.
     /// @param transactionProof Position in memory of transaction proof.
     /// @param inputProofs Position in memory of inputs proofs.
     function proveWitness(transactionProof, inputProofs) {
-      // Assert fee token signed over is the fee in the root.
-      require(
-        eq(TransactionProof.signatureFeeToken(transactionProof),
-          TransactionProof.feeToken(transactionProof)),
-        error"invalid-fee-token"
-      )
-
-      // Assert fee signed over is the fee in the root.
-      require(
-        eq(TransactionProof.signatureFee(transactionProof),
-          TransactionProof.fee(transactionProof)),
-        error"invalid-fee"
-      )
-      
-      // Get position in memory of start of leaf (i.e. transaction)
+      // Get position in memory of start of leaf (i.e. transaction).
       let leaf := TransactionProof.transaction.position(transactionProof)
-      // Get position in memory of start of transaction inputs
+
+      // Get position in memory of start of transaction inputs.
       let pos := TransactionLeaf.inputs.position(leaf)
+
+      // The position of the input.
       let index := 0
+
+      // Recovered witness.
+      let recoveredWitness := TransactionProof.input.recoverWitness(transactionProof)
+
+      // Ensure that the recovered witness is not null, null can never be a witness.
+      assertOrFraud(
+        neq(
+          recoveredWitness,
+          0
+        ),
+        error"null-witness",
+        transactionProof
+      )
 
       // Loop over inputs. For each input, the recovered account address must match the owner.
       for {} lt(pos, TransactionLeaf.inputs.offset(leaf)) {} {
+        // Switch between input types.
         switch Input.type(pos)
 
+        // If the case is an Input type transfer.
         case InputType.Transfer {
+          // Ensue the index is equal to the proof selection index.
           if eq(index, TransactionProof.inputOutputIndex(transactionProof)) {
-            assertOrFraud(ownerEquates(selectOutput(inputProofs),
-              TransactionProof.input.recoverWitness(transactionProof)), error"utxo-witness", transactionProof)
+            // Now check that the owner of the output selected is the correct recovered witness with the transaction proof.
+            assertOrFraud(
+              ownerEquates(
+                selectOutput(inputProofs),
+                recoveredWitness
+              ),
+              error"utxo-witness",
+              transactionProof
+            )
           }
 
+          // Increase the inputProofs memory index by the size of the input proof.
           inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
+        // In the case of a deposit input.
         case InputType.Deposit {
+          // Ensure the index is the one selected by the input output index.
           if eq(index, TransactionProof.inputOutputIndex(transactionProof)) {
-            assertOrFraud(eq(Deposit.owner(inputProofs),
-              TransactionProof.input.recoverWitness(transactionProof)),
-              error"deposit-witness", transactionProof)
+            assertOrFraud(
+              recoveredWitnessEq(
+                InputDeposit.owner(pos),
+                recoveredWitness
+              ),
+              error"deposit-witness",
+              transactionProof
+            )
           }
 
+          // Increase the inputProofs memory index by the size of the input proof.
           inputProofs := add(inputProofs, Deposit.size(inputProofs))
         }
 
+        // In the case of a root input.
         case InputType.Root {
+          // Ensure the index is the one selected by the input output index.
           if eq(index, TransactionProof.inputOutputIndex(transactionProof)) {
-            assertOrFraud(eq(TransactionProof.blockProducer(inputProofs),
-              TransactionProof.input.recoverWitness(transactionProof)), error"root-witness", transactionProof)
+            assertOrFraud(
+              recoveredWitnessEq(
+                TransactionProof.blockProducer(inputProofs),
+                recoveredWitness
+              ),
+              error"root-witness",
+              transactionProof
+            )
           }
 
+          // Increase the inputProofs memory index by the size of the input proof.
           inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
+        // In the case of an HTLC input.
         case InputType.HTLC {
+          // Ensure the index is the one selected by the input output index.
           if eq(index, TransactionProof.inputOutputIndex(transactionProof)) {
+            // Output expired.
             switch outputExpired(inputProofs, transactionProof)
 
+            // In the case the output of the HTLC is expired, we check the return owner.
             case 1 {
-              assertOrFraud(returnOwnerEquals(selectOutput(inputProofs),
-                TransactionProof.input.recoverWitness(transactionProof)),
-                error"htlc-owner-return", transactionProof)
+              assertOrFraud(
+                returnOwnerEquals(
+                  selectOutput(inputProofs),
+                  recoveredWitness
+                ),
+                error"htlc-owner-return",
+                transactionProof
+              )
             }
 
+            // In the case the output is not expired, we check the HTLC owner.
             case 0 {
-              assertOrFraud(ownerEquates(selectOutput(inputProofs),
-                TransactionProof.input.recoverWitness(transactionProof)),
-                error"htlc-owner", transactionProof)
+              assertOrFraud(
+                ownerEquates(
+                  selectOutput(inputProofs),
+                  recoveredWitness
+                ),
+                error"htlc-owner",
+                transactionProof
+              )
             }
           }
 
+          // Increase the inputProofs memory index by the size of the input proof.
           inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
-        if eq(index, TransactionProof.inputOutputIndex(transactionProof)) {
-          assertOrFraud(neq(TransactionProof.input.recoverWitness(transactionProof), 0),
-            error"null-witness", transactionProof)
+        // In the case of an invalid type, handle this in proveInvalidTransaction.
+        default {
+          require(
+            0,
+            error"invalid-type"
+          )
         }
 
+        // Increase input index.
         index := add(index, 1)
+
+        // Increase position of input.
         pos := add(pos, inputSize(pos))
       }
     }
@@ -94,7 +146,10 @@ object "InvalidWitness" is "VerifyInputs", "Fraud" {
     /// @param transactionProof Position in memory of transaction proof.
     /// @param inputProofs Position in memory of inputs proofs.
     function proveInvalidWitness(transactionProof, inputProofs) {
+      // We first verify the inputs are accurate.
       verifyInputs(transactionProof, inputProofs)
+
+      // We then prove the witness correctness, otherwise fraud is committed.
       proveWitness(transactionProof, inputProofs)
     }
   }

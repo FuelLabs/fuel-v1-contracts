@@ -1,3 +1,4 @@
+/// @dev This module is used for certain *developer only* test cases.
 object "Proxy" {
   code {
       datacopy(0, dataoffset("Runtime"), datasize("Runtime"))

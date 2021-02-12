@@ -1,66 +1,70 @@
-/// @title Transaction input
+/// @title Transaction input.
 /// @notice Transaction consume inputs.
 object "Inputs" {
   code {
     enum InputType (
-      // Simple transfer UTXO, no special conditions
+      // Simple transfer UTXO, no special conditions.
       Transfer,
-      // Spending a deposit from Ethereum
+      // Spending a deposit from Ethereum.
       Deposit,
-      // Spending an HTLC UTXO
+      // Spending an HTLC UTXO.
       HTLC,
-      // Spending a Root UTXO (i.e. collected fees)
+      // Spending a Root UTXO (i.e. collected fees).
       Root
     )
 
     /// @notice Generic input. Transfer and Root.
     mstruct Input (
-      // Input type
+      // Input type.
       type: uint8,
-      // Index of witness that authorizes spending this input
+      // Index of witness that authorizes spending this input.
       witnessReference: uint8
     )
 
     /// @notice A Deposit input.
     mstruct InputDeposit (
-      // Input type
+      // Input type.
       type: uint8,
-      // Index of witness that authorizes spending this input
+      // Index of witness that authorizes spending this input.
       witnessReference: uint8,
-      // Recipient address
+      // Recipient address.
       owner: address
     )
 
     /// @notice An HTLC input.
     mstruct InputHTLC (
-      // Input type
+      // Input type.
       type: uint8,
-      // Index of witness that authorizes spending this input
+      // Index of witness that authorizes spending this input.
       witnessReference: uint8,
-      // Preimage to hashlock
+      // Preimage to hashlock.
       preImage: bytes32
     )
 
     /// @notice Get size of an input object.
-    /// @return Size of input in bytes as uint256
+    /// @return Size of input in bytes as uint256.
     function inputSize(input) -> size {
+      // Switch based upon the Input's type.
       switch Input.type(input)
 
+      // In the case of an HTLC, the size is 34 bytes.
       case InputType.HTLC {
         size := 34
       }
 
+      // In the case of a Deposit, the size is a fixed 22 bytes.
       case InputType.Deposit {
         size := 22
       }
 
+      // In the case of a normal Transfer or Root Input, the size is a fixed 2 bytes.
       default {
         size := 2
       }
     }
 
     /// @notice Compute hash of input.
-    /// @return Keccak256 hash of input as bytes32
+    /// @return Keccak256 hash of input as bytes32.
     function inputKeccak256(input) -> hash {
       hash := keccak256(input, inputSize(input))
     }

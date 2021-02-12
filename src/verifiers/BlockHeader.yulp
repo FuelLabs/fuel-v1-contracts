@@ -1,14 +1,14 @@
 import "./Block.yulp"
 
-/// @title BlockHeader verifier
+/// @title BlockHeader verifier.
 object "BlockHeader" is "Block" {
   code {
     enum AssertFinalized (
-      // Assert not finalized
+      // Assert not finalized.
       NotFinalized,
-      // Assert finalized
+      // Assert finalized.
       Finalized,
-      // No finality assertion
+      // No finality assertion.
       None
     )
 
@@ -18,41 +18,71 @@ object "BlockHeader" is "Block" {
     /// @param rootIndex Position in memory of root index.
     /// @param assertFinalized Enum flag. 0: Assert finalized. 1: Assert not finalized. 2: No assert.
     function verifyHeader(blockHeader, root, rootIndex, assertFinalized) {
-      // Block must be known (already committed)
-      require(eq(blockCommitment(BlockHeader.height(blockHeader)), BlockHeader.keccak256(blockHeader)),
-          error"block-commitment")
+      // Block must be known (already committed).
+      require(
+        eq(
+          blockCommitment(BlockHeader.height(blockHeader)),
+          BlockHeader.keccak256(blockHeader)
+        ),
+        error"block-commitment"
+      )
 
-      // Load finalization delay parameter from constructor
+      // Load finalization delay parameter from constructor.
       Constructor.copy(0)
+
+      // Select the finalization delay from Constructor data.
       let finalizationDelay := Constructor.finalizationDelay(0)
 
-      // If asserting finalized, block must be finalizable
+      // If asserting finalized, block must be finalizable.
       if eq(assertFinalized, AssertFinalized.Finalized) {
-        require(gte(
-          number(),
-          add(BlockHeader.blockNumber(blockHeader), finalizationDelay)
-        ), error"not-finalized")
+        require(
+          gte(
+            number(),
+            add(BlockHeader.blockNumber(blockHeader), finalizationDelay)
+          ),
+          error"not-finalized"
+        )
       }
 
-      // If asserting not finalized, block must not be finalizable
+      // If asserting not finalized, block must not be finalizable.
       if eq(assertFinalized, AssertFinalized.NotFinalized) {
-        require(lt(
-          number(),
-          add(BlockHeader.blockNumber(blockHeader), finalizationDelay)
-        ), error"block-finalied")
+        require(
+          lt(
+            number(),
+            add(BlockHeader.blockNumber(blockHeader), finalizationDelay)
+          ),
+          error"block-finalized"
+        )
       }
 
-      // If root header is present, verify it
-      if gt(root, 0) {
-        // Check bounds on transaction root index
-        require(lt(rootIndex, BlockHeader.roots.length(blockHeader)),
-            error"root-index-underflow")
+      // Extra check. Ensure the block height is less than the current block tip.
+      require(
+        lte(
+          BlockHeader.height(blockHeader),
+          blockTip()
+        ),
+        error"block-height-overflow"
+      )
 
-        // Hash of root header must match root header hash from proof
-        require(eq(
+      // If root header memory position is present, verify it.
+      if gt(root, 0) {
+        // Check bounds on transaction root index.
+        require(
+          lt(
+            rootIndex,
+            BlockHeader.roots.length(blockHeader)
+          ),
+          error"root-index-underflow"
+        )
+
+        // Hash of root header must match root header hash from proof.
+        require(
+          eq(
             RootHeader.keccak256(root),
-            BlockHeader.roots(blockHeader, rootIndex)),
-            error"root-block")
+            BlockHeader.roots(blockHeader, rootIndex)
+          ),
+          error"root-block"
+        )
       }
     }
   }

@@ -1,56 +1,76 @@
 import "./Storage.yulp"
 
-/// @title Transaction witness
+/// @title Transaction witness.
 object "Witness" is "Storage" {
   code {
+    /// @dev Describes the valid Witness types in Fuel.
     enum WitnessType (
-      // Regular signature
+      // Regular signature.
       Signature,
-      // Contract call
+      // Contract call.
       Caller,
-      // Implicitly the block producer
+      // Implicitly the block producer.
       Producer
     )
 
+    /// @dev This is for when you want to sign a transaction with an Ethereum private key.
     mstruct Signature (
-      // Witness type
+      // Witness type.
       type: uint8,
       r: bytes32,
       s: bytes32,
       v: uint8
     )
 
+    /// @dev This is used when a contract wants to sign a transaction.
     mstruct Caller (
-      // Witness type
+      // Witness type.
       type: uint8,
-      // Authorizing caller address
+      // Authorizing caller address.
       owner: address,
-      // Ethereum block number witness was registered
+      // Ethereum block number witness was registered.
       blockNumber: uint32
     )
 
+    /// @dev This is used when the block producer wants to sign a transaction.
     mstruct Producer (
-      // Witness type
+      // Witness type.
       type: uint8,
-      // Transaction ID being witnessed
+      // Transaction ID being witnessed.
       hash: bytes32
     )
 
     /// @notice Get authorized transaction ID by owner and Ethereum block number.
-    /// @return Transaction ID as bytes32
-    // TODO can this be transactionID => owner?
-    // TODO care for re-org attacks
+    /// @param owner The owner address.
+    /// @param blockNumber The Ethereum block number of this witness.
+    /// @return Transaction ID as bytes32.
     function witnessAt(owner, blockNumber) -> id {
-      id := sload(mappingKey2(Storage.Witness, owner, blockNumber))
+      id := sload(
+        mappingKey2(
+          Storage.Witness,
+          owner,
+          blockNumber
+        )
+      )
     }
 
     /// @notice Register a new Caller witness for a transaction ID.
+    /// @param Commit a witness into state.
     function commitWitness(id) {
-      // Witness must not already be registered
+      // Witness must not already be registered.
       require(eq(witnessAt(caller(), number()), 0), error"already-witnessed")
-      // Store the transaction hash keyed by the caller and block number
-      sstore(mappingKey2(Storage.Witness, caller(), number()), id)
-      // Build WitnessCommitted log and emit
+  
+      // Store the transaction hash keyed by the caller and block number.
+      sstore(
+        mappingKey2(
+          Storage.Witness,
+          caller(),
+          number()
+        ),
+        id
+      )
+
+      // Build WitnessCommitted log and emit.
       mstore(0, number())
       log3(0, 32, topic"event WitnessCommitted(
         address indexed owner,
@@ -59,39 +79,69 @@ object "Witness" is "Storage" {
         caller(),
         id)
     }
+  
+    /// @notice This method ensures the owner cannot be zero.
+    /// @param owner The 20 byte owner address.
+    /// @param recoveredWitnessOwner The 20 byte recovered owner.
+    /// @return Is the witness equal.
+    /// @dev You can never sign as the null witness.
+    function recoveredWitnessEq(owner, recoveredWitnessOwner) -> result {
+      result := and(gt(owner, 0), eq(owner, recoveredWitnessOwner))
+    }
 
     /// @notice Get size of witness object.
-    /// @return Size of witness object, in bytes as uint256
+    /// @param witness The Witness structure in question.
+    /// @return Size of witness object, in bytes as uint256.
     function witnessSize(witness) -> size {
+      // Switch between the witness types.
       switch Signature.type(witness)
 
+      // If the type is a Signature.
       case WitnessType.Signature {
         size := Signature.size(witness)
       }
 
+      // If the type is a Caller.
       case WitnessType.Caller {
         size := Caller.size(witness)
       }
 
+      // If the type is a Producer.
       case WitnessType.Producer {
         size := Producer.size(witness)
       }
 
-      default { // avoid infinite loops
-        size := 66
+      // If the type is invalid.
+      default {
+        size := 66 // <-- Avoid infinite loops.
       }
     }
 
     /// @notice ecrecover helper function.
+    /// @param digestHash The 32 byte digest hash.
+    /// @param witness The Signature witness structure.
+    /// @return account The returned account from ECRecover.
     function ecrecover(digestHash, witness) -> account {
+      // The transactionHashId digest hash.
       mstore(0, digestHash)
+
+      // The singature V.
       mstore(32, Signature.v(witness))
+
+      // The signature R.
       mstore(64, Signature.r(witness))
+
+      // The signature S.
       mstore(96, Signature.s(witness))
 
-      let result := call(3000, 1, 0, 0, 128, 128, 32) // 4 chunks, return at 128
-      require(gt(result, 0), error"ecrecover")
-      account := mload(128)
+      // Clear memory ECRecover precompile return.
+      mstore(160, 0)
+
+      // Here we call ECRecover precompile at address 0x01, we allow it to fail.
+      let result := call(3000, 1, 0, 0, 128, 160, 32)
+
+      // Return the result RCRecover address.
+      account := mload(160)
     }
   }
 }

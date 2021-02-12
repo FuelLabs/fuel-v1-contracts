@@ -1,74 +1,193 @@
 import "./verifiers/TransactionProof.yulp"
 import "./Deposit.yulp"
+import "./Witness.yulp"
 
-/// @title Input verifier
-object "VerifyInputs" is "Deposit", "TransactionProof" {
+/// @title Input verifier module.
+object "VerifyInputs" is "Deposit", "TransactionProof", "VerifyWitness" {
   code {
     /// @notice Verify input proofs.
     /// @param transactionProof Position in memory of transaction proof.
     /// @param inputProofs Position in memory of input proofs.
     function verifyInputs(transactionProof, inputProofs) {
-      // Verify transaction proof
+      // Verify transaction proof.
       verifyTransactionProof(transactionProof, AssertFinalized.NotFinalized)
 
-      // Get positions of leaf and input
+      // Get positions of leaf and input.
       let leaf := TransactionProof.transaction.position(transactionProof)
+
+      // The position of the first input in this transactions leaf.
       let pos := TransactionLeaf.inputs.position(leaf)
+
+      // The starting input index.
       let index := 0
 
-      // Loop over inputs and verify each input proof
+      // Loop over inputs and verify each input proof.
       for {} lt(pos, TransactionLeaf.inputs.offset(leaf)) {} {
+        // Handle each input case.
         switch Input.type(pos)
 
+        // In the case of an Transfer input.
         case InputType.Transfer {
+          // Verify that the provided transaction proof is real, no finality assertion required.
           verifyTransactionProof(inputProofs, AssertFinalized.None)
 
-          require(eq(outputMetadata(inputProofs), TransactionLeaf.metadata(leaf, index)),
-            error"output-id")
+          // Verify proof witness.
+          verifyWitness(inputProofs)
 
-          require(eq(TransactionProof.UTXO.keccak256(inputProofs),
-            TransactionProof.data(transactionProof, index)), error"utxo-data")
+          // Ensure alignment between transfer input proof and metadata leaf.
+          require(
+            eq(
+              outputMetadata(inputProofs),
+              TransactionLeaf.metadata(leaf, index)
+            ),
+            error"transfer-output-id"
+          )
 
+          // Ensure alignment between provided UTXO
+          // hash of proof and provided data.
+          require(
+            eq(
+              TransactionProof.UTXO.keccak256(inputProofs),
+              TransactionProof.data(transactionProof, index)
+            ),
+            error"utxo-data"
+          )
+
+          // Increase the input proofs memory selector position by the transaction proof size.
           inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
+        // In the case of an Deposit input.
         case InputType.Deposit {
+          // Select the metadata from the transaction proof at the specified input index.
           let metadata := selectMetadata(transactionProof, index)
 
-          require(eq(Deposit.token(inputProofs), MetadataDeposit.token(metadata)),
-            error"deposit-token")
+          // Ensure provided token in the deposit
+          // is aligned with the metadata token.
+          require(
+            eq(
+              Deposit.token(inputProofs),
+              MetadataDeposit.token(metadata)
+            ),
+            error"deposit-token"
+          )
 
-          require(eq(Deposit.blockNumber(inputProofs), MetadataDeposit.blockNumber(metadata)),
-            error"deposit-block-number")
+          // Ensure provided blockNumber is aligned
+          // with the metadata deposit block number.
+          require(
+            eq(
+              Deposit.blockNumber(inputProofs),
+              MetadataDeposit.blockNumber(metadata)
+            ),
+            error"deposit-block-number"
+          )
 
-          require(eq(Deposit.keccak256(inputProofs),
-            TransactionProof.data(transactionProof, index)), error"deposit-data")
+          // Additional check, ensure deposit value is gt than zero.
+          require(
+            gt(
+              Deposit.amount(inputProofs),
+              0
+            ),
+            error"deposit-empty"
+          )
 
+          // Ensure additional alignment between value
+          // and proof provided by the prover.
+          require(
+            eq(
+              Deposit.amount(inputProofs),
+              depositAt(
+                Deposit.owner(inputProofs),
+                Deposit.token(inputProofs),
+                Deposit.blockNumber(inputProofs)
+              )
+            ),
+            error"deposit-value"
+          )
+
+          // Ensure the Deposit hash is equal to the
+          // one provided for signature verification.
+          require(
+            eq(
+              Deposit.keccak256(inputProofs),
+              TransactionProof.data(transactionProof, index)
+            ),
+            error"deposit-data"
+          )
+
+          // Increase the input proofs memory selector position by the deposit proof size.
           inputProofs := add(inputProofs, Deposit.size(inputProofs))
         }
 
+        // In the case of an Root input.
         case InputType.Root {
+          // Verify that the provided transaction proof, additional checks.
           verifyTransactionProof(inputProofs, AssertFinalized.None)
 
-          require(eq(RootHeader.keccak256(TransactionProof.rootProducer.position(inputProofs)),
-            TransactionProof.data(transactionProof, index)), error"root-data")
+          // We don't need a witness verification check here, as the BlockHeader and RootHeader are sufficient. 
+          // Ensure alignment between the provided root metadata structure and the data selected by this input.
+          require(
+            eq(
+              RootHeader.keccak256(TransactionProof.rootProducer.position(inputProofs)),
+              TransactionProof.data(transactionProof, index)
+            ),
+            error"root-data"
+          )
 
+          // Ensure alignment between the metadata ID of the transaction proof
+          // and the metadata selected by the transaction.
+          require(
+            eq(
+              outputMetadata(inputProofs),
+              TransactionLeaf.metadata(leaf, index)
+            ),
+            error"root-output-id"
+          )
+
+          // Increase the input proofs memory selector position by the transaction proof size.
           inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
+        // In the case of an HTLC input.
         case InputType.HTLC {
+          // Verify that the provided transaction proof is real, no finality assertion required.
           verifyTransactionProof(inputProofs, AssertFinalized.None)
 
-          require(eq(outputMetadata(inputProofs), TransactionLeaf.metadata(leaf, index)),
-            error"output-id")
+          // Verify proof witness.
+          verifyWitness(inputProofs)
 
-          require(eq(TransactionProof.UTXO.keccak256(inputProofs),
-            TransactionProof.data(transactionProof, index)), error"utxo-data")
+          // Ensure alignment between the metadata ID of the transaction proof
+          // and the metadata selected by the transaction.
+          require(
+            eq(
+              outputMetadata(inputProofs),
+              TransactionLeaf.metadata(leaf, index)
+            ),
+            error"htlc-output-id"
+          )
 
+          // Ensure alignment between provided data and provided keccak256 UTXO proof.
+          require(
+            eq(
+              TransactionProof.UTXO.keccak256(inputProofs),
+              TransactionProof.data(transactionProof, index)
+            ),
+            error"htlc-data"
+          )
+
+          // Increase the input proofs memory selector position by the transaction proof size.
           inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
+        // If no valid type revert. This should be handled in proveInvalidTransaction.
+        default {
+          require(0, error"invalid-type")
+        }
+
+        // Increase the index.
         index := add(index, 1)
+
+        // Increase the input memory selector position by the input size.
         pos := add(pos, inputSize(pos))
       }
     }

@@ -1,63 +1,97 @@
 import "./Transaction.yulp"
 import "./Deposit.yulp"
 
-/// @title Witness verifier
+/// @title Witness Verifier module.
 object "VerifyWitness" is "Deposit", "Transaction" {
   code {
     /// @notice Verify a witness proof.
     /// @param transactionProof Position in memory of transaction proof.
-    /// @param inputProofs Position in memory of input proofs.
-    function verifyWitness(transactionProof, inputProofs) {
-      let witness := TransactionProof.witness(transactionProof, 0)
-      let leaf := TransactionProof.transaction.position(transactionProof)
-      let input := TransactionLeaf.inputs.position(leaf)
+    function verifyWitness(transactionProof) {
+      // Transaction Input Proof is gathered from the inputsProof property itself.
+      let inputProofs := TransactionProof.inputProofs.position(transactionProof)
 
-      switch Signature.type(witness)
+      // Here we verify that the first proof is aligned to the data provided in the transaction proof.
+      verifyData(transactionProof, inputProofs, 1)
 
-      // Witness is a signature
-      case WitnessType.Signature {
-        switch Input.type(input)
+      // Select the position in memory of the first input.
+      let input := TransactionLeaf.inputs.position(
+        TransactionProof.transaction.position(transactionProof)
+      )
 
-        // Deposit: recovered address must match input owner
-        case InputType.Deposit {
-          require(eq(
-            ecrecover(transactionId(transactionProof), witness),
-            Deposit.owner(inputProofs)
-          ), error"witness-signature")
-        }
+      // Select the witness of the first input.
+      let witness := TransactionProof.witness(
+        transactionProof,
+        Input.witnessReference(input)
+      )
 
-        // Root: recovered address must match block producer of input
-        case InputType.Root {
-          require(eq(
-            ecrecover(transactionId(transactionProof), witness),
-            TransactionProof.blockProducer(inputProofs)
-          ), error"witness-signature")
-        }
+      // Switch based upon input type.
+      switch Input.type(input)
 
-        // Transfer: recovered address must match input owner
-        default {
-          require(eq(
-            ecrecover(transactionId(transactionProof), witness),
-            UTXO.owner(inputProofs)
-          ), error"witness-signature")
-        }
+      // Transfer: recovered address must match input owner.
+      case InputType.Transfer {
+        require(
+          recoveredWitnessEq(
+            UTXO.owner(inputProofs),
+            recoverFromWitness(witness, transactionProof)
+          ),
+          error"transfer-witness-signature"
+        )
       }
 
-      // Witness is a caller (i.e. contract authorized a transaction)
-      case WitnessType.Caller {
-        require(eq(
-          witnessAt(Caller.owner(witness), Caller.blockNumber(witness)),
-          transactionId(transactionProof)
-        ), error"witness-caller")
+      // Deposit: recovered address must match input owner.
+      case InputType.Deposit {
+        require(
+          recoveredWitnessEq(
+            Deposit.owner(inputProofs),
+            recoverFromWitness(witness, transactionProof)
+          ),
+          error"deposit-witness-signature"
+        )
       }
 
-      // Witness is address of producer (implied by producer of block)
-      case WitnessType.Producer {
-        require(eq(Producer.hash(witness), transactionId(transactionProof)),
-          error"witness-producer")
+      // Transfer: recovered address must match input owner.
+      case InputType.HTLC {
+        // Default to the owner.
+        let _owner := UTXO.owner(inputProofs)
+
+        // If the htlc is expired use the return owner.
+        if gte(
+            TransactionProof.blockNumber(transactionProof),
+            UTXO.expiry(inputProofs)
+          ) {
+          // Use the return owner.
+          _owner := UTXO.returnOwner(inputProofs)
+        }
+
+        // Ensure the HTLC witness is correct.
+        require(
+          recoveredWitnessEq(
+            _owner,
+            recoverFromWitness(witness, transactionProof)
+          ),
+          error"htlc-witness-signature"
+        )
       }
 
-      default { require(0, error"witness-type") }
+      // Root: recovered address must match block producer of input.
+      case InputType.Root {
+        // Now select the block producer from the proof.
+        require(
+          recoveredWitnessEq(
+            TransactionProof.blockProducer(inputProofs),
+            recoverFromWitness(witness, transactionProof)
+          ),
+          error"root-witness-signature"
+        )
+      }
+
+      // Revert if an invalid type is presented (handle this in proveInvalidTransaction).
+      default {
+        require(
+          0,
+          error"invalid-type"
+        )
+      }
     }
   }
 }
