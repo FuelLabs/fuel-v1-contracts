@@ -30,19 +30,23 @@ object "Calldata" {
       word := mload(add(add(_calldata, 4), mul(index, 32)))
     }
 
+    /// @notice Return the abi offset.
     function abi.offset(offset) -> position {
       position := add(offset, add(36, _calldata))
     }
 
+    /// @notice Return the abi length.
     function abi.length(offset) -> length {
       length := mload(add(offset, add(4, _calldata)))
     }
 
+    /// @notice Return a single word from memory.
     function return.word(word) {
       mstore(0, word)
       return(0, 32)
     }
 
+    /// @notice Return the calldata offset memory position.
     function calldata.offset() -> offset {
       offset := add(_calldata, calldatasize())
     }

@@ -1,15 +1,20 @@
+/// @dev The core utility module for Fuel.
 object "Utils" {
   code {
+    /// @dev Used as a constant Ether value.
     const Ether := 0
 
+    /// @notice Used as a multiply by 32 simple.
     function mul32(x) -> result {
       result := mul(x, 32)
     }
 
+    /// @notice Simple equal or.
     function eqor(x, y, z) -> result {
       result := or(eq(x, y), eq(x, z))
     }
 
+    /// @notice Round value down to 32.
     function round32(x) -> result {
       result := mul(div(x, 32), 32)
 
@@ -18,17 +23,42 @@ object "Utils" {
       }
     }
 
+    /// @notice Math pow.
+    /// @param base The base to be raised by the exponent.
+    /// @param exponent The exponent value.
+    /// @return result The result of base ^ exponent.
+    function power(base, exponent) -> result {
+        result := 1
+        for { let i := 0 } lt(i, exponent) { i := add(i, 1) } {
+            result := mul(result, base)
+        }
+    }
+
+    /// @notice Sha256 hash 1 word as memory position `start`.
+    /// @param start The starting memory position sha256(start, start + 1 word)
+    function sha256(start) -> res {
+      pop(staticcall(gas(), 2, start, 32, 0, 32))
+      res := mload(0)
+    }
+
+    /// @notice Transfer amount either Ether or ERC20.
+    /// @param amount The amount to transfer.
+    /// @param token The token address (0 for Ether).
+    /// @param owner The destination owner address.
     function transfer(amount, token, owner) {
       require(gt(amount, 0), error"amount")
       require(gt(owner, 0), error"owner")
       require(gte(token, 0), error"token")
 
+      // Based upon the token address switch.
       switch token
 
+      // Handle case with Ether.
       case Ether {
         require(call(gas(), owner, amount, 0, 0, 0, 0), error"ether-transfer")
       }
 
+      // Handle ERC20 case.
       default {
         mstore(0, sig"transfer(address,uint256)", owner, amount)
         require(call(gas(), token, 0, 28, 68, 0, 32), error"erc20-call-transfer")

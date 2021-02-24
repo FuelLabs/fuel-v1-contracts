@@ -1,4 +1,4 @@
-/// @title Transaction metadata, inserted by block producer to enable compact fraud proofs
+/// @title Transaction metadata, inserted by block producer to enable compact fraud proofs.
 object "Metadata" {
   code {
     // Size of metadata object in bytes
@@ -6,17 +6,21 @@ object "Metadata" {
 
     /// @notice Metadata object. Points to an exact entry in the ledger.
     mstruct Metadata (
+      // The 2 byte Fuel block header height. 
       blockHeight: uint32,
+      // The 1 byte root index selector.
       rootIndex: uint8,
+      // The 2 byte transaction index selector.
       transactionIndex: uint16,
+      // The 1 byte transaction output index selector.
       outputIndex: uint8
     )
 
     /// @notice Metadata for Deposit objects.
     mstruct MetadataDeposit (
-      // Token ID
+      // Token ID.
       token: uint32,
-      // Ethereum block number deposit was made
+      // Ethereum block number deposit was made.
       blockNumber: uint32
     )
   }

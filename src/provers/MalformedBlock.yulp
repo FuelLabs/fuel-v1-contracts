@@ -3,97 +3,158 @@ import "./Transaction.yulp"
 import "./Fraud.yulp"
 import "./Calldata.yulp"
 
-/// @title Malformed block prover
+/// @title Malformed block prover module.
 object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
   code {
     /// @notice Helper: compute Merkle root of list of transactions.
     /// @param transactions Position in memory to list of transactions.
-    /// @param transactionsLength
-    /// @param fraudBlock
-    /// @return Merkle root as bytes32
-    function constructMerkleTreeRoot(transactions, transactionsLength, fraudBlock) -> merkleTreeRoot {
-      // Initialize memory position to position of start of transaction list
+    /// @param transactionsLength The length of the transactions blob.
+    /// @param fraudBlock The number of the alleged fraudulant block.
+    /// @return Merkle root as bytes32.
+    function computeMerkleTreeRoot(transactions, transactionsLength, fraudBlock) -> merkleTreeRoot {
+      // Initialize memory position to position of start of transaction list.
       let memoryPosition := transactions
-      // Holds computed hashes
+
+      // Holds computed hashes.
       let freshMemoryPosition := add(calldata.offset(), 64)
+
+      // Set the transaction index at zero to start.
       let transactionIndex := 0
 
-      // Loop through each transaction (leaf in Merkle tree) and hash it
+      // Loop through each transaction (leaf in Merkle tree) and hash it.
       for {} lt(memoryPosition, add(transactions, transactionsLength)) {} {
-        // Extract length of current transaction
+        // Extract length of current transaction.
         let len := add(mslice(memoryPosition, 2), 2)
 
-        // Transaction length must be above minimum
-        assertOrFraud(gte(len, TRANSACTION_SIZE_MIN),
-            error"transaction-length-underflow", fraudBlock)
+        // Transaction length must be above minimum.
+        assertOrFraud(
+          gte(
+            len,
+            TRANSACTION_SIZE_MIN
+          ),
+          error"transaction-length-underflow",
+          fraudBlock
+        )
 
-        // Transaction length must be below maximum
-        assertOrFraud(lte(len, TRANSACTION_SIZE_MAX),
-            error"transaction-length-overflow", fraudBlock)
+        // Transaction length must be below maximum.
+        assertOrFraud(
+          lte(
+            len,
+            TRANSACTION_SIZE_MAX
+          ),
+          error"transaction-length-overflow",
+          fraudBlock
+        )
 
-        // Computed length must not be greater than provided payload
-        assertOrFraud(lte(sub(memoryPosition, transactions), transactionsLength),
-          error"net-length-overflow", fraudBlock)
+        // Computed length must not be greater than provided payload.
+        assertOrFraud(
+          lte(
+            sub(
+              memoryPosition,
+              transactions
+            ),
+            transactionsLength
+          ),
+          error"net-length-overflow",
+          fraudBlock
+        )
 
-        // Compute leaf hash and save it in memory
-        mstore(freshMemoryPosition, keccak256(memoryPosition, len))
+        // Compute leaf hash and save it in memory.
+        mstore(freshMemoryPosition, computeLeafHash(memoryPosition, len))
 
-        // Increment memory position to point to next transaction
+        // Increment memory position to point to next transaction.
         memoryPosition := add(memoryPosition, len)
 
-        // Increment computed hashes memory position by 32 bytes
+        // Increment computed hashes memory position by 32 bytes.
         freshMemoryPosition := add(freshMemoryPosition, 32)
 
+        // Increase the transaction index.
         transactionIndex := add(transactionIndex, 1)
 
-        // Number of transactions in list of transactions must not exceed max allowed
-        assertOrFraud(lt(transactionIndex, MAX_TRANSACTIONS_IN_ROOT),
-            error"transaction-index-overflow", fraudBlock)
+        // Number of transactions in list of transactions must not exceed max allowed.
+        assertOrFraud(
+          lt(
+            transactionIndex,
+            MAX_TRANSACTIONS_IN_ROOT
+          ),
+          error"transaction-index-overflow",
+          fraudBlock
+        )
       }
 
-      // Total transaction list length must match provided length
-      assertOrFraud(eq(memoryPosition, add(transactions, transactionsLength)),
-          error"net-length-overflow", fraudBlock)
+      // Compute the balanced binary merkle tree width.
+      let treeWidth := merkleTreeWidth(transactionIndex)
+
+      // Compute the empty transaciton leaf hash.
+      let emtpyLeafHash := computeEmptyTransactionLeafHash()
+
+      // Produce the zero value leafs to complete the balanced merkle tree.
+      for { let i := 0 } lt(i, sub(treeWidth, transactionIndex)) { i := add(i, 1) } {
+        // Store the empty leaf hash.
+        mstore(freshMemoryPosition, emtpyLeafHash)
+
+        // Set the new memory position.
+        freshMemoryPosition := add(freshMemoryPosition, 32)
+      }
+
+      // Compute necessary zero leaf hashes.
+      transactionIndex := treeWidth
+
+      // Total transaction list length must match provided length.
+      assertOrFraud(
+        eq(
+          memoryPosition,
+          add(
+            transactions,
+            transactionsLength
+          )
+        ),
+        error"net-length-overflow",
+        fraudBlock
+      )
 
       //////////////////////////////////
-      // Now Merkleize nodes into a binary Merkle tree
+      // Now Merkleize nodes into a binary Merkle tree.
       //////////////////////////////////
 
-      // Move to a new memory position
+      // Move to a new memory position.
       memoryPosition := sub(freshMemoryPosition, mul(transactionIndex, 32))
 
-      // Create binary Merkle tree
-      for {} gt(transactionIndex, 0) {} { // loop through tree Heights (starting at base)
-        if gt(mod(transactionIndex, 2), 0) { // fix uneven children count (i.e. add a zero hash)
-          mstore(add(memoryPosition, mul(transactionIndex, 32)), 0) // add 0x00...000 child hash
-          transactionIndex := add(transactionIndex, 1) // increase count for zero child hash
-          freshMemoryPosition := add(freshMemoryPosition, 32) // increase fresh memory past new child
+      // Loop through tree Heights (starting at base).
+      for {} gt(transactionIndex, 0) {} {
+        // Go through each of the hashes at this depth. 
+        for { let i := 0 } lt(i, transactionIndex) { i := add(i, 2) } {
+          // loop through child hashes at this height.
+          mstore(freshMemoryPosition, computeInnerNodeHash(add(memoryPosition, mul(i, 32))))
+
+          // hash two children together.
+          freshMemoryPosition := add(freshMemoryPosition, 32) // increase fresh memory past new child hash.
         }
 
-        for { let i := 0 } lt(i, transactionIndex) { i := add(i, 2) } { // loop through child hashes at this height
-          mstore(freshMemoryPosition, keccak256(add(memoryPosition, mul(i, 32)), 64)) // hash two children together
-          freshMemoryPosition := add(freshMemoryPosition, 32) // increase fresh memory past new child hash
+        // Set new memory position.
+        memoryPosition := sub(freshMemoryPosition, mul(transactionIndex, 16))
+
+        // Half nodes (i.e. next height).
+        transactionIndex := div(transactionIndex, 2)
+
+        // Shim 1 to zero (stop), i.e. top height end..
+        if lt(transactionIndex, 2) {
+          transactionIndex := 0
         }
-
-        memoryPosition := sub(freshMemoryPosition, mul(transactionIndex, 16)) // set new memory position
-        transactionIndex := div(transactionIndex, 2) // half nodes (i.e. next height)
-
-         // shim 1 to zero (stop), i.e. top height end..
-        if lt(transactionIndex, 2) { transactionIndex := 0 }
       }
 
-      // Merkle root has been computed
+      // Merkle root has been computed.
       merkleTreeRoot := mload(memoryPosition)
     }
 
     /// @notice Prove a block is malformed: a root does not correctly commit to a list of transactions.
-    /// @param block
-    /// @param root
-    /// @param rootIndex
+    /// @param block The block header memory position.
+    /// @param root The root header memory position.
+    /// @param rootIndex The root index of the fraudulant block of transactions.
     /// @param transactions  Position in memory to list of transactions committed to in root.
     /// @param transactionsLength Length of transactions list in bytes.
     function proveMalformedBlock(block, root, rootIndex, transactions, transactionsLength) {
-      // Verify the header
+      // Verify the header proofs.
       verifyHeader(
         block,
         root,
@@ -101,7 +162,7 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
         AssertFinalized.NotFinalized
       )
 
-      // Require that commitment hash is the hash of transaction provided
+      // Require that commitment hash is the hash of transaction provided.
       require(
         eq(
           RootHeader.commitmentHash(root),
@@ -110,13 +171,21 @@ object "MalformedBlock" is "Calldata", "Transaction", "BlockHeader", "Fraud" {
         error"commitment-hash"
       )
 
-      // Computed Merkle root of transactions must match commtted Merkle root
+      // Generate the merkle root and num transactions count.
+      let merkleTreeRoot := computeMerkleTreeRoot(
+        transactions,
+        transactionsLength,
+        block
+      )
+
+      // Computed Merkle root of transactions must match commtted Merkle root.
       assertOrFraud(
         eq(
           RootHeader.merkleTreeRoot(root),
-          constructMerkleTreeRoot(transactions, transactionsLength, block)
+          merkleTreeRoot
         ),
-        error"merkle-root", block
+        error"merkle-root",
+        block
       )
     }
   }

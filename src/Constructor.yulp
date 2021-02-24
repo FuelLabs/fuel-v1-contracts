@@ -1,6 +1,7 @@
 /// @title Contract constructor helper
 object "Constructor" {
   code {
+    /// @dev the Constructor arguments (abi encoded).
     mstruct Constructor (
       operator: bytes32,
       finalizationDelay: uint256,
@@ -13,6 +14,7 @@ object "Constructor" {
       genesis: bytes32
     )
 
+    // The abi injection for the constructor.
     let Constructor.abi := sig"constructor(
       address operator,
       uint256 finalizationDelay,
@@ -24,36 +26,51 @@ object "Constructor" {
       uint256 chainId,
       bytes32 genesis)"
 
+    // The constructor total size in bytes (fixed).
     const Constructor.size := 416
 
+    /// @notice Copy the constructor arguments from code.
     function Constructor.copy(pos) {
       codecopy(pos, sub(codesize(), Constructor.size), Constructor.size)
     }
 
+    /// @notice Verify the constructor arguments from code.
     function Constructor.verify(pos) {
+      // Get the constructor params from memory.
       let nameLen := mload(Constructor.name(0))
       let versionLen := mload(Constructor.version(0))
+      let bond := Constructor.bondSize(0)
 
-      require(and(gt(nameLen, 0), lte(nameLen, 32)), "name-length")
-      require(and(gt(versionLen, 0), lte(versionLen, 32)), "version-length")
+      // Ensure name length.
+      require(and(gt(nameLen, 0), lte(nameLen, 32)), error"name-length")
+
+      // Ensure version length.
+      require(and(gt(versionLen, 0), lte(versionLen, 32)), error"version-length")
+
+      // Ensure the bond is divisble by 2.
+      require(and(gt(bond, 0), eq(mod(bond, 2), 0)), error"bond-divisible")
     }
 
+    /// @notice Copy the constructor name to memory.
     function Constructor.name.copy(cpos, pos) {
       let len := mload(Constructor.name(cpos))
       let val := mload(add(Constructor.name(cpos), 32))
       mstore(pos, 32, len, val)
     }
 
+    /// @notice Return the hash of the constructor name.
     function Constructor.name.hash(pos) -> hash {
       hash := keccak256(add(add(pos, 256), 64), mload(Constructor.name(pos)))
     }
 
+    /// @notice Return the version of the constructor.
     function Constructor.version.copy(cpos, pos) {
       let len := mload(Constructor.version(cpos))
       let val := mload(add(Constructor.version(cpos), 32))
       mstore(pos, 32, len, val)
     }
 
+    /// @notice Return the version hash from the constructor.
     function Constructor.version.hash(pos) -> hash {
       hash := keccak256(add(add(pos, 320), 64), mload(Constructor.version(pos)))
     }

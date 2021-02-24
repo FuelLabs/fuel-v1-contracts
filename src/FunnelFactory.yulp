@@ -1,3 +1,4 @@
+/// @dev This is the FunnelFactory, where Deposit funnel logic resides.
 object "FunnelFactory" {
   code {
     // Produced from the Funnel.yulp contract.
@@ -5,14 +6,19 @@ object "FunnelFactory" {
     const FunnelContract1 := 0x14156030573681823780816044603c8485515af11515602f578081fd5b5b33ff
     const FunnelContract2 := 0x5b50000000000000000000000000000000000000000000000000000000000000
 
-    // The Fixed salt.
+    // The Fixed create2 32 byte salt.
     const FunnelSalt := 0xa46ff7e2eb85eecf4646f2c151221bcd9c079a3dcb63cb87962413cfaae53947
 
+    /// @notice This will create a Deposit funnel.
+    /// @param The receipient address of this funnel.
     function createFunnel(recipient) -> addr {
+      // Calculate the funnel address.
       addr := calculateFunnelAddress(recipient)
 
+      // If the Funnel does not exist.
       if eq(extcodesize(addr), 0) {
-        mstore(0, FunnelContract0,
+        mstore(0,
+          FunnelContract0,
           FunnelContract1,
           FunnelContract2)
         mstore(66, address())
@@ -21,18 +27,25 @@ object "FunnelFactory" {
       }
     }
 
+    /// @notice Calculate the deterministic funnel address based upon the Fuel receipient address of this Deposit.
+    /// @param The receipient address of this funnel.
+    /// @return The address of the funnel for the recipient.
     function calculateFunnelAddress(recipient) -> addr {
-      mstore(0, FunnelContract0,
+      // Build the Funnel contructor params.
+      mstore(0,
+        FunnelContract0,
         FunnelContract1,
         FunnelContract2)
       mstore(66, address())
       mstore(98, recipient)
 
+      // Build the Funnel create2 prefix.
       mstore(53, keccak256(0, 130))
       mstore8(0, 0xff)
       mstore(1, shl(96, address()))
       mstore(21, FunnelSalt)
 
+      // Create the Funnel create2 deterministic address from the derived hash.
       addr := shr(96, shl(96, keccak256(0, 85)))
     }
   }

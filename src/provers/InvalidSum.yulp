@@ -3,7 +3,7 @@ import "./verifiers/Data.yulp"
 import "./verifiers/TransactionProof.yulp"
 import "./Fraud.yulp"
 
-/// @title Invalid sum prover
+/// @title Invalid sum prover.
 object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud" {
   code {
     /// @notice Fraudulant summing, incase of overflow, we conclude fraud.
@@ -13,7 +13,14 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     /// @return z The sum of the two values.
     function assertAddOrFraud(x, y, transactionProof) -> z {
       z := unsafeAdd(x, y)
-      assertOrFraud(or(eq(z, x), gt(z, x)), error"summing-overflow", transactionProof)
+      assertOrFraud(
+        or(
+          eq(z, x),
+          gt(z, x)
+        ),
+        error"summing-overflow",
+        transactionProof
+      )
     }
 
     /// @notice Fraudulant multiplying, incase of overflow, we conclude fraud.
@@ -25,7 +32,14 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
         /// @dev this should be unsafeMul
         z := unsafeMul(x, y)
         /// @dev should be unsave div?
-        assertOrFraud(eq(unsafeDiv(z, y), x), error"summing-mul-overflow", transactionProof)
+        assertOrFraud(
+          eq(
+            unsafeDiv(z, y), 
+            x
+          ),
+          error"summing-mul-overflow",
+          transactionProof
+        )
       }
     }
 
@@ -34,48 +48,98 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     /// @param inputProofs Position in memory of inputs proofs.
     /// @return Sum of inputs in token.
     function ins(transactionProof, inputProofs) -> sum {
-      let pos := TransactionLeaf.inputs.position(TransactionProof.transaction.position(transactionProof))
-      let token := tokenId(TransactionProof.tokenAddress(transactionProof))
+      // Get the memory position of the first input.
+      let pos := TransactionLeaf.inputs.position(
+        TransactionProof.transaction.position(transactionProof)
+      )
 
-      for {} lt(pos, TransactionLeaf.inputs.offset(TransactionProof.transaction.position(transactionProof))) {} {
+      // Get the token id of the first token address.
+      let token := tokenId(
+        TransactionProof.tokenAddress(transactionProof)
+      )
+
+      // Go through each input (dually, both the proof and the input itself.).
+      for {}
+        // Go through each of the inputs for this transaction.
+        lt(
+          pos,
+          TransactionLeaf.inputs.offset(
+            TransactionProof.transaction.position(
+              transactionProof
+            )
+          )
+        ) {} {
+        // Switch case based upon the type.
         switch Input.type(pos)
 
+        // If the input is a Transfer type.
         case InputType.Transfer {
           if eq(token, UTXO.token(inputProofs)) {
-            sum := assertAddOrFraud(sum, UTXO.amount(inputProofs), transactionProof)
+            sum := assertAddOrFraud(
+              sum,
+              UTXO.amount(inputProofs),
+              transactionProof
+            )
           }
 
+          // Increase the input memory pointer by the proof size.
           inputProofs := add(inputProofs, UTXO.size(inputProofs))
         }
 
+        // If the input is a Transfer type.
         case InputType.Deposit {
           if eq(token, Deposit.token(inputProofs)) {
-            sum := assertAddOrFraud(sum, Deposit.value(inputProofs), transactionProof)
+            sum := assertAddOrFraud(
+              sum,
+              Deposit.amount(inputProofs),
+              transactionProof
+            )
           }
 
+          // Increase the input memory pointer by the proof size.
           inputProofs := add(inputProofs, Deposit.size(inputProofs))
         }
 
+        // If the input is a Transfer type.
         case InputType.HTLC {
           if eq(token, UTXO.token(inputProofs)) {
-            sum := assertAddOrFraud(sum, UTXO.amount(inputProofs), transactionProof)
+            sum := assertAddOrFraud(
+              sum,
+              UTXO.amount(inputProofs),
+              transactionProof
+            )
           }
 
+          // Increase the input memory pointer by the proof size.
           inputProofs := add(inputProofs, UTXO.size(inputProofs))
         }
 
+        // If the input is a Transfer type.
         case InputType.Root {
-          if eq(token, RootHeader.feeToken(inputProofs)) {
-            sum := assertAddOrFraud(sum, 
-              assertMulOrFraud(RootHeader.fee(inputProofs), RootHeader.length(inputProofs), transactionProof)
-              , transactionProof)
+          let root := TransactionProof.rootProducer.position(inputProofs)
+
+          if eq(token, RootHeader.feeToken(root)) {
+            sum := assertAddOrFraud(
+              sum,
+              assertMulOrFraud(
+                RootHeader.fee(root),
+                RootHeader.length(root),
+                transactionProof
+              ),
+              transactionProof
+            )
           }
 
-          inputProofs := add(inputProofs, RootHeader.size(inputProofs))
+          // Increase the input memory pointer by the proof size.
+          inputProofs := add(inputProofs, TransactionProof.size(inputProofs))
         }
 
-        default { require(0, error"input-data-length") }
+        default {
+          // If the input type is invalid, revert. This should be handled in proveInvalidTransaction.
+          require(0, error"invalid-type")
+        }
 
+        // increase the memory position pointer by the input size.
         pos := add(pos, inputSize(pos))
       }
     }
@@ -85,18 +149,31 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     /// @param transactionProof Position in memory of transaction proof.
     /// @return Sum of outputs in token.
     function outs(token, transactionProof) -> sum {
+      // Get the position of the lead.
       let leaf := TransactionProof.transaction.position(transactionProof)
+
+      // Get the start of the outputs position.
       let pos := TransactionLeaf.outputs.position(leaf)
+
+      // Get the end of the output position.
       let end := TransactionLeaf.outputs.offset(leaf)
 
+      // Go through each of the outputs.
       for {} lt(pos, end) {} {
+        // If the output is not a return type and the token ID is correct.
         if and(
           lt(Output.type(pos), OutputType.Return),
           eq(token, Output.token.slice(pos))
         ) {
-          sum := assertAddOrFraud(sum, outputAmount(pos), transactionProof)
+          // Add this output amount to the sum of the transaction proof.
+          sum := assertAddOrFraud(
+            sum,
+            outputAmount(pos),
+            transactionProof
+          )
         }
 
+        // Increase the memory position by the output size.
         pos := add(pos, outputSize(pos))
       }
     }
@@ -105,23 +182,47 @@ object "InvalidSum" is "TransactionProof", "VerifyData", "VerifyWitness", "Fraud
     /// @param transactionProof Position in memory of transaction proof.
     /// @param inputProofs Position in memory of inputs proofs.
     function proveSum(transactionProof, inputProofs) {
+      // Token id.
       let token := tokenId(TransactionProof.tokenAddress(transactionProof))
+
+      // Total out sum.
       let outsum := assertAddOrFraud(
         rootFee(transactionProof, token),
         outs(token, transactionProof),
-        transactionProof)
+        transactionProof
+      )
+
+      // Total input sum.
       let insum := ins(transactionProof, inputProofs)
 
-      assertOrFraud(eq(outsum, insum), error"sum", transactionProof)
+      // Assert out to input sum.
+      assertOrFraud(
+        eq(
+          outsum,
+          insum
+        ),
+        error"sum",
+        transactionProof
+      )
     }
 
     /// @notice Prove that the sum of outputs violates the sum of inputs.
     /// @param transactionProof Position in memory of transaction proof.
     /// @param inputProofs Position in memory of inputs proofs.
-    function proveInvalidSum(transactionProof, inputProofs) {
+    function proveInvalidSum(transactionProof) {
+      // Verify the transaction proof (where fraud is alleged.).
       verifyTransactionProof(transactionProof, AssertFinalized.NotFinalized)
-      verifyWitness(transactionProof, inputProofs)
-      verifyData(transactionProof, inputProofs)
+
+      // We now get the input proofs from the TransactionProof not the ABI.
+      let inputProofs := TransactionProof.inputProofs.position(transactionProof)
+
+      // Switch to this model.
+      verifyWitness(transactionProof)
+
+      // Verify the data of the transaction.
+      verifyData(transactionProof, inputProofs, INPUTS_MAX)
+
+      // Verify/prove fraud of the total sum of the transaction (inputs to outputs).
       proveSum(transactionProof, inputProofs)
     }
   }

@@ -1,0 +1,14 @@
+/// @dev This module is used for certain *developer only* test cases.
+object "ProxyBypass" {
+  code {
+      datacopy(0, dataoffset("Runtime"), datasize("Runtime"))
+      return(0, datasize("Runtime"))
+  }
+  object "Runtime" {
+    code {
+      calldatacopy(0, 0, calldatasize())
+      let result := call(gas(), mload(0), 0, 32, sub(calldatasize(), 32), 0, 32)
+      require(result, mload(0))
+    }
+  }
+}

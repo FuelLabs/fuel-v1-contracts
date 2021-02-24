@@ -1,33 +1,33 @@
 import "./Storage.yulp"
 import "./Tokens.yulp"
 
-/// @title Root object
+/// @title Root object.
 /// @notice Roots represent a commitment to a list of transactions.
 object "Root" is "Storage", "Tokens" {
   code {
-    // Maximum size of list of transactions, in bytes
+    // Maximum size of list of transactions, in bytes.
     const MAX_ROOT_SIZE := 32000
-    // Maximum number of transactions in list of transactions
+    // Maximum number of transactions in list of transactions.
     const MAX_TRANSACTIONS_IN_ROOT := 2048
 
     /// @notice Transaction root header object. Contains Merkle tree root and important metadata.
     mstruct RootHeader (
-      // Address of root producer
+      // Address of root producer.
       producer: address,
-      // Merkle root of list of transactions
+      // Merkle root of list of transactions.
       merkleTreeRoot: bytes32,
-      // Simple hash of list of transactions
+      // Simple hash of list of transactions.
       commitmentHash: bytes32,
-      // Length of list of transactions, in bytes
+      // Length of list of transactions, in bytes.
       length: uint256,
-      // Token ID of all fees paid in this root
+      // Token ID of all fees paid in this root.
       feeToken: uint256,
-      // Feerate of all fees paid in this root
+      // Feerate of all fees paid in this root.
       fee: uint256
     )
 
     /// @notice Get block number of a registered root.
-    /// @return Ethereum block number the root was registered at as uin256
+    /// @return Ethereum block number the root was registered at as uin256.
     function rootBlockNumberAt(root) -> blockNumber {
       blockNumber := sload(mappingKey(Storage.Roots, root))
     }
@@ -37,35 +37,65 @@ object "Root" is "Storage", "Tokens" {
       sstore(mappingKey(Storage.Roots, root), 0)
     }
 
+    /// @notice Commit a root to chain.
+    /// @param merkleTreeRoot The merkle tee root hash.
+    /// @param commitmentHash The commitment hash.
+    /// @param length The total length of the committed data.
+    /// @param token The root fee token identifier (id).
+    /// @param fee The root fee amount.
     function commitRoot(merkleTreeRoot, commitmentHash, length, token, fee) {
-      // Caller/msg.sender must not be a contract
+      // Caller/msg.sender must not be a contract.
       require(eq(origin(), caller()), error"origin-not-caller")
+
+      // If the contract is a caller, prevent it.
       require(eq(extcodesize(caller()), 0), error"is-contract")
 
-      // Calldata size must be at least as big as the minimum transaction size (44 bytes)
+      // Calldata size must be at least as big as the minimum transaction size (44 bytes).
       require(gte(length, 44), error"root-size-underflow")
-      // Calldata max size enforcement (~2M gas / 16 gas per byte/64kb payload target)
-      require(lte(length, MAX_ROOT_SIZE), error"root-size-overflow")
-      require(lte(calldatasize(), add(MAX_ROOT_SIZE, mul32(6))), error"calldata-size-overflow")
 
-      // Fee token must be already registered
+      // Calldata max size enforcement (~2M gas / 16 gas per byte/64kb payload target).
+      require(lte(length, MAX_ROOT_SIZE), error"root-size-overflow")
+      require(
+        lte(
+          calldatasize(),
+          add(
+            MAX_ROOT_SIZE,
+            mul32(6)
+          )
+        ),
+        error"calldata-size-overflow"
+      )
+
+      // Fee token must be already registered.
       require(gte(token, 0), error"token-underflow")
       require(lt(token, numTokens()), error"token-overflow")
 
-      // Build root
-      mstore(0, caller(), merkleTreeRoot, commitmentHash, length, token, fee)
+      // Build root.
+      mstore(0,
+        caller(),
+        merkleTreeRoot,
+        commitmentHash,
+        length,
+        token,
+        fee
+      )
       // Hash the block header with an offset of 12 bytes, since first field is a 32-12=20 byte address.
       const root := RootHeader.keccak256(12)
 
-      // Root must not have been registered yet
+      // Root must not have been registered yet.
       let rootBlockNumber := sload(mappingKey(Storage.Roots, root))
       require(eq(rootBlockNumber, 0), error"root-already-exists")
 
-      // Register root with current block number
+      // Register root with current block number.
       sstore(mappingKey(Storage.Roots, root), number())
 
-      // Store caller in data
-      mstore(0, caller(), token, fee, length)
+      // Store caller in data.
+      mstore(0,
+        caller(),
+        token,
+        fee,
+        length
+      )
       log4(
         0,
         mul32(4),

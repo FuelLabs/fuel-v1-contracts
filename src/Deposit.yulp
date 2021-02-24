@@ -2,25 +2,33 @@ import "./Storage.yulp"
 import "./Tokens.yulp"
 import "./FunnelFactory.yulp"
 
-/// @title Deposit object
+/// @title Deposit module.
 /// @notice Uniquely indexes an on-chain ETH or token deposit.
 object "Deposit" is "Storage", "Tokens", "FunnelFactory" {
   code {
+    /// @dev the Deposit struct, with the owner non-tight packed, abi.encode.
     mstruct Deposit (
-      // Owner of deposit
+      // Owner of deposit.
       owner: bytes32,
-      // Token ID (0 for ETH)
+      // Token ID (0 for ETH).
       token: uint256,
-      // Ethereum block number deposit was registered
+      // Ethereum block number deposit was registered.
       blockNumber: uint256,
-      // Amount of tokens
-      value: uint256
+      // Amount of tokens.
+      amount: uint256
     )
 
-    /// @notice Get deposit at key
-    /// @return Amount of tokens as uint256
+    /// @notice Get deposit at key.
+    /// @return Amount of tokens as uint256.
     function depositAt(owner, token, blockNumber) -> amount {
-      amount := sload(mappingKey3(Storage.Deposits, owner, token, blockNumber))
+      amount := sload(
+        mappingKey3(
+          Storage.Deposits,
+          owner,
+          token,
+          blockNumber
+        )
+      )
     }
 
     /// @notice Handle token deposit.
@@ -29,50 +37,79 @@ object "Deposit" is "Storage", "Tokens", "FunnelFactory" {
       // If token has not yet been deposited, a new token ID will be assigned.
       let _tokenId := commitToken(token)
 
-      // Build create2 deposit funnel contract
+      // Build create2 deposit funnel contract.
       let funnel := createFunnel(owner)
 
-      // Variables
+      // Variables.
       let amount := 0
 
-      // handle different tokens
+      // Handle different tokens.
       switch token
 
-      // If ETH
+      // If ETH.
       case 0 {
+          // Check the Ether balance of the funnel.
           amount := balance(funnel)
+
+          // Check the amount within the funnel is greater than zero.
           require(gt(amount, 0), error"value-underflow")
+
+          // Make the funnel transaction.
           require(call(gas(), funnel, 0, 0, 0, 0, 0), error"value-funnel")
+
+          // Check the balance of the funnel is zero (i.e. all funds have moved to Fuel).
           require(eq(balance(funnel), 0), error"value-check")
       }
 
-      // If ERC-20
+      // If ERC-20.
       default {
+        // Check to ensure no Ether in funnel. 
         require(or(iszero(balance(funnel)), eq(token, 0)), error"ether-first")
 
+        // Check balance of the funnel contract.
         mstore(0, sig"balanceOf(address)", funnel)
         require(call(gas(), token, 0, 28, 36, 0, 32), error"balance-call")
         amount := mload(0)
         require(gt(amount, 0), error"balance-underflow")
 
+        // Do the transfer with the proxy funnel contract.
         mstore(0, token, sig"transfer(address, uint256)", address(), amount)
         require(call(gas(), funnel, 0, 0, 128, 0, 0), error"transfer-call")
 
+        // Check the balance of the funnel to ensure tokens have moved Fuel successfully.
         mstore(0, sig"balanceOf(address)", funnel)
         require(call(gas(), token, 0, 28, 36, 0, 32), error"balance-call")
         require(iszero(mload(0)), error"balance-check")
       }
 
-      // Load current balance from storage
-      // Deposits are uniquely identified by owner, token, and Ethereum block numbers, so a second deposit in the same block will simply update a single deposit object
+      // Load current balance from storage.
+      // Deposits are uniquely identified by owner, token, and Ethereum block numbers, so a second deposit in the same block will simply update a single deposit object.
       let balanceAmount := depositAt(owner, _tokenId, number())
-      sstore(mappingKey3(Storage.Deposits, owner, _tokenId, number()), add(balanceAmount, amount))
 
+      // Extra check.
+      require(gt(owner, 0), error"null-owner")
+      require(eq(balanceAmount, 0), error"per-block")
+  
+      // Store the balance amount.
+      sstore(
+        mappingKey3(
+          Storage.Deposits,
+          owner,
+          _tokenId,
+          number()
+        ),
+        amount
+      )
+
+      /// @dev The DepositMade event.
       mstore(0, amount)
-      log3(0, mul32(1),
+      log3(
+        0,
+        mul32(1),
         topic"event DepositMade(address indexed owner, uint32 indexed token, uint256 value)",
         owner,
-        _tokenId)
+        _tokenId
+      )
     }
   }
 }

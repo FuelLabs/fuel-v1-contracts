@@ -1,21 +1,21 @@
 object "ERC20" {
   code {
-    enum Storage (balance, allowance) // storage index numbers
+    enum Storage (balance, allowance) // storage index numbers.
 
-    // constructor(address owner, uint256 totalSupply)
+    // constructor(address owner, uint256 totalSupply).
     codecopy(64, sub(codesize(), 64), 64)
 
-    // constructor variable
+    // constructor variable.
     let _constructor := sig"constructor(address owner, uint256 totalSupply)"
 
-    // stipulate initial owner and total supply
+    // stipulate initial owner and total supply.
     let owner := mload(64)
     let totalSupply := mload(96)
-    // set initial owner balance at totalSupply
+    // set initial owner balance at totalSupply.
     mstore(0, owner, Storage.balance)
     sstore(keccak256(0, 64), totalSupply)
 
-    // Goto runtime
+    // Goto runtime.
     datacopy(0, dataoffset("Runtime"), datasize("Runtime"))
     return(0, datasize("Runtime"))
   }
@@ -23,11 +23,11 @@ object "ERC20" {
     code {
         const _calldata := 128 // leave first 4 32 byte chunks for hashing, returns etc..
 
-        enum Storage (balance, allowance) // storage index numbers
+        enum Storage (balance, allowance) // storage index numbers.
 
-        calldatacopy(_calldata, 0, calldatasize()) // copy all calldata to memory
+        calldatacopy(_calldata, 0, calldatasize()) // copy all calldata to memory.
 
-        switch mslice(_calldata, 4) // 4 byte calldata signature
+        switch mslice(_calldata, 4) // 4 byte calldata signature.
 
         case sig"transfer(address owner, uint256 amount) public returns (bool success)" {
             mstruct transfer(sig: 4, owner: 32, amount: 32)
@@ -73,15 +73,15 @@ object "ERC20" {
 
         case sig"name() public view returns (string)" {
             // mstore(0, "Fake Dai Stablecoin") somethig like this, proper but w/ encoding.
-            // return(0, 32)
+            // return(0, 32).
         }
         case sig"symbol() public view returns (string)" {
-            // mstore(0, "FDAI")
-            // return(0, 32)
+            // mstore(0, "FDAI").
+            // return(0, 32).
         }
         case sig"version() public view returns (string)" {
-            // mstore(0, "1")
-            // return(0, 32)
+            // mstore(0, "1").
+            // return(0, 32).
         }
         case sig"decimals() public view returns (uint8)" {
             mstore(0, 18)
@@ -95,7 +95,7 @@ object "ERC20" {
             return (0, 32)
         }
 
-        default { require(0) } // invalid method signature
+        default { require(0) } // invalid method signature.
 
         stop() // stop execution here..
 

@@ -2,17 +2,22 @@ import "./Block.yulp"
 import "./Utils.yulp"
 import "./Calldata.yulp"
 
-/// @title Fraud proof helper
+/// @title Fraud proof helper.
 object "Fraud" is "Utils", "Block", "Calldata" {
   code {
     /// @dev Fraud finalization period. Mitigates miner frontrunning of fraud proofs.
     const FRAUD_FINALIZATION_PERIOD := 10
 
     /// @notice This will commit a fraud hash in storage.
+    /// @param fraudHash The fraud commitment hash (i.e. the hash of the calldata used for this fraud claim).
     function commitFraudHash(fraudHash) {
       // Store the caller and fraud hash.
       sstore(
-        mappingKey2(Storage.FraudCommitments, caller(), fraudHash),
+        mappingKey2(
+          Storage.FraudCommitments,
+          caller(),
+          fraudHash
+        ),
         number()
       )
     }
@@ -24,40 +29,77 @@ object "Fraud" is "Utils", "Block", "Calldata" {
 
       // Get the fraud commitment from block storage.
       let commitmentBlockNumber := sload(
-        mappingKey2(Storage.FraudCommitments, caller(), fraudHash)
+        mappingKey2(
+          Storage.FraudCommitments,
+          caller(),
+          fraudHash
+        )
       )
 
       // Check the fraud commitment exists.
-      require(gt(commitmentBlockNumber, 0), error"fraud-commitment")
+      require(
+        gt(
+          commitmentBlockNumber,
+          0
+        ),
+        error"fraud-commitment"
+      )
 
       // Require that current block number >= commitment block number + period.
-      require(gte(
-        number(),
-        add(commitmentBlockNumber, FRAUD_FINALIZATION_PERIOD)
-      ), error"fraud-commitment-hash")
+      require(
+        gte(
+          number(),
+          add(commitmentBlockNumber, FRAUD_FINALIZATION_PERIOD)
+        ),
+        error"fraud-commitment-hash"
+      )
+
+      // Remove the FraudCommitment from storage for 10k gas refund.
+      sstore(
+        mappingKey2(
+          Storage.FraudCommitments,
+          caller(),
+          fraudHash
+        ),
+        0
+      )
     }
 
-    /// @notice Either assertion must pass or process fraud proof
+    /// @notice Either assertion must pass or process fraud proof.
     function assertOrFraud(assertion, fraudCode, block) {
-      // Assert or begin fraud state change sequence
+      // Assert or begin fraud state change sequence.
       if lt(assertion, 1) {
         // Fraud block details
         const fraudBlockHeight := BlockHeader.height(block)
         const fraudBlockProducer := BlockHeader.producer(block)
 
-        // Fraud block must not be the genesis rollup block
-        require(gt(fraudBlockHeight, 0), error"block-height-underflow")
+        // Fraud block must not be the genesis rollup block.
+        require(
+          gt(
+            fraudBlockHeight,
+            0
+          ),
+          error"block-height-underflow"
+        )
 
-        // Copy constructor args to memory
+        // Copy constructor args to memory.
         Constructor.copy(0)
         let bondSize := Constructor.bondSize(0)
         let penaltyDelay := Constructor.penaltyDelay(0)
 
-        // Fraud block must not be finalizable yet
-        require(lt(number(), add(BlockHeader.blockNumber(block), Constructor.finalizationDelay(0))),
-          error"block-finalized")
+        // Fraud block must not be finalizable yet.
+        require(
+          lt(
+            number(),
+            add(
+              BlockHeader.blockNumber(block),
+              Constructor.finalizationDelay(0)
+            )
+          ),
+          error"block-finalized"
+        )
 
-        // Log block tips (old / new)
+        // Log block tips (old / new).
         log4(
           0,
           0,
@@ -67,17 +109,26 @@ object "Fraud" is "Utils", "Block", "Calldata" {
           fraudCode
         )
 
-        // Roll back rollup chain: set new block tip to before fraud block
+        // Roll back rollup chain: set new block tip to before fraud block.
         sstore(Storage.BlockTip, sub(fraudBlockHeight, 1))
+
+        // Remove block commitment from the contract for extra 10k gas refund.
+        sstore(
+          mappingKey(
+            Storage.BlockCommitments,
+            fraudBlockHeight
+          ),
+          0
+        )
 
         // Set the penalty as an offset from current Ethereum block number.
         // This removes mempool submission delay requirements for everyone and operator priority.
         setPenalty(penaltyDelay)
 
-        // Transfer half the bond for this block
+        // Transfer half the bond for this block.
         transfer(div(bondSize, 2), 0, caller())
 
-        // Stop execution from here
+        // Stop execution from here.
         stop()
       }
     }

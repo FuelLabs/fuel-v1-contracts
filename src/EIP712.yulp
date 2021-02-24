@@ -1,10 +1,13 @@
 import "./Constructor.yulp"
 
+/// @dev This module is the EIP712 compliant transaction signing / hashing module.
 object "EIP712" is "Constructor" {
   code {
+    // The Domain and Transaction Struct pre-images.
     const DomainStruct := 0xbe1f30900ea0b603c03bc6ce517b4795fbdb08cc0b4b6e316e19199becde9754
     const TransactionStruct := 0xcfa11514192b8d3d6bcda9639281831e60687a67997d39912c7eb7a7a8041ad3
 
+    /// @notice The EIP712 Fuel Domain.
     function eip712.domain() -> EIP712Domain {
       Constructor.copy(0)
       let chainId := Constructor.chainId(0)
@@ -14,11 +17,14 @@ object "EIP712" is "Constructor" {
       EIP712Domain := keccak256(0, mul(5, 32))
     }
 
+    /// @notice The EIP712 transaction hashing routine.
+    /// @param The unsigned transaction hash.
     function eip712.transaction(unsignedHashId) -> EIP712Transaction {
       mstore(0, TransactionStruct, unsignedHashId)
       EIP712Transaction := keccak256(0, 64)
     }
 
+    /// @notice The EIP712 hash ID method.
     function eip712(unsignedHashId) -> hashId {
       let EIP712Transaction := eip712.transaction(unsignedHashId)
       let EIP712Domain := eip712.domain()

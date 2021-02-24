@@ -1,7 +1,7 @@
-// 66 byte Funnel, 32 constructor size for owner
+/// @dev 66 byte Funnel, 32 constructor size for owner.
 object "Funnel" {
   code {
-    // 66 + 32 = 98
+    // Sizes: 66 + 32 = 98.
     datacopy(0, dataoffset("Runtime"), 98)
     return(0, 98)
   }

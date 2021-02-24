@@ -11,25 +11,25 @@ import "./provers/MalformedBlock.yulp"
 import "./provers/InvalidInput.yulp"
 import "./provers/InvalidWitness.yulp"
 
-/// @title Fuel optimistic rollup top-level contract
+/// @title Fuel optimistic rollup top-level contract.
 object "Fuel" is "Constructor", "Tokens", "Address" {
   code {
-    // Constants
+    // Constants.
     const NUM_TOKENS_INIT := 1
     const NUM_ADDRESSES_INIT := 1
     const GENESIS_ROOTS_LENGTH := 0
 
-    // Copy constructor arguments to memory, verify construction
+    // Copy constructor arguments to memory, verify construction.
     Constructor.copy(0)
     Constructor.verify(0)
     let operator := Constructor.operator(0)
     let genesis := Constructor.genesis(0)
 
-    // Index the ETH token ID and zero address
+    // Index the ETH token ID and zero address.
     indexToken(ETHER_TOKEN_ADDRESS, 0)
     indexAddress(ZERO_ADDRESS, 0)
 
-    // Log genesis block
+    // Log genesis block.
     mstore(0, operator, NUM_TOKENS_INIT, NUM_ADDRESSES_INIT, 128, GENESIS_ROOTS_LENGTH)
     log3(
       0,
@@ -45,18 +45,18 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       0
     )
 
-    // Implicitly commit genesis block
+    // Implicitly commit genesis block.
     sstore(mappingKey(Storage.BlockCommitments, 0), genesis)
 
-    // Add extra data for block producer
+    // Add extra data for block producer.
     let dataSize := add(datasize("Runtime"), Constructor.size)
 
-    // Goto runtime
+    // Goto runtime.
     datacopy(0, dataoffset("Runtime"), dataSize)
     return(0, dataSize)
   }
 
-  /// @notice Public methods
+  /// @notice Public methods.
   object "Runtime" is
     "Constructor",
     "Calldata",
@@ -69,10 +69,10 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
     "Address",
     "InvalidSum" {
     code {
-      // Load calldata to memory
+      // Load calldata to memory.
       calldata.copy()
 
-      // Call a different method depending on method signature in calldata
+      // Call a different method depending on method signature in calldata.
       switch calldata.signature()
 
       /// @notice Deposit a token.
@@ -174,7 +174,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       case sig"proveInvalidTransaction(bytes transactionProof) external" {
         nonpayable()
         requireValidFraudCommitment()
-        
+
         proveInvalidTransaction(abi.offset(calldata.word(0)))
       }
 
@@ -210,20 +210,24 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @param transactionProof Memory offset to start of transaction proof.
       /// @param inputProofs Memory offset of start of input proofs.
       /// @dev provers::InvalidWitness::proveInvalidWitness
-      case sig"proveInvalidWitness(bytes transactionProof, bytes inputProofs) external" {
+      case sig"proveInvalidWitness(bytes transactionProof) external" {
         nonpayable()
         requireValidFraudCommitment()
-        proveInvalidWitness(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
+    
+        // Get the position of the input proofs for this transaction.
+        let inputProofs := TransactionProof.inputProofs.position(abi.offset(calldata.word(0)))
+
+        // Prove invalid witness.
+        proveInvalidWitness(abi.offset(calldata.word(0)), inputProofs)
       }
 
       /// @notice Prove that a transation produced more than it consumed.
       /// @param transactionProof Memory offset to start of transaction proof.
-      /// @param inputProofs Memory offset of start of input proofs.
       /// @dev provers::InvalidSum::proveInvalidSum
-      case sig"proveInvalidSum(bytes transactionProof, bytes inputProofs) external" {
+      case sig"proveInvalidSum(bytes transactionProof) external" {
         nonpayable()
         requireValidFraudCommitment()
-        proveInvalidSum(abi.offset(calldata.word(0)), abi.offset(calldata.word(1)))
+        proveInvalidSum(abi.offset(calldata.word(0)))
       }
 
       //////////////////////////////////////////////////////////////////////////
@@ -356,7 +360,12 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       /// @return If the withdrawal has been processed.
       /// @dev Withdraw::isWithdrawalProcessed
       case sig"isWithdrawalProcessed(uint256 blockHeight, bytes32 withdrawalId) external view returns (bool withdrawn)" {
-        return.word(isWithdrawalProcessed(calldata.word(0), calldata.word(1)))
+        return.word(
+          isWithdrawalProcessed(
+            calldata.word(0),
+            calldata.word(1)
+          )
+        )
       }
 
       /// @notice Get bond size constant.
@@ -398,23 +407,7 @@ object "Fuel" is "Constructor", "Tokens", "Address" {
       case sig"penalty() external view returns (uint256)" {
         return.word(getPenalty())
       }
-
-      /// @notice Get contract name.
-      /// @return Name.
-      case sig"name() external view returns (string)" {
-        Constructor.copy(0)
-        Constructor.name.copy(0, 0)
-        return(0, 96)
-      }
-
-      /// @notice Get contract version.
-      /// @return Version.
-      case sig"version() external view returns (string)" {
-        Constructor.copy(0)
-        Constructor.version.copy(0, 0)
-        return(0, 96)
-      }
-
+      
       /// @notice Not one of the above, invalid method signature.
       default {
         require(0, error"invalid-signature")

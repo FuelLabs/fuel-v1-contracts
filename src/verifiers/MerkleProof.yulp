@@ -1,77 +1,94 @@
 import "./Transaction.yulp"
 
-/// @title Merkle proof verifier
+/// @title Merkle proof verifier.
 object "MerkleProof" is "Transaction" {
   code {
-    // Maximum Merkle tree height
+    // Maximum Merkle tree height.
     const MERKLE_TREE_HEIGHT_MAX := 256
 
     /// @notice Verify a Merkle proof.
     /// @param transactionProof Position in memory of transaction proof.
     /// @return Boolean flag: if the leaf is *not* the rightmost.
-    function verifyMerkleProof(transactionProof) -> leftish {
-      // Memory position of number of nodes in Merkle proof
+    function verifyMerkleProof(transactionProof) -> rightmost {
+      // Memory position of number of nodes in Merkle proof.
       let treeHeight := TransactionProof.merkleProof.length(transactionProof)
-      // Memory position of Merkle branch
+
+      // Memory position of Merkle branch.
       let branchStartPosition := TransactionProof.merkleProof.position(transactionProof)
-      // Memory position of transaction index (which indicates left or right sibling at each depth)
+  
+      // Memory position of transaction index (which indicates left or right sibling at each depth).
       let transactionIndex := TransactionProof.transactionIndex(transactionProof)
 
-      // Check bound on Merkle tree height
-      require(lt(treeHeight, MERKLE_TREE_HEIGHT_MAX),
-        error"tree-height-overflow")
+      // Check bound on Merkle tree height, this is currently unreachable (checks here for formal verification).
+      require(
+        lt(
+          treeHeight,
+          MERKLE_TREE_HEIGHT_MAX
+        ),
+        error"tree-height-overflow"
+      )
 
-      // Temporary computed hash
-      let computedHash := 0
+      // Temporary computed hash pointer.
+      let computedHash := computeTransactionLeafHash(transactionProof)
 
-      // If the transaction (leaf) has a length, then hash it to get leaf node value
-      if gt(TransactionProof.transaction.length(transactionProof), 0) {
-        computedHash := TransactionProof.transaction.keccak256(transactionProof)
-      }
+      // Does this merkle derivation ever touch the left leaf.
+      let leftish := false
 
-      // Reset rightmost detection variable (clear any previous use of this stack position).
-      // This keeps track of if the leaf is *not* rightmost in the tree.
-      leftish := false
-
-      // Iterate through Merkle proof depths
-      // https://crypto.stackexchange.com/questions/31871/what-is-the-canonical-way-of-creating-merkle-tree-branches
+      // Iterate through Merkle proof depths.
+      // https://crypto.stackexchange.com/questions/31871/what-is-the-canonical-way-of-creating-merkle-tree-branches.
       for { let depth := 0 } lt(depth, treeHeight) { depth := add(depth, 1) } {
         // Position of the sibling hash value
-        let siblingHash := mload(add(branchStartPosition, mul(depth, 32)))
+        let siblingHash := mload(
+          add(
+            branchStartPosition, 
+            mul(
+              depth,
+              32
+            )
+          )
+        )
 
-        // Determine proof direction (intuitively: bit value at depth)
-        switch eq(smod(transactionIndex, 2), 0)
+        // Determine proof direction (intuitively: bit value at depth).
+        switch eq(mod(transactionIndex, 2), 0)
 
-        // Direction is left branch
+        // Direction is left branch.
         case 1 {
             mstore(mul32(1), computedHash)
             mstore(mul32(2), siblingHash)
 
-            // Leftishness detected in proof, this is not the rightmost leaf
+            // This proof touches left
             leftish := true
         }
 
-        // Direction is right branch
+        // Direction is right branch.
         case 0 {
             mstore(mul32(1), siblingHash)
             mstore(mul32(2), computedHash)
         }
 
-        // Direction is invalid
+        // Direction is invalid.
         default {
           revert(0, 0)
         }
 
-        // Compute parent node hash value
-        computedHash := keccak256(mul32(1), mul32(2))
+        // Compute parent node hash value.
+        computedHash := computeInnerNodeHash(mul32(1))
 
-        // Shift transaction index right by 1 so that depth is always at lowest bit
+        // Shift transaction index right by 1 so that depth is always at lowest bit.
         transactionIndex := shr(1, transactionIndex)
       }
 
-      // Computed Merkle tree root must match provided Merkle tree root
-      require(eq(computedHash, TransactionProof.merkleTreeRoot(transactionProof)),
-        error"invalid-merkle-root")
+      // If no leftish branches, we know it's a rightmost leaf.
+      rightmost := eq(leftish, false)
+
+      // Computed Merkle tree root must match provided Merkle tree root.
+      require(
+        eq(
+          computedHash,
+          TransactionProof.merkleTreeRoot(transactionProof)
+        ),
+        error"invalid-merkle-root"
+      )
     }
   }
 }

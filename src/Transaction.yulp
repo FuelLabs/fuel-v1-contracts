@@ -4,116 +4,151 @@ import "./Witness.yulp"
 import "./Metadata.yulp"
 import "./EIP712.yulp"
 
-/// @title Transaction object
+/// @title Transaction module.
 object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
   code {
-    // Minimum transaction size in bytes
+    // Minimum transaction size in bytes.
     const TRANSACTION_SIZE_MIN := 44
-    // Maximum transaction size in bytes
+
+    // Maximum transaction size in bytes.
     const TRANSACTION_SIZE_MAX := 896
-    // Maximum number of inputs per transaction
+
+    // Maximum number of inputs per transaction.
     const INPUTS_MAX := 8
-    // Maximum number of outputs per transaction
+
+    // Maximum number of outputs per transaction.
     const OUTPUTS_MAX := 8
-    // Empty leaf hash default value
+
+    // Empty leaf hash default value.
     const EMPTY_LEAF_HASH := 0
 
     /// @notice Merkle proof to specific input or output of a transaction in the rollup chain.
     mstruct TransactionProof (
-      // Address of block producer
-      blockProducer: address,           // <--- block header begins here
+      // Address of block producer.
+      blockProducer: address,           // <--- block header begins here.
       // Hash of previous block
       previousBlockHash: bytes32,
-      // Rollup block height
+      // Rollup block height.
       blockHeight: uint256,
-      // Ethereum block number
+      // Ethereum block number.
       blockNumber: uint256,
-      // Maximum registered token ID used through this rollup block
+      // Maximum registered token ID used through this rollup block.
       numTokens: uint256,
-      // Maximum registered address used through this rollup block
+      // Maximum registered address used through this rollup block.
       numAddresses: uint256,
       roots.length: uint16,
-      // List of transaction roots
-      roots: [bytes32],                 // <--- block header ends here
+      // List of transaction roots.
+      roots: [bytes32],                 // <--- block header ends here.
 
-      // Producer of root
-      rootProducer: address,            // <-- root header begins here
+      // Producer of root.
+      rootProducer: address,            // <-- root header begins here.
       // Root value
       merkleTreeRoot: bytes32,
-      // Hash of transactions committed to in root
+      // Hash of transactions committed to in root.
       commitmentHash: bytes32,
-      // Number of bytes for transactions committed to in root
+      // Number of bytes for transactions committed to in root.
       rootLength: uint256,
-      // Token ID of fees
+      // Token ID of fees.
       feeToken: uint256,
-      // Claimed feerate for all transactions in root
-      fee: uint256,                     // <--- root header ends here
-      // Index of root in list of roots
+      // Claimed feerate for all transactions in root.
+      fee: uint256,                     // <--- root header ends here.
+      // Index of root in list of roots.
       rootIndex: uint16,
 
       merkleProof.length: uint16,
-      // Merkle proof: neighbouring node values
+      // Merkle proof: neighbouring node values.
       merkleProof: [bytes32],
 
-      // Index of input or output of transaction
+      // Index of input or output of transaction.
       inputOutputIndex: uint8,
-      // Index of transaction in list of transactions in root
+      // Index of transaction in list of transactions in root.
       transactionIndex: uint16,
 
       transaction.length: uint16,
-      // Actual transaction leaf
-      transaction: [bytes1],            // <--- transaction data begins inside here
+      // Actual transaction leaf.
+      transaction: [bytes1],            // <--- transaction data begins inside here.
       data.length: uint8,
-      // Implicit list of unique identifiers being spent (UTXO ID, deposit ID)
+      // Implicit list of unique identifiers being spent (UTXO ID, deposit ID).
       data: [bytes32],
-      // Implicit token ID to pay fees in
+      // Implicit token ID to pay fees in.
       signatureFeeToken: uint256,
-      // Implicit fee rate
-      signatureFee: uint256,            // <--- transaction data ends here
+      // Implicit fee rate.
+      signatureFee: uint256,            // <--- transaction data ends here.
 
-      // Token address, used for invalid sum proofs
+      // Token address, used for invalid sum proofs.
       tokenAddress: address,
       // Return owner, used for HTLCs with expired timelock
-      returnOwner: address
+      returnOwner: address,
+      // Transaction Proof inputs length specifier.
+      inputProofs.length: uint16,
+      // Transaction inputs, will be used in proveInvalidWitness.
+      inputProofs: [bytes1]
     )
 
     /// @notice Leaf of transaction Merkle tree.
     mstruct TransactionLeaf (
-      // Length of leaf in bytes
+      // Length of leaf in bytes.
       length: uint16,
       metadata.length: uint8,
-      // List of metadata, one per input
+      // List of metadata, one per input.
       metadata: [bytes8],
       witnesses.length: uint16,
-      // List of witnesses
+      // List of witnesses.
       witnesses: [bytes1],
-      inputs.length: uint16,            // <--- transaction data begins here
-      // List of inputs
+      inputs.length: uint16,            // <--- transaction data begins here.
+      // List of inputs.
       inputs: [bytes1],
       outputs.length: uint16,
-      // List of outputs
+      // List of outputs.
       outputs: [bytes1]
     )
+
+    /// @notice Require index less than 8.
+    /// @param index The index pointer.
+    function requireIndexValid(index) {
+      require(
+        lt(
+          index,
+          INPUTS_MAX
+        ),
+        error"index-overflow"
+      )
+    }
 
     /// @notice Helper function to load a UTXO into memory for later use.
     function TransactionProof.UTXO.assign(proof, pos) {
       let output := selectOutput(proof)
 
-      // Return-type outputs are unspendable
-      require(neq(Output.type(output), OutputType.Return),
-        error"utxo-return")
+      // Return-type outputs are unspendable.
+      require(
+        neq(
+          Output.type(output),
+          OutputType.Return
+        ),
+        error"utxo-return"
+      )
 
-      // Owner must match
-      require(ownerEquates(output, TransactionProof.tokenAddress(proof)),
-        error"owner-equates")
+      // Owner must match.
+      require(
+        ownerEquates(
+          output,
+          TransactionProof.tokenAddress(proof)
+        ),
+        error"owner-equates"
+      )
 
-      // For HTLC UTXOs, return owner must match
+      // For HTLC UTXOs, return owner must match.
       if eq(Output.type(output), OutputType.HTLC) {
-        require(returnOwnerEquals(output, TransactionProof.returnOwner(proof)),
-          error"owner-return-equates")
+        require(
+          returnOwnerEquals(
+            output,
+            TransactionProof.returnOwner(proof)
+          ),
+          error"owner-return-equates"
+        )
       }
 
-      // Save the UTXO to memory
+      // Save the UTXO to memory.
       mstore(
         pos,
         transactionId(proof),
@@ -122,12 +157,12 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
         TransactionProof.tokenAddress(proof),
         outputAmount(output),
         Output.token.slice(output),
-        0, // digest
-        0, // expiry
-        0  // return witness
+        0, // digest.
+        0, // expiry.
+        0  // return witness.
       )
 
-      // If the UTXO is an HTLC type, make sure to save the extra required fields
+      // If the UTXO is an HTLC type, make sure to save the extra required fields.
       if eq(Output.type(output), OutputType.HTLC) {
         mstore(add(pos, 192), OutputHTLC.digest(output))
         mstore(add(pos, 224), OutputHTLC.expiry(output))
@@ -136,33 +171,33 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     }
 
     /// @notice Hash a UTXO.
-    /// @return The UTXO's hash as a bytes32
+    /// @return The UTXO's hash as a bytes32.
     function TransactionProof.UTXO.keccak256(proof) -> hash {
-      // Assign UTXO to memory
+      // Assign UTXO to memory.
       TransactionProof.UTXO.assign(proof, 0)
 
-      // Hash UTXO to get UTXO ID
+      // Hash UTXO to get UTXO ID.
       hash := UTXO.keccak256(0)
     }
 
     /// @notice Find the position of the start of the block substructure.
-    /// @return Position of block substructure as uint256
+    /// @return Position of block substructure as uint256.
     function TransactionProof.block(proof) -> pos {
       pos := TransactionProof.blockProducer.position(proof)
     }
 
     /// @notice Find the position of start of the root substructure.
-    /// @return Position of root substructure as uint256
+    /// @return Position of root substructure as uint256.
     function TransactionProof.root(proof) -> pos {
       pos := TransactionProof.rootProducer.position(proof)
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    // ABI Encoded Structures (Non-Tight Packed/Rolled)
+    // ABI Encoded Structures (Non-Tight Packed/Rolled).
     ////////////////////////////////////////////////////////////////////////////
 
     /// @notice Calculate the fee of a root. This is feerate x length of transactions in bytes.
-    /// @return Fee for root as uint256
+    /// @return Fee for root as uint256.
     function rootFee(proof, token) -> sum {
       if eq(TransactionProof.feeToken(proof), token) {
         sum := mul(TransactionProof.transaction.length(proof), TransactionProof.fee(proof))
@@ -170,95 +205,242 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     }
 
     /// @notice Get transaction ID from proof.
-    /// @return Transaction ID as bytes32
+    /// @return Transaction ID as bytes32.
     function transactionId(proof) -> hash {
       let leaf := TransactionProof.transaction.position(proof)
       // Transaction IDs are the EIP-712 hash of the non-witness transaction data.
-      // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md
+      // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-712.md.
       let start := TransactionLeaf.inputs.length.position(leaf)
       let end := TransactionProof.signatureFee.offset(proof)
       hash := eip712(keccak256(start, sub(end, start)))
     }
 
     /// @notice Find the position of the witness at a given index.
-    /// @return Position of witness as uint256
+    /// @return Position of witness as uint256.
     function TransactionProof.witness(proof, index) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       pos := TransactionLeaf.witnesses.position(leaf)
 
-      // Iterate through list of witnesses until index is reached
+      // Ensure the index is valid.
+      requireIndexValid(index)
+
+      // Iterate through list of witnesses until index is reached.
       for {} gt(index, 0) {} {
         pos := add(pos, witnessSize(pos))
         index := sub(index, 1)
       }
 
-      require(lt(pos, TransactionLeaf.witnesses.offset(leaf)), error"witness-position-overflow")
+      // This can be challenged in proveInvalidTransaction.
+      require(
+        lt(
+          pos,
+          TransactionLeaf.witnesses.offset(leaf)
+        ),
+        error"witness-position-overflow"
+      )
     }
 
     /// @notice Find the position of the witness with proof-specified index.
-    /// @return Position of witness as uint256
+    /// @return Position of witness as uint256.
     function TransactionProof.input.witness(proof) -> pos {
       let index := Input.witnessReference(selectInput(proof))
       pos := TransactionProof.witness(proof, index)
     }
 
+    /// @notice Get the initial merkle depth of a tree by given leaf count.
+    /// @param leafCount The number of current leafs.
+    /// @return depth The depth of the merkle tree.
+    function merkleTreeDepth(leafCount) -> depth {
+        let numNodes := leafCount
+        
+        // If the number of nodes is odd, than add one.
+        if gt(mod(numNodes, 2), 0) {
+            numNodes := add(numNodes, 1)
+        }
+  
+        // Go through each depth, right shift nodes by one along the way.
+        for {} gt(numNodes, 1) {} {
+            // If numNodes is odd, add one.
+            if gt(mod(numNodes, 2), 0) {
+                numNodes := add(numNodes, 1)
+            }
+            
+            // Shift num nodes right by one.
+            numNodes := shr(1, numNodes)
+
+            // Incease return depth of merkle tree.
+            depth := add(depth, 1)
+        }
+    }
+
+    /// @notice Get the number of leafs for a given balanced binary merkle tree.
+    /// @param leafCount The current number of leafs in the tree.
+    /// @return balanceCount The number of leafs after balancing.
+    function merkleTreeWidth(leafCount) -> balancedCount {
+        // The number of balanced base leafs is 2 ^ depths.
+        balancedCount := power(
+            2,
+            merkleTreeDepth(leafCount)
+        )
+    }
+
+    /// @notice This will compute an inner merkle hash.
+    /// @param start The start position in memory of the data.
+    /// @param lenth The length of the data.
+    /// @param prefix The one byte prefix for the data (usually 0x00 or 0x01).
+    /// @return The resulting leaf hash.
+    function computeMerkleNodeHash(start, length, prefix) -> hash {
+      // Get the byte before the start position of the transaction data.
+      let position := sub(start, 1)
+
+      // Slice out the data of this byte.
+      let bytebefore := mslice(position, 1)
+
+      // Override the byte before with a zero.
+      mstore8(position, prefix)
+
+      // Hash the transaction leaf.
+      hash := keccak256(position, add(length, 1))
+
+      // Put back the byte before it was hashed.
+      mstore8(position, bytebefore)
+    }
+
+    /// @notice Compute the transaction hash for a given leaf.
+    /// @param start The start position of the leaf.
+    /// @return leafHash The leaf hash.
+    function computeInnerNodeHash(start) -> leafHash {
+      // Here the prefix is zero for the computed transaction leaf hash.
+      leafHash := computeMerkleNodeHash(start, 64, 1)
+    }
+
+    /// @notice Compute the transaction hash for a given leaf.
+    /// @param start The start position of the leaf.
+    /// @param length The length position of the leaf.
+    /// @return leafHash The leaf hash.
+    function computeLeafHash(start, length) -> leafHash {
+      // Here the prefix is zero for the computed transaction leaf hash.
+      leafHash := computeMerkleNodeHash(start, length, 0)
+    }
+
+    /// @notice Compute the transaction hash for a given leaf.
+    /// @param start The start position of the leaf.
+    /// @param length The length position of the leaf.
+    /// @return leafHash The leaf hash.
+    function computeEmptyTransactionLeafHash() -> leafHash {
+      // Ensure memory 32 - 0 not empty, although not necessary for hash generation.
+      mstore(32, 0)
+
+      // Here the prefix is zero for the computed transaction leaf hash.
+      leafHash := computeMerkleNodeHash(32, 0, 0)
+    }
+
+    /// @notice Compute the transaction hash for a given leaf.
+    /// @param transactionProof The start position of the leaf.
+    /// @return leafHash The leaf hash.
+    function computeTransactionLeafHash(transactionProof) -> leafHash {
+      // Here the prefix is zero for the computed transaction leaf hash.
+      leafHash := computeLeafHash(
+        TransactionProof.transaction.position(transactionProof),
+        TransactionProof.transaction.length(transactionProof)
+      )
+    }
+
     /// @notice Find the position of the input with proof-specified index.
-    /// @return Position of input as uint256
+    /// @return Position of input as uint256.
     function selectInput(proof) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       let index := TransactionProof.inputOutputIndex(proof)
       pos := TransactionLeaf.inputs.position(leaf)
 
-      require(lt(index, INPUTS_MAX), error"input-index-overflow")
+      // Require the index be valid.
+      requireIndexValid(index)
 
+      // Go through each input until you get to the index you want.
       for {} gt(index, 0) {} {
         pos := add(pos, inputSize(pos))
         index := sub(index, 1)
       }
 
-      require(lt(pos, TransactionLeaf.inputs.offset(leaf)), error"input-position-overflow")
+      // Ensure the position doesn't overflow.
+      require(
+        lt(
+          pos,
+          TransactionLeaf.inputs.offset(leaf)
+        ),
+        error"input-position-overflow"
+      )
+    }
+
+    /// @notice Helper function: extact the inner data of an input.
+    /// @param transactionProof Position in memory of transaction proof.
+    /// @return The inner data (owner or preimage) of an input.
+    function inputInnerData(transactionProof) -> innerHash {
+      // Get offset of input specified in the proof.
+      let input := selectInput(transactionProof)
+
+      // In the case of Deposits, return the owner as the inner data.
+      if eq(Input.type(input), InputType.Deposit) {
+        innerHash := InputDeposit.owner(input)
+      }
     }
 
     /// @notice Extract metadata of output referenced by input from proof.
-    /// @return Metadata as bytes8
+    /// @return Metadata as bytes8.
     function inputReferencedMetadata(proof) -> id {
       let leaf := TransactionProof.transaction.position(proof)
       let index := TransactionProof.inputOutputIndex(proof)
+
+      // Return the metadata for this leaf at a specific index.
       id := TransactionLeaf.metadata(leaf, index)
     }
 
     /// @notice Find the position of the output with proof-specified index.
-    /// @return Position of output as uint256
+    /// @return Position of output as uint256.
     function selectOutput(proof) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       let index := TransactionProof.inputOutputIndex(proof)
       pos := TransactionLeaf.outputs.position(leaf)
 
-      require(lt(index, OUTPUTS_MAX), error"output-index-overflow")
+      // Require the index be less than 8.
+      requireIndexValid(index)
 
+      // Go through each output till you get to the selected index.
       for {} gt(index, 0) {} {
         pos := add(pos, outputSize(pos))
         index := sub(index, 1)
       }
 
-      require(lt(pos, TransactionLeaf.outputs.offset(leaf)), error"output-position-overflow")
+      // The position of the selected output must be less than the offset.
+      require(
+        lt(
+          pos,
+          TransactionLeaf.outputs.offset(leaf)
+        ),
+        error"output-position-overflow"
+      )
     }
 
     /// @notice Check if HTLC output has timed out.
-    /// @return If the output has timed out as bool
-    function outputExpired(input, proof) -> result {
+    /// @return If the output has timed out as bool.
+    function outputExpired(input, proof) -> expired {
+      // Select the output of this input.
       let output := selectOutput(input)
+
+      // Select the block number of the transaction proof.
       let blockNumber := TransactionProof.blockNumber(proof)
-      result := gt(blockNumber, OutputHTLC.expiry(output))
+
+      // Is the block number if this transaction make this HTLC expired.
+      expired := gte(blockNumber, OutputHTLC.expiry(output))
     }
 
     /// @notice Get total length of witneses, in bytes.
-    /// @return Length of witnesses as uint256
+    /// @return Length of witnesses as uint256.
     function witnessesLength(leaf) -> len {
       let pos := TransactionLeaf.witnesses.position(leaf)
       let end := TransactionLeaf.witnesses.offset(leaf)
 
-      // Iterate over witness lengths and accumulate
+      // Iterate over witness lengths and accumulate.
       for {} lt(pos, end) {} {
         pos := add(pos, witnessSize(pos))
         len := add(len, 1)
@@ -266,26 +448,47 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     }
 
     /// @notice Get total length of inputs, in bytes.
-    /// @return Length of inputs as uint256
+    /// @return Length of inputs as uint256.
     function inputsLength(leaf) -> len {
       let pos := TransactionLeaf.inputs.position(leaf)
       let end := TransactionLeaf.inputs.offset(leaf)
 
-      // Iterate over input lengths and accumulate
+      // Iterate over input lengths and accumulate.
       for {} lt(pos, end) {} {
         pos := add(pos, inputSize(pos))
         len := add(len, 1)
       }
     }
 
-    /// @notice Get total length of outputs, in bytes.
-    /// @return Length of outputs as uint256
+    /// @notice Get total length of inputs.
+    /// @param proof TransactionProof position.
+    /// @return Length of inputs as uint256.
+    function TransactionProof.inputs.length(proof) -> len {
+      let leaf := TransactionProof.transaction.position(proof)
+
+      // Now calculate the inputs length.
+      len := inputsLength(leaf)
+    }
+
+    /// @notice Get total length of metadata.
+    /// @param proof TransactionProof position.
+    /// @return Length of metadata as uint256.
+    function TransactionProof.metadata.length(proof) -> len {
+      let leaf := TransactionProof.transaction.position(proof)
+
+      // Now calculate the inputs length.
+      len := TransactionLeaf.metadata.length(leaf)
+    }
+
+    /// @notice Get total length of outputs.
+    /// @param proof TransactionProof position.
+    /// @return Length of outputs as uint256.
     function TransactionProof.outputs.length(proof) -> len {
       let leaf := TransactionProof.transaction.position(proof)
       let pos := TransactionLeaf.outputs.position(leaf)
       let end := TransactionLeaf.outputs.offset(leaf)
 
-      // Iterate over output lengths and accumulate
+      // Iterate over output lengths and accumulate.
       for {} lt(pos, end) {} {
         pos := add(pos, outputSize(pos))
         len := add(len, 1)
@@ -313,53 +516,74 @@ object "Transaction" is "EIP712", "Metadata", "Witness", "Inputs", "Outputs" {
     }
 
     /// @notice Find the position of the metadata with given index.
-    /// @return Position of metadata as uint256
+    /// @return Position of metadata as uint256.
     function selectMetadata(proof, index) -> pos {
       let leaf := TransactionProof.transaction.position(proof)
       pos := TransactionLeaf.metadata.position(leaf)
 
-      require(lt(index, INPUTS_MAX), error"input-index-overflow")
+      // Ensure the selected index is less than 8.
+      requireIndexValid(index)
 
+      // Go through each metadata until your at the index you want.
       for {} gt(index, 0) {} {
         pos := add(pos, METADATA_SIZE)
         index := sub(index, 1)
       }
 
-      require(lt(pos, TransactionLeaf.metadata.offset(leaf)), error"input-position-overflow")
+      // Ensure no positional overflow from the metadata.
+      require(
+        lt(
+          pos,
+          TransactionLeaf.metadata.offset(leaf)
+        ),
+        error"input-position-overflow"
+      )
     }
 
     /// @notice Recover witness address from proof.
     /// @return Recovered address as address. 0 on fail.
     function recoverFromWitness(witness, proof) -> addr {
+      // Switch between different types of signature.
       switch Signature.type(witness)
 
+      // If the signature type is a Signature (i.e. sepck256).
       case WitnessType.Signature {
         addr := ecrecover(transactionId(proof), witness)
       }
 
+      // If the signature type is a Caller (i.e. noted in state).
       case WitnessType.Caller {
         addr := Caller.owner(witness)
 
+        // There must be a witness available at the specified owner + blockNumber combination.
         if neq(witnessAt(addr, Caller.blockNumber(witness)), transactionId(proof)) {
           addr := 0
         }
       }
 
+      // If the type is a Producer (i.e. the block producer).
       case WitnessType.Producer {
         addr := TransactionProof.blockProducer(proof)
 
+        // The hash must be specifically this transaction hash.
         if neq(Producer.hash(witness), transactionId(proof)) {
           addr := 0
         }
       }
 
-      default { require(0, error"witness-type") }
+      // If the type is invalid revert. Handle this in proveInvalidTransaction.
+      default {
+        require(0, error"witness-type")
+      }
     }
 
     /// @notice ecrecover witness with proof-specified index.
-    /// @return Recovered address as address
+    /// @return Recovered address as address.
     function TransactionProof.input.recoverWitness(proof) -> addr {
+      // Select the input witness.
       let witness := TransactionProof.input.witness(proof)
+
+      // Recover the address of the selected witness.
       addr := recoverFromWitness(witness, proof)
     }
   }
