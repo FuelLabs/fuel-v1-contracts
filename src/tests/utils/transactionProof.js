@@ -2,7 +2,7 @@
 /// @dev Prove complex transaction to be valid in summing, witness, input checks.
 const { utils } = require('@fuel-js/environment');
 const { pack, combine, struct } = require('@fuel-js/struct');
-const { merkleProof, rightmostIndex, computeTransactionLeaf } = require('@fuel-js/protocol2/src/merkle');
+const { merkleProof, rightmostIndex, computeTransactionLeaf } = require('@fuel-js/protocol/src/merkle');
 
 const _TransactionProof = struct(`
     address producer,

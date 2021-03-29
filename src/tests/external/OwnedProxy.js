@@ -1,7 +1,7 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../../builds/Fuel.json');
 const OwnedProxy = require('../../builds/OwnedProxy.json');
-const { BlockHeader, RootHeader } = require('@fuel-js/protocol2/src/block');
+const { BlockHeader, RootHeader } = require('@fuel-js/protocol/src/block');
 const { defaults } = require('../utils/harness');
 const ethers = require('ethers');
 const multisigAbi = require('../utils/multisig.abi.json');

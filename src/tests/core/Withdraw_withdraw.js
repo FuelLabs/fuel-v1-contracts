@@ -6,10 +6,10 @@ const Revert = require('../../builds/Revert.json');
 const ReserseAbi = require('../utils/reverse.abi.json');
 const ReserseBytecode = require('../utils/reverse.bytecode.js');
 const { BlockHeader, RootHeader,
-    merkleTreeRoot } = require('@fuel-js/protocol2/src/block');
-const tx = require('@fuel-js/protocol2/src/transaction');
-const { Deposit } = require('@fuel-js/protocol2/src/deposit');
-const protocol = require('@fuel-js/protocol2');
+    merkleTreeRoot } = require('@fuel-js/protocol/src/block');
+const tx = require('@fuel-js/protocol/src/transaction');
+const { Deposit } = require('@fuel-js/protocol/src/deposit');
+const protocol = require('@fuel-js/protocol');
 const { defaults } = require('../utils/harness');
 
 module.exports = test('Withdraw', async t => { try {

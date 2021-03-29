@@ -1,6 +1,6 @@
 const { test, utils } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../../builds/Fuel.json');
-const block = require('@fuel-js/protocol2/src/block');
+const block = require('@fuel-js/protocol/src/block');
 const { defaults } = require('../utils/harness.js');
 
 module.exports = test('Fuel_constructor', async t => { try {
