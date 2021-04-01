@@ -2,8 +2,8 @@ const { test, utils, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../../builds/Fuel.json');
 const ERC20 = require('../../builds/ERC20.json');
 const { combine, chunkJoin } = require('@fuel-js/struct');
-const { BlockHeader, RootHeader, merkleTreeRoot } = require('@fuel-js/protocol2/src/block');
-const protocol = require('@fuel-js/protocol2');
+const { BlockHeader, RootHeader, merkleTreeRoot } = require('@fuel-js/protocol/src/block');
+const protocol = require('@fuel-js/protocol');
 const { defaults } = require('../utils/harness');
 
 module.exports = test('InvalidTransaction', async t => {

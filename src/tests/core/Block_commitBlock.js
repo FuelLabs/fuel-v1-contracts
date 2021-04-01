@@ -1,6 +1,6 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../../builds/Fuel.json');
-const { BlockHeader, RootHeader } = require('@fuel-js/protocol2/src/block');
+const { BlockHeader, RootHeader } = require('@fuel-js/protocol/src/block');
 const { defaults } = require('../utils/harness.js');
 
 module.exports = test('Block_commitBlock', async t => { try {

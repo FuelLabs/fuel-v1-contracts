@@ -4,9 +4,9 @@ const { combine, chunkJoin } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../../builds/Fuel.json');
 const ERC20 = require('../../builds/ERC20.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot } = require('@fuel-js/protocol2/src/block');
-const tx = require('@fuel-js/protocol2/src/transaction');
-const { Deposit } = require('@fuel-js/protocol2/src/deposit');
+    merkleTreeRoot } = require('@fuel-js/protocol/src/block');
+const tx = require('@fuel-js/protocol/src/transaction');
+const { Deposit } = require('@fuel-js/protocol/src/deposit');
 
 /// @notice Random number util.
 function rand(min, max) {

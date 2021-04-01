@@ -1,7 +1,7 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
 const { bytecode, abi, errors } = require('../../builds/Fuel.json');
 const Proxy = require('../../builds/Proxy.json');
-const { RootHeader } = require('@fuel-js/protocol2/src/block');
+const { RootHeader } = require('@fuel-js/protocol/src/block');
 const { defaults } = require('../utils/harness');
 
 module.exports = test('Root_commitRoot', async t => { try {

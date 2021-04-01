@@ -1,9 +1,9 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
 const { chunk, combine } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../../builds/Fuel.json');
-const { BlockHeader, RootHeader, Leaf, merkleTreeRoot } = require('@fuel-js/protocol2/src/block');
+const { BlockHeader, RootHeader, Leaf, merkleTreeRoot } = require('@fuel-js/protocol/src/block');
 const { defaults } = require('../utils/harness');
-const { _Transaction } = require('@fuel-js/protocol2/src/transaction');
+const { _Transaction } = require('@fuel-js/protocol/src/transaction');
 
 module.exports = test('MalformedBlock', async t => { try {
     const minTransactionSize = 44 - 2;

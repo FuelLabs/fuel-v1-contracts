@@ -20,9 +20,9 @@ const { bytecode, abi, errors } = require('../../builds/Fuel.json');
 const OwnedProxy = require('../../builds/OwnedProxy.json');
 const ERC20 = require('../../builds/ERC20.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot } = require('@fuel-js/protocol2/src/block');
-const tx = require('@fuel-js/protocol2/src/transaction');
-const { Deposit } = require('@fuel-js/protocol2/src/deposit');
+    merkleTreeRoot } = require('@fuel-js/protocol/src/block');
+const tx = require('@fuel-js/protocol/src/transaction');
+const { Deposit } = require('@fuel-js/protocol/src/deposit');
 
 module.exports = test('Simulation', async t => {
     // Setup Addresses

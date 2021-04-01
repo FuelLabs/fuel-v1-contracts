@@ -1,8 +1,8 @@
 const { test, utils, overrides } = require('@fuel-js/environment');
 const { chunk, combine } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../../builds/Fuel.json');
-const { BlockHeader, RootHeader, Leaf, merkleTreeRoot } = require('@fuel-js/protocol2/src/block');
-const protocol = require('@fuel-js/protocol2');
+const { BlockHeader, RootHeader, Leaf, merkleTreeRoot } = require('@fuel-js/protocol/src/block');
+const protocol = require('@fuel-js/protocol');
 const { defaults } = require('../utils/harness');
 const DSTokenAbi = require('../utils/dstoken.abi.json');
 const DSBytecode = require('../utils/dstoken.bytecode.js');

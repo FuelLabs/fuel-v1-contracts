@@ -3,9 +3,9 @@ const { chunk, combine } = require('@fuel-js/struct');
 const { bytecode, abi, errors } = require('../../builds/Fuel.json');
 const ERC20 = require('../../builds/ERC20.json');
 const { BlockHeader, RootHeader, Leaf,
-    merkleTreeRoot } = require('@fuel-js/protocol2/src/block');
-const tx = require('@fuel-js/protocol2/src/transaction');
-const { Deposit } = require('@fuel-js/protocol2/src/deposit');
+    merkleTreeRoot } = require('@fuel-js/protocol/src/block');
+const tx = require('@fuel-js/protocol/src/transaction');
+const { Deposit } = require('@fuel-js/protocol/src/deposit');
 const { defaults } = require('../utils/harness');
 
 /// @dev try various valid and invalid merkle proofs.
