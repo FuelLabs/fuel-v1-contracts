@@ -59,3 +59,13 @@ Run all benchmarks using:
 ```sh
 npm run benchmark
 ```
+
+### Run Verify
+
+Verify the Mainnet deployment of Fuel using:
+
+```sh
+npm run verify
+```
+
+Specify an [Infura](https://infura.io/) developer key as `fuel_v1_default_infura` in your environment variables.
