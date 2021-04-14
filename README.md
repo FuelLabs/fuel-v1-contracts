@@ -68,4 +68,4 @@ Verify the Mainnet deployment of Fuel using:
 npm run verify
 ```
 
-Specify an [Infura](https://infura.io/) developer key as `fuel_v1_default_infura` in your environment variables.
+Specify an [Infura](https://infura.io/) `Project ID` key as `fuel_v1_default_infura` in your environment variables.
